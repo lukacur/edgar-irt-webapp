@@ -352,6 +352,31 @@ export class Main {
                         .json(calculations);
                 }
             )
+            .addEndpoint(
+                "GET",
+                "/statprocessing/calculation/:calculationId/included-cademic-years",
+                async (req, res) => {
+                    const calcId = req.params['calculationId'];
+                    if (!calcId) {
+                        res.sendStatus(400);
+                        return;
+                    }
+
+                    const conn = DbConnProvider.getDbConn();
+
+                    const questionIRTParameters: number[] =
+                        ((await conn.doQuery<{ id_academic_year: number }>(
+                            `SELECT *
+                            FROM statistics_schema.question_param_calculation_academic_year
+                            WHERE id_question_param_calculation = $1`,
+                            [calcId],
+                        ))?.rows ?? []).map(e => e.id_academic_year);
+
+                    res
+                        .status(200)
+                        .json(questionIRTParameters);
+                }
+            )
             //#endregion
 
             //#region Course and Edgar base related endpoints
