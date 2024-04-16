@@ -1,0 +1,11 @@
+{
+    "host": "127.0.0.1",
+    "port": 5433,
+    "database": "edgar",
+    "schema": "public",
+    "user": "postgres",
+    "password": "bazepodataka",
+
+    "minConnections": 10,
+    "maxConnections": 20
+}

@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "rootDirs": [ "./src/" ],
+        "moduleResolution": "Node16",
+        "outDir": "./dist/",
+        "strict": true,
+        "noImplicitAny": true,
+        "target": "ES2015",
+        "module": "Node16",
+        "experimentalDecorators": true
+    }
+}
