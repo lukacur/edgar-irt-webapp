@@ -12,6 +12,7 @@
         <div
             class="w-11/12 text-slate-500 mb-2 rounded"
             *ngFor="let item of menuItems"
+            (click)="itemSelected.emit(item)"
         >
             <app-navbar-item
                 [menuItem]="item"

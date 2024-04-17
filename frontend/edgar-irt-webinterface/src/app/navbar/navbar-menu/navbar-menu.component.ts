@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { IMenuItem } from '../models/menu-item.model.js';
 
 @Component({
@@ -7,6 +7,9 @@ import { IMenuItem } from '../models/menu-item.model.js';
 })
 export class NavbarMenuComponent implements OnInit {
     menuItems: IMenuItem[] = [];
+
+    @Output("itemSelected")
+    itemSelected: EventEmitter<IMenuItem> = new EventEmitter();
 
     constructor() { }
 
