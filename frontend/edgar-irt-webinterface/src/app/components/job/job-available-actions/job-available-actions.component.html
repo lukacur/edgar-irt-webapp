@@ -1,0 +1,25 @@
+<div class="flex flex-col">
+    <div class="p-2 w-full">
+        <h2 class="text-lg text-slate-600">Job overview</h2>
+        <hr class="my-3">
+        <p class="mb-3">
+            Allows you to overview jobs, see job execution history and restart jobs of your choosing
+        </p>
+
+        <button [routerLink]="['overview']" mat-flat-button color="secondary">
+            Go to job overview
+        </button>
+    </div>
+
+    <div class="p-2 w-full mt-6">
+        <h2 class="text-lg text-slate-600">Job execution</h2>
+        <hr class="my-3">
+        <p class="mb-3">
+            Allows you to schedule jobs for execution on the Edgar job execution framework
+        </p>
+
+        <button [routerLink]="['execution']" mat-flat-button color="secondary">
+            Go to job execution
+        </button>
+    </div>
+</div>
