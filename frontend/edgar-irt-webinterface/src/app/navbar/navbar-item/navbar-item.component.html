@@ -1,0 +1,11 @@
+<div
+    routerLinkActive="router-link-active"
+    [title]="menuItem.tooltip"
+>
+    <button
+        [routerLink]="menuItem.navigateTo"
+        class="w-full"
+        mat-raised-button
+            color="primary"
+    >{{ menuItem.title }}</button>
+</div>

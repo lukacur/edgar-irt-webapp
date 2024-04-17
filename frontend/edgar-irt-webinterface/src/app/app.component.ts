@@ -6,5 +6,10 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'edgar-irt-webinterface';
+    title = 'edgar-irt-webinterface';
+
+    menuHidden: boolean = false;
+    toggleMenu() {
+        this.menuHidden = !this.menuHidden;
+    }
 }

@@ -1,0 +1,21 @@
+
+<div class="px-2 w-full">
+    <div class="flex items-center justify-center mt-3">
+        <h1 class="text-blue-500 text-center align-middle">
+            Edgar IRT service demo web application
+        </h1>
+    </div>
+
+    <hr class="my-3">
+
+    <div class="flex flex-col items-center justify-stretch">
+        <div
+            class="w-11/12 text-slate-500 mb-2 rounded"
+            *ngFor="let item of menuItems"
+        >
+            <app-navbar-item
+                [menuItem]="item"
+            ></app-navbar-item>
+        </div>
+    </div>
+</div>

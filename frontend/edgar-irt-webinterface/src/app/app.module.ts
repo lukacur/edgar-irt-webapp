@@ -3,6 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import { NavbarModule } from './navbar/navbar.module';
 import { MatIconModule } from '@angular/material';
 
 @NgModule({
@@ -11,6 +12,8 @@ import { MatIconModule } from '@angular/material';
   ],
   imports: [
     BrowserModule,
+    AppRoutingModule,
+    NavbarModule,
     MatIconModule,
   ],
   providers: [],
