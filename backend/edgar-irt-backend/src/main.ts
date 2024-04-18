@@ -21,6 +21,7 @@ type EdgarJobFrameworkJobType = {
     id: number;
     abbrevation: string;
     title: string;
+    description: string;
     request_form: object;
 };
 

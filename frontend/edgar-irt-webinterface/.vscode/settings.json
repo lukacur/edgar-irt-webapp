@@ -1,3 +1,4 @@
 {
     "javascript.preferences.importModuleSpecifier": "shortest",
+    "javascript.preferences.importModuleSpecifierEnding": "minimal"
 }

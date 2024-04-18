@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { Route, RouterModule } from '@angular/router';
 import { JobOverviewComponent } from './job-overview/job-overview.component';
 import { JobListItemComponent } from './job-overview/job-list-item/job-list-item.component';
-import { MatIconModule, MatSelectModule } from '@angular/material';
+import { MatIconModule, MatSlideToggleModule } from '@angular/material';
 import { JobStepItemComponent } from './job-overview/job-list-item/job-step-item/job-step-item.component';
 import { JobExecutionComponent } from './job-execution/job-execution.component';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -45,7 +45,7 @@ const routes: Route[] = [
         RouterModule,
         MatButtonModule,
         MatIconModule,
-        MatSelectModule,
+        MatSlideToggleModule,
         ReactiveFormsModule,
     ]
 })
