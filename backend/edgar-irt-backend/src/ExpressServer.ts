@@ -1,4 +1,5 @@
 import bodyParser from "body-parser";
+import cors from "cors";
 import express, { NextFunction, Request, RequestHandler, Response } from "express";
 import { Express } from 'express-serve-static-core';
 import { Server } from "http";
@@ -11,7 +12,7 @@ export class ExpressServer {
     ) {}
 
     public static initialize() {
-        return new ExpressServer(express());
+        return new ExpressServer(express().use(cors()));
     }
 
     public addEndpoint(method: "GET" | "POST" | "PUT" | "DELETE", endpoint: string, ...handlers: RequestHandler[]): ExpressServer {
