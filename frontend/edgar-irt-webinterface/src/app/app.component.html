@@ -22,8 +22,11 @@
         </div>
     
         <div
-            class="mt-3 p-3 z-[1000]"
-            [ngClass]="{ 'hidden md:block': !menuHidden, 'basis-full w-full': menuHidden }"
+            class="mt-3 p-3 z-[1000] overflow-auto"
+            [ngClass]="{
+                'hidden md:block md:w-7/12 xl:w-3/4 md:basis-7/12 xl:basis-3/4': !menuHidden,
+                'basis-full w-full': menuHidden
+            }"
         >
             <router-outlet></router-outlet>
         </div>
