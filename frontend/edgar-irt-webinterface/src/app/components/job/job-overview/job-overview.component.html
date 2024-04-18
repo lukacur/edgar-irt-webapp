@@ -1,1 +1,9 @@
-<p>job-overview works!</p>
+<div>
+    <div class="flex flex-col">
+        <div *ngFor="let job of (jobs$ | async)">
+            <app-job-list-item
+                [jobInfo]="job"
+            ></app-job-list-item>
+        </div>
+    </div>
+</div>

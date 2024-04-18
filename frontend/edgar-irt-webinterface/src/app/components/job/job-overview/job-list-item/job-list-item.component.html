@@ -1,0 +1,58 @@
+<div class="shadow-md mb-3 p-2 rounded border border-slate-200 w-full">
+    <div class="flex cursor-pointer w-full items-center" (click)="jobExpanded = !jobExpanded">
+        <mat-icon class="inline-block w-fit select-none me-2">
+            {{ (jobExpanded) ? 'expand_more' : 'chevron_right' }}
+        </mat-icon>
+        <h2>
+            Job {{ jobInfo.id }} <span [classList]="[getJobStatusColor()]">{{ getJobStatusText() }}</span>
+            <button class="ms-2" mat-stroked-button color="primary" (click)="restartJob($event)">Restart job</button>
+        </h2>
+    </div>
+
+    <div *ngIf="jobExpanded">
+        <div class="flex flex-col mt-3">
+            <div class="w-full border shadow-md mb-2 p-2 rounded">
+                <h3>Job name</h3>
+                <hr class="my-2 w-full">
+                <p>{{ jobInfo.name }}</p>
+            </div>
+    
+            <div class="w-full border shadow-md mb-2 p-2 rounded">
+                <h3>Job status message</h3>
+                <hr class="my-2 w-full">
+                <p>{{ jobInfo.job_status_message }}</p>
+            </div>
+    
+            <div class="w-full border shadow-md mb-2 p-2 rounded">
+                <h3>Job started on</h3>
+                <hr class="my-2 w-full">
+                <p>{{ jobInfo.started_on | date:"dd. MM. yyyy. HH:mm:ss" }}</p>
+            </div>
+    
+            <div class="w-full border shadow-md mb-2 p-2 rounded">
+                <h3>Job finished on</h3>
+                <hr class="my-2 w-full">
+                <p>{{ (jobInfo.finished_on === null) ? "-" : jobInfo.finished_on | date:"dd. MM. yyyy. HH:mm:ss" }}</p>
+            </div>
+        </div>
+    
+        <hr class="my-2">
+    
+        <div>
+            <div class="flex cursor-pointer" (click)="stepsExpanded = !stepsExpanded">
+                <mat-icon class="inline-block w-fit select-none">
+                    {{ (stepsExpanded) ? 'expand_more' : 'chevron_right' }}
+                </mat-icon>
+                <div>Job steps<span [ngClass]="{ 'hidden': stepsFetched }"> (click to fetch and expand)</span></div>
+            </div>
+            <hr class="my-3">
+            <div *ngIf="stepsExpanded">
+                <div *ngFor="let step of (jobSteps$ | async)">
+                    <app-job-step-item
+                        [jobStep]="step"
+                    ></app-job-step-item>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

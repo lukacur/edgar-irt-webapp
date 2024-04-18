@@ -1,0 +1,14 @@
+<div>
+    <form [formGroup]="jobExecutionForm">
+        <div *ngIf="jobExecutionFlowStep === 0">
+            <select formControlName="jobType">
+                <option *ngFor="let jt of (availableJobTypes$ | async)" [value]="jt.id">
+                    ({{ jt.abbrevation }}) {{ jt.title }}
+                </option>
+            </select>
+        </div>
+
+        <button type="button" (click)="fooClick()">OK</button>
+    </form>
+
+</div>
