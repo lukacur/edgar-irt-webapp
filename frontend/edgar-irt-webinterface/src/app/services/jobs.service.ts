@@ -2,9 +2,10 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { IJob } from '../models/jobs/job.model';
-import { Observable, tap } from 'rxjs';
+import { map, Observable, tap } from 'rxjs';
 import { IJobStep } from '../models/jobs/job-step.model.js';
 import { IJobType } from '../models/jobs/job-type.model.js';
+import { IStartJobRequest } from '../models/jobs/start-job-request.model.js';
 
 @Injectable({
     providedIn: 'root'
@@ -41,13 +42,29 @@ export class JobsService {
     restartJob(jobId: string): Observable<void> {
         return this.http
             .post<void>(
-                `${environment.backendServerInfo.applicationAddress}/job/${jobId}/restart`,
+                `${environment.backendServerInfo.applicationAddress}/job/restart`,
                 { jobId }
-            )
+            );
     }
 
-    startJob() {
-        
-    }
+    startJob<TRequest>(request: IStartJobRequest<TRequest>): Observable<void> {
+        if (request.idJobType !== 1) {
+            throw new Error(`Sorry, but job type ${request.idJobType} is not supported yet`);
+        }
 
+        return this.http
+            .post<void>(
+                `${environment.backendServerInfo.applicationAddress}/job/start`,
+                request,
+                {
+                    observe: "response",
+                }
+            ).pipe(map(resp => {
+                if (resp.status !== 202) {
+                    throw new Error("Unable to accept user request");
+                }
+
+                return;
+            }));
+    }
 }
