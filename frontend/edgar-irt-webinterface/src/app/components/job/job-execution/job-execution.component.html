@@ -8,9 +8,13 @@
                     'bg-white cursor-pointer': jobExecutionFlowStep === 0,
                     'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 0
                 }"
-                formControlName="jobType"
+                formControlName="idJobType"
             >
-                <option *ngFor="let jt of (availableJobTypes$ | async)" [value]="jt.id" (click)="selectedJobType = jt">
+                <option
+                    *ngFor="let jt of (availableJobTypes$ | async)"
+                    [ngValue]="jt.id"
+                    (click)="selectedJobType = jt"
+                >
                     ({{ jt.abbrevation }}) {{ jt.title }}
                 </option>
             </select>
@@ -31,76 +35,157 @@
             class="shadow-md border border-slate-200 p-3 mt-3"
             *ngIf="jobExecutionFlowStep >= 1"
         >
-            <h2 class="mb-3">Job configuration</h2>
-            <hr class="my-2">
-            <p class="mb-3">Please configure the selected job below:</p>
-            <hr class="my-2">
+            <div formGroupName="jobSpecificConfiguration">
+                <h2 class="mb-3">Job configuration</h2>
+                <hr class="my-2">
+                <p class="mb-3">Please configure the selected job below:</p>
+                <hr class="my-2">
+    
+                <div>
+                    <label class="text-sm">Calculate for course</label>
+                    <select
+                        class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
+                        [ngClass]="{
+                            'bg-white cursor-pointer': jobExecutionFlowStep === 1,
+                            'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
+                        }"
+                        formControlName="idCourse"
+                    >
+                        <option *ngFor="let course of (courses$ | async)" [ngValue]="course.id">
+                            ({{ course.course_acronym }}) {{ course.course_name }} - {{ course.ects_credits }}
+                        </option>
+                    </select>
+                </div>
+    
+                <div>
+                    <label class="text-sm">Start academic year</label>
+                    <select
+                        class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
+                        [ngClass]="{
+                            'bg-white cursor-pointer': jobExecutionFlowStep === 1,
+                            'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
+                        }"
+                        formControlName="idStartcademicYear"
+                    >
+                        <option *ngFor="let acYear of (academicYears$ | async)" [ngValue]="acYear.id">
+                            {{ acYear.title }} ({{ acYear.date_start | date:"dd. MM. yyyy." }} - {{ acYear.date_end | date:"dd. MM. yyyy." }})
+                        </option>
+                    </select>
+                </div>
+    
+                <div>
+                    <label class="text-sm">
+                        Number of included previous years
+                        <mat-icon
+                            class="cursor-pointer text-sm"
+                            title=
+                            "Number of academic years the calculation will include not counting the selected academic year"
+                            (click)="
+                                tooltip.classList.contains('hidden') ?
+                                    tooltip.classList.remove('hidden') :
+                                    tooltip.classList.add('hidden')"
+                        >help</mat-icon>
+                        <div #tooltip class="hidden text-xs">
+                            Number of academic years the calculation will include not counting the selected academic year
+                        </div>
+                    </label>
+                    <!--input
+                        class="p-3 bg-white border border-slate-500/50 rounded w-full"
+                        [ngClass]="{
+                            'bg-white': jobExecutionFlowStep === 1,
+                            'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
+                        }"
+                        formControlName="numberOfIncludedPreviousYears"
+    
+                        type="number"
+    
+                        min="-1"
+                    -->
+    
+                    <select
+                        class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
+                        [ngClass]="{
+                            'bg-white cursor-pointer': jobExecutionFlowStep === 1,
+                            'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
+                        }"
+                        formControlName="numberOfIncludedPreviousYears"
+                    >
+                        <option [ngValue]="-1">All time (up to selected year)</option>
+                        <option [ngValue]="0">Only selected year</option>
+                        <option *ngFor="let choice of previousIncludedYearsChoices" [ngValue]="choice">
+                            {{ choice }}
+                        </option>
+                    </select>
+                </div>
+    
+                <div class="mb-3">
+                    <label class="text-sm">
+                        Maximum job timeout (ms)
+                        <mat-icon
+                            class="cursor-pointer text-sm"
+                            title="For most jobs 200000 ms should be enogh"
+                            (click)="
+                                tooltip.classList.contains('hidden') ?
+                                    tooltip.classList.remove('hidden') :
+                                    tooltip.classList.add('hidden')"
+                        >help</mat-icon>
+                        <div #tooltip class="hidden text-xs">For most jobs 200000 ms should be enogh</div>
+                    </label>
+                    <input
+                        class="p-3 bg-white border border-slate-500/50 rounded w-full"
+                        [ngClass]="{
+                            'bg-white': jobExecutionFlowStep === 1,
+                            'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
+                        }"
+                        formControlName="maxJobTimeoutMs"
+    
+                        type="number"
+    
+                        min="0"
+                    >
+                </div>
 
-            <div>
-                <label class="text-sm">Calculate for course</label>
-                <select
-                    class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
-                    [ngClass]="{
-                        'bg-white cursor-pointer': jobExecutionFlowStep === 1,
-                        'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
-                    }"
-                    formControlName="course"
-                >
-                    <option *ngFor="let course of (courses$ | async)" [value]="course.id">
-                        ({{ course.course_acronym }}) {{ course.course_name }} - {{ course.ects_credits }}
-                    </option>
-                </select>
+                <hr class="my-3">
+
+                <div class="flex w-full justify-start">
+                    <label class="text-sm me-5 w-1/4">Force the calculation?</label>
+                    <mat-slide-toggle
+                        color="secondary"
+                        formControlName="forceCalculation"
+                    ></mat-slide-toggle>
+                </div>
             </div>
 
-            <div>
-                <label class="text-sm">Start academic year</label>
-                <select
-                    class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
-                    [ngClass]="{
-                        'bg-white cursor-pointer': jobExecutionFlowStep === 1,
-                        'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
-                    }"
-                    formControlName="academicYear"
-                >
-                    <option *ngFor="let acYear of (academicYears$ | async)" [value]="acYear.id">
-                        {{ acYear.title }} ({{ acYear.date_start | date:"dd. MM. yyyy." }} - {{ acYear.date_start | date:"dd. MM. yyyy." }})
-                    </option>
-                </select>
-            </div>
+            <hr class="my-3">
 
-            <div>
-                <label class="text-sm">Number of included previous years</label>
+            <div class="mb-3">
+                <label class="text-sm">Job name (optional)</label>
                 <input
-                    class="p-3 bg-white border border-slate-500/50 rounded w-full"
+                    class="p-3 bg-white border border-slate-500/50 rounded w-full resize-none"
                     [ngClass]="{
                         'bg-white': jobExecutionFlowStep === 1,
                         'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
                     }"
-                    formControlName="numberOfIncludedPreviousYears"
-
-                    type="number"
-
-                    min="-1"
+                    type="text"
+                    formControlName="jobName"
                 >
             </div>
 
-            <div>
-                <label class="text-sm">
-                    Maximum job timeout (ms) <span class="cursor-pointer" title="For most jobs 200000 ms should be enogh">?</span>
-                </label>
-                <input
-                    class="p-3 bg-white border border-slate-500/50 rounded w-full"
+            <div class="mb-3">
+                <label class="text-sm">Note (optional)</label>
+                <textarea
+                    class="p-3 bg-white border border-slate-500/50 rounded w-full resize-none"
                     [ngClass]="{
                         'bg-white': jobExecutionFlowStep === 1,
                         'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
                     }"
-                    formControlName="maxJobTimeoutMs"
-
-                    type="number"
-
-                    min="0"
-                >
+                    cols="30"
+                    rows="10"
+                    formControlName="userNote"
+                ></textarea>
             </div>
+
+            <hr class="my-3">
 
             <div class="flex w-full justify-start mb-3">
                 <label class="text-sm me-5 w-1/4">Is periodical?</label>
@@ -110,29 +195,59 @@
                 ></mat-slide-toggle>
             </div>
 
-            <div class="flex w-full justify-start">
-                <label class="text-sm me-5 w-1/4">Force the calculation?</label>
-                <mat-slide-toggle
-                    color="secondary"
-                    formControlName="forceCalculation"
-                ></mat-slide-toggle>
+            <hr class="my-3">
+
+            <div *ngIf="jobExecutionFlowStep === 1">
+                <button
+                    class="p-3 text-center align-middle mat-button"
+                    type="button"
+                    (click)="advanceToFlowStep(2)"
+                    [disabled]="!jobExecutionForm.get('jobSpecificConfiguration')?.valid"
+                    mat-raised-button
+                    color="primary"
+                >Next</button> |
+                <button
+                    class="p-3 text-center align-middle mat-button"
+                    type="button"
+                    (click)="advanceToFlowStep(0)"
+                    mat-raised-button
+                    color="accent"
+                ><mat-icon class="m-0 p-0 inline">arrow_left</mat-icon>Back</button>
+            </div>
+        </div>
+
+        <div class="shadow-md shadow-gray-500/50 border-slate-500/75 p-3 mt-3" *ngIf="jobExecutionFlowStep === 2">
+            <div class="mb-3">
+                <h2>Confirm action</h2>
+                <hr class="my-3">
+                <p>
+                    Please overview the configuration that you entered above and confirm that you want to start the job.
+                </p>
             </div>
 
-            <!-- 
+            <div class="flex flex-col md:flex-row justify-center md:justify-start items-center">
+                <div class="w-full sm:w-7/12 md:w-auto md:me-3">
+                    <button
+                        type="button"
+                        class="w-full"
+                        mat-flat-button
+                        color="primary"
+                        (click)="startJob()"
+                        *ngIf="jobExecutionFlowStep === 2"
+                    >Yes, let's do it!</button>
+                </div>
 
-                {
-                    "forceCalculation": false,
-                }
-             -->
-
-            <button
-                class="mt-3"
-                type="button"
-                (click)="advanceToFlowStep(2)"
-                mat-flat-button
-                color="primary"
-                *ngIf="jobExecutionFlowStep === 1"
-            >Next</button>
+                <div class="mt-3 w-full sm:w-7/12 md:w-auto md:mt-0">
+                    <button
+                        type="button"
+                        class="w-full"
+                        mat-flat-button
+                        color="warn"
+                        (click)="advanceToFlowStep(1)"
+                        *ngIf="jobExecutionFlowStep === 2"
+                    >No, I want to reconsider...</button>
+                </div>
+            </div>
         </div>
     </form>
 </div>
