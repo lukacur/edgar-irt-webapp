@@ -41,10 +41,18 @@ export class JobsService {
 
     restartJob(jobId: string): Observable<void> {
         return this.http
-            .post<void>(
+            .post(
                 `${environment.backendServerInfo.applicationAddress}/job/restart`,
-                { jobId }
-            );
+                { jobId },
+                {
+                    observe: "response",
+                    responseType: "text",
+                }
+            ).pipe(map(el => {
+                if (el.status !== 200) {
+                    throw new Error("Job restart failure");
+                }
+            }));
     }
 
     startJob<TRequest>(request: IStartJobRequest<TRequest>): Observable<void> {
