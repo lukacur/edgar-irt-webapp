@@ -33,7 +33,6 @@ type CourseStatisticsProcessingRequest = {
     userRequested: number | null;
 
     forceCalculation: boolean;
-    periodical: boolean;
 };
 
 type ImportInfo = {
@@ -172,6 +171,23 @@ type EdgarStatProcessingTestLevelCalc = {
     partial: number;
 };
 
+
+
+
+
+interface IStartJobRequest<TRequest> {
+    readonly idJobType: number;
+
+    readonly jobName?: string | null;
+    readonly userNote?: string | null;
+    readonly periodical: boolean;
+    readonly idUserRequested?: number | null;
+
+    readonly jobMaxTimeoutMs?: number;
+
+    readonly request: TRequest;
+}
+
 const EDGAR_STATPROC_QUEUE_NAME = "edgar-irt-work-request-queue";
 
 export class Main {
@@ -193,12 +209,38 @@ export class Main {
 
                     const jobs: EdgarJobFrameworkJob[] = (await conn.doQuery<EdgarJobFrameworkJob>(
                         `SELECT *
-                        FROM job_tracking_schema.job`
+                        FROM job_tracking_schema.job
+                        ORDER BY started_on DESC`
                     ))?.rows ?? [];
 
                     res
                         .status(200)
                         .json(jobs);
+                }
+            )
+            .addEndpoint(
+                "POST",
+                "/job/restart",
+                async (req, res) => {
+                    const jobId = req.body["jobId"];
+                    if ((jobId ?? null) === null) {
+                        res.sendStatus(400);
+                        return;
+                    }
+
+                    const conn = DbConnProvider.getDbConn();
+
+                    const result = await conn.doQuery(
+                        "UPDATE job_tracking_schema.job SET rerun_requested = TRUE WHERE id = $1",
+                        [jobId]
+                    );
+
+                    if (result === null) {
+                        res.sendStatus(500);
+                        return;
+                    }
+
+                    res.sendStatus(200);
                 }
             )
             .addEndpoint(
@@ -258,7 +300,7 @@ export class Main {
             //#region Statistics calculation and IRT related endpoints
             .addEndpoint(
                 "POST",
-                "/statprocessing/start",
+                "/job/start",
                 async (req, res) => {
                     if (!req.body) {
                         res
@@ -267,7 +309,19 @@ export class Main {
                         return;
                     }
 
-                    const statProcReq: CourseStatisticsProcessingRequest = req.body;
+                    if (!("idJobType" in req.body && "request" in req.body)) {
+                        res.sendStatus(400);
+                        return;
+                    }
+
+                    if (req.body.idJobType !== 1) {
+                        res
+                            .status(100)
+                            .send({ error: `Job type not supported: ${req.body.idJobType}` });
+                        return;
+                    }
+
+                    const statProcReq: IStartJobRequest<CourseStatisticsProcessingRequest> = req.body;
                     console.log(statProcReq);
 
                     await PgBossProvider.instance.enqueue(EDGAR_STATPROC_QUEUE_NAME, statProcReq);
