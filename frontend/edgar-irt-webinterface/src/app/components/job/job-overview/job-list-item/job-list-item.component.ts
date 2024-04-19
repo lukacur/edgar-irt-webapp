@@ -51,7 +51,8 @@ export class JobListItemComponent implements OnInit {
     ev.stopPropagation();
     ev.preventDefault();
     
-    // this.jobsService.restartJob(this.jobInfo.id);
+    this.jobsService.restartJob(this.jobInfo.id)
+      .subscribe(() => window.location.reload());
   }
 
 }

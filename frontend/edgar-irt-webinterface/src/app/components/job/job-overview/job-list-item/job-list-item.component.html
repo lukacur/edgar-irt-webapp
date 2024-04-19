@@ -1,12 +1,14 @@
 <div class="shadow-md mb-3 p-2 rounded border border-slate-200 w-full">
-    <div class="flex cursor-pointer w-full items-center" (click)="jobExpanded = !jobExpanded">
-        <mat-icon class="inline-block w-fit select-none me-2">
-            {{ (jobExpanded) ? 'expand_more' : 'chevron_right' }}
-        </mat-icon>
-        <h2>
-            Job {{ jobInfo.id }} <span [classList]="[getJobStatusColor()]">{{ getJobStatusText() }}</span>
-            <button class="ms-2" mat-stroked-button color="primary" (click)="restartJob($event)">Restart job</button>
-        </h2>
+    <div class="flex cursor-pointer w-full items-center justify-between px-3" (click)="jobExpanded = !jobExpanded">
+        <div class="flex items-center">
+            <mat-icon class="inline-block w-fit select-none me-2">
+                {{ (jobExpanded) ? 'expand_more' : 'chevron_right' }}
+            </mat-icon>
+            <h2 class="inline-block">
+                Job {{ jobInfo.id }} <span [classList]="[getJobStatusColor()]">{{ getJobStatusText() }}</span>
+            </h2>
+        </div>
+        <button mat-stroked-button color="primary" (click)="restartJob($event)">Restart job</button>
     </div>
 
     <div *ngIf="jobExpanded">
