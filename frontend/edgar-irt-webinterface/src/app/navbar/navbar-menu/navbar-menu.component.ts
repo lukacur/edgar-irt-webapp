@@ -24,6 +24,11 @@ export class NavbarMenuComponent implements OnInit {
                 title: "Statistics",
                 navigateTo: ["statistics"],
                 tooltip: "Overview question calculation statistics"
+            },
+            {
+                title: "Adaptive exercises",
+                navigateTo: ["adaptive-exercises"],
+                tooltip: "Start exercising or continue previously started exercises based on question IRT parameters"
             }
         );
     }

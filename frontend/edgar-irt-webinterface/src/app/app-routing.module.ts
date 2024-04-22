@@ -9,6 +9,12 @@ const routes: Routes = [
     {
         path: "statistics",
         loadChildren: () => import('./components/statistics/statistics.module').then(m => m.StatisticsModule),
+    },
+    {
+        path: "adaptive-exercises",
+        loadChildren:
+            () => import('./components/adaptive-exercises/adaptive-exercises.module')
+                .then(m => m.AdaptiveExercisesModule),
     }
 ];
 
