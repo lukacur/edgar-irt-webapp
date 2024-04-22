@@ -52,7 +52,10 @@ export class JobListItemComponent implements OnInit {
     ev.preventDefault();
     
     this.jobsService.restartJob(this.jobInfo.id)
-      .subscribe(() => window.location.reload());
+      .subscribe(() => {
+        window.alert("The job will be restarted on the next job restart check cycle");
+        window.location.reload();
+      });
   }
 
 }

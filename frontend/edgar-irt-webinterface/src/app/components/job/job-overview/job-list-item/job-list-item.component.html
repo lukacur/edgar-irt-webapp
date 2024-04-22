@@ -8,7 +8,13 @@
                 Job {{ jobInfo.id }} <span [classList]="[getJobStatusColor()]">{{ getJobStatusText() }}</span>
             </h2>
         </div>
-        <button mat-stroked-button color="primary" (click)="restartJob($event)">Restart job</button>
+        <button
+            mat-stroked-button
+            color="primary"
+            (click)="!jobInfo.rerun_requested && restartJob($event)"
+            [disabled]="jobInfo.rerun_requested"
+            [title]="(jobInfo.rerun_requested) ? 'Job\'s rerun was already previously requested' : ''"
+        >Restart job</button>
     </div>
 
     <div *ngIf="jobExpanded">
@@ -18,7 +24,18 @@
                 <hr class="my-2 w-full">
                 <p>{{ jobInfo.name }}</p>
             </div>
-    
+
+            <div class="w-full border shadow-md mb-2 p-2 rounded">
+                <h3>Job user note</h3>
+                <hr class="my-2 w-full">
+                <p
+                    [ngClass]="
+                    {
+                        'text-gray-400/40': (jobInfo.user_note ?? null) === null
+                    }"
+                >{{ jobInfo.user_note ?? "No user note present" }}</p>
+            </div>
+
             <div class="w-full border shadow-md mb-2 p-2 rounded">
                 <h3>Job status message</h3>
                 <hr class="my-2 w-full">
