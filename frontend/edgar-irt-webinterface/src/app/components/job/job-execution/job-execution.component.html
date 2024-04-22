@@ -52,7 +52,7 @@
                         formControlName="idCourse"
                     >
                         <option *ngFor="let course of (courses$ | async)" [ngValue]="course.id">
-                            ({{ course.course_acronym }}) {{ course.course_name }} - {{ course.ects_credits }}
+                            ({{ course.course_acronym }}) {{ course.course_name }} - {{ course.ects_credits }} ECTS
                         </option>
                     </select>
                 </div>

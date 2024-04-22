@@ -10,8 +10,6 @@ import { JobStepItemComponent } from './job-overview/job-list-item/job-step-item
 import { JobExecutionComponent } from './job-execution/job-execution.component';
 import { ReactiveFormsModule } from '@angular/forms';
 
-import { provideAnimations } from '@angular/platform-browser/animations';
-
 const routes: Route[] = [
     {
         path: "",
@@ -28,7 +26,7 @@ const routes: Route[] = [
         pathMatch: "full",
         component: JobExecutionComponent,
     },
-]
+];
 
 
 @NgModule({
