@@ -220,6 +220,39 @@ export class Main {
             )
             .addEndpoint(
                 "POST",
+                "/job/start",
+                async (req, res) => {
+                    if (!req.body) {
+                        res
+                            .status(400)
+                            .send();
+                        return;
+                    }
+
+                    if (!("idJobType" in req.body && "request" in req.body)) {
+                        res.sendStatus(400);
+                        return;
+                    }
+
+                    if (req.body.idJobType !== 1) {
+                        res
+                            .status(100)
+                            .send({ error: `Job type not supported: ${req.body.idJobType}` });
+                        return;
+                    }
+
+                    const statProcReq: IStartJobRequest<CourseStatisticsProcessingRequest> = req.body;
+                    console.log(statProcReq);
+
+                    await PgBossProvider.instance.enqueue(EDGAR_STATPROC_QUEUE_NAME, statProcReq);
+
+                    res
+                        .status(202)
+                        .send();
+                }
+            )
+            .addEndpoint(
+                "POST",
                 "/job/restart",
                 async (req, res) => {
                     const jobId = req.body["jobId"];
@@ -299,36 +332,54 @@ export class Main {
 
             //#region Statistics calculation and IRT related endpoints
             .addEndpoint(
-                "POST",
-                "/job/start",
+                "GET",
+                "/statprocessing/courses",
                 async (req, res) => {
-                    if (!req.body) {
-                        res
-                            .status(400)
-                            .send();
-                        return;
-                    }
+                    const conn = DbConnProvider.getDbConn();
 
-                    if (!("idJobType" in req.body && "request" in req.body)) {
+                    const availableCourseCalculations: EdgarCourse[] =
+                        (await conn.doQuery<EdgarCourse>(
+                            `SELECT DISTINCT course.*
+                            FROM public.course
+                                JOIN statistics_schema.question_param_calculation
+                                    ON course.id = question_param_calculation.id_based_on_course`,
+                        ))?.rows ?? [];
+
+                    res
+                        .status(200)
+                        .json(availableCourseCalculations);
+                }
+            )
+            .addEndpoint(
+                "GET",
+                "/statprocessing/:idCourse/calculations",
+                async (req, res) => {
+                    const idCourse = req.params['idCourse'];
+                    if (!idCourse) {
                         res.sendStatus(400);
                         return;
                     }
 
-                    if (req.body.idJobType !== 1) {
-                        res
-                            .status(100)
-                            .send({ error: `Job type not supported: ${req.body.idJobType}` });
-                        return;
-                    }
+                    const conn = DbConnProvider.getDbConn();
 
-                    const statProcReq: IStartJobRequest<CourseStatisticsProcessingRequest> = req.body;
-                    console.log(statProcReq);
-
-                    await PgBossProvider.instance.enqueue(EDGAR_STATPROC_QUEUE_NAME, statProcReq);
+                    const availableCourseCalculations: any[] =
+                        (await conn.doQuery<any>(
+                            `SELECT DISTINCT
+                                question_param_calculation.id_based_on_course,
+                                created_on,
+                                calculation_group,
+                                id_academic_year
+                            FROM statistics_schema.question_param_calculation
+                                JOIN statistics_schema.question_param_calculation_academic_year
+                                    ON question_param_calculation.id =
+                                        question_param_calculation_academic_year.id_question_param_calculation
+                            WHERE question_param_calculation.id_based_on_course = $1`,
+                            [idCourse],
+                        ))?.rows ?? [];
 
                     res
-                        .status(202)
-                        .send();
+                        .status(200)
+                        .json(availableCourseCalculations);
                 }
             )
             .addEndpoint(
@@ -375,14 +426,26 @@ export class Main {
             )
             .addEndpoint(
                 "GET",
-                "/statprocessing/calculations/course-level",
+                "/statprocessing/calculations/:calcGroup/course-level",
                 async (req, res) => {
+                    const calcGroup = req.params['calcGroup'];
+                    if (!calcGroup) {
+                        res.sendStatus(400);
+                        return;
+                    }
+
                     const conn = DbConnProvider.getDbConn();
 
                     const calculations: EdgarStatProcessingCourseLevelCalc[] =
                         (await conn.doQuery<EdgarStatProcessingCourseLevelCalc>(
-                            `SELECT *
-                            FROM statistics_schema.question_param_course_level_calculation`,
+                            `SELECT question_param_calculation.id_question,
+                                    question_param_course_level_calculation.*
+                            FROM statistics_schema.question_param_course_level_calculation
+                                JOIN statistics_schema.question_param_calculation
+                                    ON question_param_course_level_calculation.id_question_param_calculation =
+                                        question_param_calculation.id
+                            WHERE question_param_calculation.calculation_group = $1`,
+                            [calcGroup],
                         ))?.rows ?? [];
 
                     res
@@ -392,14 +455,27 @@ export class Main {
             )
             .addEndpoint(
                 "GET",
-                "/statprocessing/calculations/test-level",
+                "/statprocessing/calculations/:calcGroup/test-level",
                 async (req, res) => {
+                    const calcGroup = req.params['calcGroup'];
+                    if (!calcGroup) {
+                        res.sendStatus(400);
+                        return;
+                    }
+
                     const conn = DbConnProvider.getDbConn();
 
                     const calculations: EdgarStatProcessingTestLevelCalc[] =
                         (await conn.doQuery<EdgarStatProcessingTestLevelCalc>(
-                            `SELECT *
-                            FROM statistics_schema.question_param_test_level_calculation`,
+                            `SELECT question_param_calculation.id_question,
+                                    question_param_calculation.id_based_on_test,
+                                    question_param_test_level_calculation.*
+                            FROM statistics_schema.question_param_test_level_calculation
+                                JOIN statistics_schema.question_param_calculation
+                                    ON question_param_test_level_calculation.id_question_param_calculation =
+                                        question_param_calculation.id
+                            WHERE question_param_calculation.calculation_group = $1`,
+                            [calcGroup],
                         ))?.rows ?? [];
 
                     res
