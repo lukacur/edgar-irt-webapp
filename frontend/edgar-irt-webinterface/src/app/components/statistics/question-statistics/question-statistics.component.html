@@ -1,0 +1,128 @@
+<div class="p3">
+    <form [formGroup]="questionStatisticsForm">
+        <h2 class="text-blue-400">Please choose a course</h2>
+        <div>
+            <label class="text-sm">Course with statistics</label>
+            <select
+                class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
+                formControlName="idCourse"
+            >
+                <option
+                    *ngFor="let course of (courses$ | async)" [ngValue]="course.id"
+                    (click)="selectCourse(course)"
+                >
+                    ({{ course.course_acronym }}) {{ course.course_name }} - {{ course.ects_credits }} ECTS
+                </option>
+            </select>
+        </div>
+
+        <div *ngIf="selectedCourse !== null">
+            <label class="text-sm">Choose a calculation</label>
+            <select
+                class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
+                formControlName="idCalculation"
+            >
+                <option
+                    *ngFor="let calculation of courseCalculations" [ngValue]="calculation.calculationGroup"
+                    (click)="selectCalculation(calculation)"
+                >
+                    ({{ calculation.calculationGroup }}) Ac. years {{ calculation.acYears }}
+                </option>
+            </select>
+        </div>
+    </form>
+
+    <div *ngIf="selectedCalculation !== null">
+        <hr class="my-3">
+
+        <div class="p-3 shadow-md border border-slate-400/25 rounded mb-3">
+            <div class="flex items-center cursor-pointer" (click)="courseLevelExpanded = !courseLevelExpanded">
+                <mat-icon class="inline-block w-fit select-none me-2">
+                    {{ (courseLevelExpanded) ? 'expand_more' : 'chevron_right' }}
+                </mat-icon>
+                <h2 class="inline-block">
+                    Course-level calculations
+                </h2>
+            </div>
+
+            <div class="overflow-auto max-h-[560px]" *ngIf="courseLevelExpanded">
+                <table class="p-3 text-center w-full">
+                    <thead class="sticky top-0 bg-white">
+                        <th>Question ID</th>
+                        <th>Score mean</th>
+                        <th>Score stddev</th>
+                        <th>Score median</th>
+                        <th>Total score achieved</th>
+                        <th>Total achievable score</th>
+                        <th>Number of answers</th>
+                        <th>Correct answers</th>
+                        <th>Incorrect answers</th>
+                        <th>Unanswered</th>
+                        <th>Partial answers</th>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let clCalc of (courseLevelCalcs ?? [])">
+                            <td>{{ clCalc.id_question }}</td>
+                            <td>{{ clCalc.score_mean }}</td>
+                            <td>{{ clCalc.score_std_dev }}</td>
+                            <td>{{ clCalc.score_median }}</td>
+                            <td>{{ clCalc.total_achieved }}</td>
+                            <td>{{ clCalc.total_achievable }}</td>
+                            <td>{{ clCalc.answers_count }}</td>
+                            <td>{{ clCalc.correct }}</td>
+                            <td>{{ clCalc.incorrect }}</td>
+                            <td>{{ clCalc.unanswered }}</td>
+                            <td>{{ clCalc.partial }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="p-3 shadow-md border border-slate-400/25 rounded">
+            <div class="flex items-center cursor-pointer" (click)="testLevelExpanded = !testLevelExpanded">
+                <mat-icon class="inline-block w-fit select-none me-2">
+                    {{ (testLevelExpanded) ? 'expand_more' : 'chevron_right' }}
+                </mat-icon>
+                <h2 class="inline-block">
+                    Test-level calculations
+                </h2>
+            </div>
+
+            <div class="overflow-auto max-h-[560px]" *ngIf="testLevelExpanded">
+                <table class="p-3 text-center w-full">
+                    <thead class="sticky top-0 bg-white">
+                        <th>Question ID</th>
+                        <th>Test ID</th>
+                        <th>Score mean</th>
+                        <th>Score stddev</th>
+                        <th>Score median</th>
+                        <th>Total score sum</th>
+                        <th>Part of total score sum on test</th>
+                        <th>Number of answers</th>
+                        <th>Correct answers</th>
+                        <th>Incorrect answers</th>
+                        <th>Unanswered</th>
+                        <th>Partial answers</th>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let tlCalc of (testLevelCalcs ?? [])">
+                            <td>{{ tlCalc.id_question }}</td>
+                            <td>{{ tlCalc.id_based_on_test }}</td>
+                            <td>{{ tlCalc.mean }}</td>
+                            <td>{{ tlCalc.std_dev }}</td>
+                            <td>{{ tlCalc.median }}</td>
+                            <td>{{ tlCalc.sum }}</td>
+                            <td>{{ tlCalc.part_of_total_sum }}</td>
+                            <td>{{ tlCalc.count }}</td>
+                            <td>{{ tlCalc.correct }}</td>
+                            <td>{{ tlCalc.incorrect }}</td>
+                            <td>{{ tlCalc.unanswered }}</td>
+                            <td>{{ tlCalc.partial }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

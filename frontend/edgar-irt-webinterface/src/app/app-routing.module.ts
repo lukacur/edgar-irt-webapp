@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { JobAvailableActionsComponent } from './components/job/job-available-actions/job-available-actions.component.js';
 
 const routes: Routes = [
     {
@@ -9,7 +8,7 @@ const routes: Routes = [
     },
     {
         path: "statistics",
-        redirectTo: "jobs"
+        loadChildren: () => import('./components/statistics/statistics.module').then(m => m.StatisticsModule),
     }
 ];
 
