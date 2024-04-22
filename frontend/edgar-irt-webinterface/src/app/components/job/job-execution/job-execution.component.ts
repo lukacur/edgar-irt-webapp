@@ -42,7 +42,7 @@ export class JobExecutionComponent implements OnInit {
 
         jobSpecificConfiguration: new FormGroup({
           idCourse: new FormControl(null, [Validators.required]),
-          idStartcademicYear: new FormControl(null, [Validators.required]),
+          idStartAcademicYear: new FormControl(null, [Validators.required]),
           numberOfIncludedPreviousYears: new FormControl(null, [Validators.required]),
           maxJobTimeoutMs: new FormControl(200000, [Validators.required, Validators.min(0)]),
           forceCalculation: new FormControl(false, []),

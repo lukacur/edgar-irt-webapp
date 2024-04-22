@@ -65,7 +65,7 @@
                             'bg-white cursor-pointer': jobExecutionFlowStep === 1,
                             'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
                         }"
-                        formControlName="idStartcademicYear"
+                        formControlName="idStartAcademicYear"
                     >
                         <option *ngFor="let acYear of (academicYears$ | async)" [ngValue]="acYear.id">
                             {{ acYear.title }} ({{ acYear.date_start | date:"dd. MM. yyyy." }} - {{ acYear.date_end | date:"dd. MM. yyyy." }})
