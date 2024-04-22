@@ -4,7 +4,8 @@ export interface IJob {
     id: string;
     id_job_type: number;
     name: string;
-    id_user_started: number;
+    user_note: string | null;
+    id_user_started: number | null;
     job_definition: IJobConfiguration;
     started_on: string;
     job_status: "RUNNING" | "FINISHED" | "FAILED";
