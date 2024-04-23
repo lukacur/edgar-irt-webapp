@@ -115,6 +115,7 @@ type EdgarJobFrameworkJobStep = {
     id: string;
     started_on: string;
     finished_on: string;
+    name: string;
     job_step_status: "NOT_STARTED" | "RUNNING" | "SUCCESS" | "FAILURE" | "SKIP_CHAIN" | "CRITICALLY_ERRORED";
     job_step_status_message: string;
     ordinal: number;
@@ -291,7 +292,8 @@ export class Main {
                     const jobSteps: EdgarJobFrameworkJobStep[] = (await conn.doQuery<EdgarJobFrameworkJobStep>(
                         `SELECT *
                         FROM job_tracking_schema.job_step
-                        WHERE parent_job = $1`,
+                        WHERE parent_job = $1
+                        ORDER BY ordinal`,
                         [jobId]
                     ))?.rows ?? [];
 
