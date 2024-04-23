@@ -1,11 +1,11 @@
-import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Input, ViewChild } from '@angular/core';
 import * as d3 from 'd3';
 
 @Component({
     selector: 'app-single-variable-function-visualizer',
     templateUrl: './single-variable-function-visualizer.component.html',
 })
-export class SingleVariableFunctionVisualizerComponent implements OnInit {
+export class SingleVariableFunctionVisualizerComponent implements AfterViewInit {
     @Input("visualizedFunction")
     visualizedFunction: (x: number) => number = (x) => 5 * x;
 
@@ -28,14 +28,17 @@ export class SingleVariableFunctionVisualizerComponent implements OnInit {
     @ViewChild("tooltip")
     tooltip?: ElementRef<HTMLDivElement> = null!;
 
+    @ViewChild("graphOut")
+    graphOutSvg?: ElementRef<SVGSVGElement> = null!;
+
     constructor() { }
 
-    ngOnInit(): void {
+    ngAfterViewInit(): void {
         const margin = { top: 10, right: 50, bottom: 50, left: 50 };
         const width = 450 - margin.left - margin.right;
         const height = 400 - margin.top - margin.bottom;
 
-        const svg = d3.select("#svf-viz-svg")
+        const svg = d3.select(this.graphOutSvg!.nativeElement)
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .append("g")
@@ -119,8 +122,6 @@ export class SingleVariableFunctionVisualizerComponent implements OnInit {
         // A function that change this tooltip when the leaves a point: just need to set opacity to 0 again
         const mouseleave = function (d: any) {
             if (outerThis.tooltip) {
-                console.log("LEFT");
-                
                 outerThis.tooltip.nativeElement.style.display = "none";
             }
         };
