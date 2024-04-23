@@ -2,6 +2,12 @@
     <h2>Job step {{ jobStep.id }} <span [classList]="[getJobStepStatusColor()]">{{ getJobStepStatusText() }}</span></h2>
     <div class="flex flex-col mt-3">
         <div class="w-full border shadow-md mb-2 p-2 rounded">
+            <h3>Job step name</h3>
+            <hr class="my-2 w-full">
+            <p>{{ jobStep.name }}</p>
+        </div>
+
+        <div class="w-full border shadow-md mb-2 p-2 rounded">
             <h3>Job step status message</h3>
             <hr class="my-2 w-full">
             <p>{{ jobStep.job_step_status_message }}</p>
