@@ -30,7 +30,14 @@
                         <td>{{ questionIrtParams.id_question }}</td>
                         <td>{{ questionIrtParams.id_course_based_info }} ({{ questionIrtParams.id_course }})</td>
                         <td>
-                            {{ questionIrtParams.calculation_group }} ({{ questionIrtParams.id_academic_years.join(", ") }})
+                            <span
+                                class="underline cursor-pointer"
+                                title="Open related job"
+                                [routerLink]="['/jobs', 'overview']"
+                                [queryParams]="{ 'jobId': questionIrtParams.calculation_group }"
+                            >
+                                {{ questionIrtParams.calculation_group }}
+                            </span> ({{ questionIrtParams.id_academic_years.join(", ") }})
                         </td>
                         <td>{{ questionIrtParams.id_test_based_info.join(", ") }}</td>
 

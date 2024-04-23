@@ -12,6 +12,9 @@ export class JobListItemComponent implements OnInit {
   @Input("jobInfo")
   jobInfo: IJob = null!;
 
+  @Input("defaultExpanded")
+  defaultExpanded: boolean = false;
+
   jobExpanded: boolean = false;
 
   jobSteps$: Observable<IJobStep[]> | null = null;
@@ -45,6 +48,9 @@ export class JobListItemComponent implements OnInit {
     this.jobSteps$ = this.jobsService
       .getJobSteps(this.jobInfo.id)
       .pipe(tap(_ => this.stepsFetched = true));
+
+    this.jobExpanded = this.defaultExpanded;
+    this.stepsExpanded = this.defaultExpanded;
   }
 
   restartJob(ev: MouseEvent): void {
