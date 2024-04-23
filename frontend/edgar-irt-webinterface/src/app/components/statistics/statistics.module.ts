@@ -6,6 +6,7 @@ import { QuestionIrtOverviewComponent } from './question-irt-overview/question-i
 import { Route, RouterModule } from '@angular/router';
 import { MatButtonModule, MatIconModule, MatSortModule, MatTableModule } from '@angular/material';
 import { ReactiveFormsModule } from '@angular/forms';
+import { AppCommonModule } from '../common/app-common.module';
 
 const routes: Route[] = [
   {
@@ -19,9 +20,13 @@ const routes: Route[] = [
       component: QuestionStatisticsComponent,
   },
   {
+      path: "question-irt-overview/:idQuestion",
+      component: QuestionIrtOverviewComponent,
+  },
+  {
       path: "question-irt-overview",
       pathMatch: "full",
-      component: QuestionIrtOverviewComponent,
+      redirectTo: "",
   },
 ];
 
@@ -40,6 +45,7 @@ const routes: Route[] = [
     ReactiveFormsModule,
     MatTableModule,
     MatSortModule,
+    AppCommonModule,
   ]
 })
 export class StatisticsModule { }

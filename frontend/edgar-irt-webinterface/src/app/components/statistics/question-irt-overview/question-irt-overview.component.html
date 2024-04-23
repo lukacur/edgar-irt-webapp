@@ -1,1 +1,66 @@
-<p>question-irt-overview works!</p>
+<div class="p-3">
+    <h2 class="text-lg text-purple-600">IRT overview of question {{ idQuestion }}</h2>
+
+    <hr class="my-4">
+
+    <div *ngIf="!dataLoaded">Lodaing question data...</div>
+
+    <div *ngIf="dataLoaded && questionInfo?.length === 0; else dataPresentView">
+        No data exists for given question
+    </div>
+
+    <ng-template #dataPresentView>
+        <div class="flex flex-col items-center" *ngFor="let questionIrtParams of (questionInfo ?? [])">
+            <table class="p-3 text-center w-full">
+                <thead class="sticky top-0 bg-white">
+                    <th class="px-2">Question ID</th>
+                    <th class="px-2">Based on corse-level calculation (course ID)</th>
+                    <th class="px-2">Calculation group (ac. years)</th>
+                    <th class="px-2">Based on test-level calculations</th>
+
+                    <th class="px-2">Default item offset constant</th>
+
+                    <th class="px-2">Level of item knowledge</th>
+                    <th class="px-2">Item difficulty</th>
+                    <th class="px-2">Guess probability</th>
+                    <th class="px-2">Mistake probability</th>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ questionIrtParams.id_question }}</td>
+                        <td>{{ questionIrtParams.id_course_based_info }} ({{ questionIrtParams.id_course }})</td>
+                        <td>
+                            {{ questionIrtParams.calculation_group }} ({{ questionIrtParams.id_academic_years.join(", ") }})
+                        </td>
+                        <td>{{ questionIrtParams.id_test_based_info.join(", ") }}</td>
+
+                        <td>{{ questionIrtParams.default_item_offset_parameter.toFixed(4) }}</td>
+
+                        <td>{{ questionIrtParams.level_of_item_knowledge.toFixed(4) }}</td>
+                        <td>{{ questionIrtParams.item_difficulty.toFixed(4) }}</td>
+                        <td>{{ questionIrtParams.item_guess_probability.toFixed(4) }}</td>
+                        <td>{{ questionIrtParams.item_mistake_probability.toFixed(4) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <hr class="my-3 w-full">
+
+            <div class="w-full flex justify-center">
+                <app-single-variable-function-visualizer
+                    class="w-fit"
+                    [fnMinValue]="0"
+                    [fnMaxValue]="1.0"
+            
+                    [fnArgMinValue]="-10"
+                    [fnArgMaxValue]="10"
+            
+                    [fnDrawStep]="0.1"
+            
+                    [visualizedFunction]="prepareLogisticFunction(questionIrtParams)"
+                >
+                </app-single-variable-function-visualizer>
+            </div>
+        </div>
+    </ng-template>
+</div>
