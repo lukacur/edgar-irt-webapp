@@ -62,7 +62,26 @@
                     </thead>
                     <tbody>
                         <tr *ngFor="let clCalc of (courseLevelCalcs ?? [])">
-                            <td>{{ clCalc.id_question }}</td>
+                            <td>
+                                <span
+                                    class="underline cursor-pointer"
+                                    [routerLink]="['..', 'question-irt-overview', clCalc.id_question]"
+                                >
+                                    {{ clCalc.id_question }}
+                                </span> <mat-icon
+                                    class="text-sm cursor-pointer"
+                                    title="Click to open IRT overview"
+                                    (click)="showHelp($event, helpText)"
+                                >
+                                    help
+                                </mat-icon>
+
+                                <span
+                                    #helpText
+                                    class="hidden"
+                                    (click)="$event.preventDefault(); $event.stopPropagation();"
+                                >Click to open IRT overview</span>
+                            </td>
                             <td>{{ clCalc.score_mean }}</td>
                             <td>{{ clCalc.score_std_dev }}</td>
                             <td>{{ clCalc.score_median }}</td>
@@ -107,7 +126,26 @@
                     </thead>
                     <tbody>
                         <tr *ngFor="let tlCalc of (testLevelCalcs ?? [])">
-                            <td>{{ tlCalc.id_question }}</td>
+                            <td>
+                                <span
+                                    class="underline cursor-pointer"
+                                    [routerLink]="['..', 'question-irt-overview', tlCalc.id_question]"
+                                >
+                                    {{ tlCalc.id_question }}
+                                </span> <mat-icon
+                                    class="text-sm cursor-pointer"
+                                    title="Click to open IRT overview"
+                                    (click)="showHelp($event, helpText)"
+                                >
+                                    help
+                                </mat-icon>
+
+                                <span
+                                    #helpText
+                                    class="hidden"
+                                    (click)="$event.preventDefault(); $event.stopPropagation();"
+                                >Click to open IRT overview</span>
+                            </td>
                             <td>{{ tlCalc.id_based_on_test }}</td>
                             <td>{{ tlCalc.mean }}</td>
                             <td>{{ tlCalc.std_dev }}</td>

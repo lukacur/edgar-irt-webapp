@@ -98,4 +98,15 @@ export class QuestionStatisticsComponent implements OnInit {
             .pipe(take(1))
             .subscribe(tlCalcs => this.testLevelCalcs = tlCalcs);
     }
+
+    showHelp(event: MouseEvent, helpSpan: HTMLSpanElement) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (helpSpan.classList.contains('hidden')) {
+            helpSpan.classList.replace('hidden', 'inline');
+        } else {
+            helpSpan.classList.replace('inline', 'hidden');
+        }
+    }
 }
