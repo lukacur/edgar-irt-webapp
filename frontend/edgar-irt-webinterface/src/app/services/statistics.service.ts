@@ -6,6 +6,7 @@ import { environment } from 'src/environments/environment';
 import { ICourseCalculation } from '../models/statistics-processing/course-calculation.model.js';
 import { ICourseLevelStatisticsCalculation } from '../models/statistics-processing/course-level-statistics-calculation.model.js';
 import { ITestLevelStatisticsCalculation } from '../models/statistics-processing/test-level-statistics-calculation.model.js';
+import { IQuestionIrtParameters } from '../models/irt/question-irt-parameters.model.js';
 
 @Injectable({
   providedIn: 'root'
@@ -34,13 +35,21 @@ export class StatisticsService {
     return this.http
       .get<ICourseLevelStatisticsCalculation[]>(
         `${environment.backendServerInfo.applicationAddress}/statprocessing/calculations/${calcGroup}/course-level`
-      )
+      );
   }
 
   getTestLevelCalculations(calcGroup: string): Observable<ITestLevelStatisticsCalculation[]> {
     return this.http
       .get<ITestLevelStatisticsCalculation[]>(
         `${environment.backendServerInfo.applicationAddress}/statprocessing/calculations/${calcGroup}/test-level`
-      )
+      );
+  }
+
+
+  getQuestionIRTParameters(idQuestion: number): Observable<IQuestionIrtParameters[]> {
+    return this.http
+      .get<IQuestionIrtParameters[]>(
+        `${environment.backendServerInfo.applicationAddress}/statprocessing/${idQuestion}/irt-parameters`
+      );
   }
 }
