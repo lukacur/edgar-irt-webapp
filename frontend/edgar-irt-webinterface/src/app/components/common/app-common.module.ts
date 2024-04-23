@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { SearchableSelectComponent } from './searchable-select/searchable-select.component';
 import { MatIconModule } from '@angular/material';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { SingleVariableFunctionVisualizerComponent } from './single-variable-function-visualizer/single-variable-function-visualizer.component';
 
 
 
 @NgModule({
   declarations: [
-    SearchableSelectComponent
+    SearchableSelectComponent,
+    SingleVariableFunctionVisualizerComponent
   ],
   imports: [
     CommonModule,
@@ -18,6 +20,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
   ],
   exports: [
     SearchableSelectComponent,
+    SingleVariableFunctionVisualizerComponent,
   ]
 })
 export class AppCommonModule { }
