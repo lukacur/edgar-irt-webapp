@@ -123,6 +123,10 @@ type EdgarJobFrameworkJobStep = {
 
 type EdgarStatProcessingQuestionIRTInfo = {
     id_course_based_info: number;
+    id_course: number;
+    calculation_group: string;
+    id_academic_years: number[];
+
     id_test_based_info: number[];
     id_question: number;
 
@@ -396,11 +400,35 @@ export class Main {
 
                     const questionIRTParameters: EdgarStatProcessingQuestionIRTInfo[] =
                         (await conn.doQuery<EdgarStatProcessingQuestionIRTInfo>(
-                            `SELECT *
+                            `SELECT question_param_calculation.calculation_group,
+                                    question_param_calculation.id_based_on_course AS id_course,
+                                    question_irt_parameters.*
                             FROM statistics_schema.question_irt_parameters
-                            WHERE id_question = $1`,
+                                JOIN statistics_schema.question_param_course_level_calculation
+                                    ON question_irt_parameters.id_course_based_info =
+                                        question_param_course_level_calculation.id_question_param_calculation
+                                JOIN statistics_schema.question_param_calculation
+                                    ON question_param_calculation.id =
+                                        question_param_course_level_calculation.id_question_param_calculation
+                            WHERE question_irt_parameters.id_question = $1`,
                             [qId],
                         ))?.rows ?? [];
+
+                    for (const entry of questionIRTParameters) {
+                        const acYears =
+                            (await conn.doQuery<{ id_academic_year: number }>(
+                                `SELECT DISTINCT id_academic_year
+                                FROM statistics_schema.question_param_calculation
+                                    JOIN statistics_schema.question_param_calculation_academic_year
+                                        ON question_param_calculation.id =
+                                            question_param_calculation_academic_year.id_question_param_calculation
+                                WHERE calculation_group = $1
+                                ORDER BY id_academic_year`,
+                                [entry.calculation_group],
+                            ))?.rows ?? [];
+
+                        entry.id_academic_years = acYears.map(el => el.id_academic_year);
+                    }
 
                     res
                         .status(200)
