@@ -12,7 +12,6 @@ export class ScrollIntoDirective implements AfterViewInit {
     ) { }
 
     ngAfterViewInit(): void {
-        console.log("YEA?");
         if (this.appScrollInto) {
             this.elRef.nativeElement.scrollIntoView({ behavior: "smooth", block: "start" });
         }
