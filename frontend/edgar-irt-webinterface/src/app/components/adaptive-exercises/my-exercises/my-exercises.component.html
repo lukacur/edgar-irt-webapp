@@ -1,1 +1,40 @@
-<p>my-exercises works!</p>
+<div class="p-3">
+    <div [formGroup]="startExerciseForm">
+        <div class="w-full mb-4">
+            <app-searchable-select
+                class="w-full"
+
+                textKey="courseTitle"
+                valueKey="course"
+
+                labelText="Select course"
+
+                [searchable]="true"
+
+                [selectableItems]="(courses$ | async) ?? []"
+                [control]="startExerciseForm.get('selectedCourse')!"
+            ></app-searchable-select>
+        </div>
+
+        <div *ngIf="startExerciseForm.get('selectedCourse')!.value !== null">
+            <div class="p-3 shadow-md shadow-gray-500/35 rounded border border-slate-500/15">
+                <h2 class="text-lg">Current exercises</h2>
+                <hr class="my-3">
+                <div>
+                    <p class="mb-3">No active exercises</p>
+                    <button type="button" mat-flat-button color="primary">Start new exercise</button>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            
+            <div class="p-3 shadow-md shadow-gray-500/35 rounded border border-slate-500/15">
+                <h2 class="text-lg">Previous exercises</h2>
+                <hr class="my-3">
+                <div>
+                    <p class="mb-3">No previous exercises</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -6,6 +6,8 @@ import { MyExercisesComponent } from './my-exercises/my-exercises.component';
 import { ExercisesQuestionTypesOverviewComponent } from './exercises-question-types-overview/exercises-question-types-overview.component';
 import { ExercisesQuestionBlacklistOverviewComponent } from './exercises-question-blacklist-overview/exercises-question-blacklist-overview.component';
 import { MatButtonModule } from '@angular/material';
+import { AppCommonModule } from '../common/app-common.module';
+import { ReactiveFormsModule } from '@angular/forms';
 
 const routes: Route[] = [
   {
@@ -41,6 +43,8 @@ const routes: Route[] = [
     RouterModule.forChild(routes),
     CommonModule,
     MatButtonModule,
+    AppCommonModule,
+    ReactiveFormsModule,
   ]
 })
 export class AdaptiveExercisesModule { }
