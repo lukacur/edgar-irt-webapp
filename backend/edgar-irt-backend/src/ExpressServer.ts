@@ -16,6 +16,7 @@ export class ExpressServer {
     }
 
     public addEndpoint(method: "GET" | "POST" | "PUT" | "DELETE", endpoint: string, ...handlers: RequestHandler[]): ExpressServer {
+        console.log(`Adding endpoint: [${method}] ${endpoint}`);
         switch (method) {
             case "GET": {
                 this.expressApp.get(endpoint, ...handlers);
