@@ -5,7 +5,7 @@ export interface IExerciseInstanceQuestion {
 	id_question: number;
 
     id_question_irt_cb_info: number;
-    id_question_irt_tb_info: number;
+    id_question_irt_tb_info: number[];
 
     question_ordinal: number;
 
@@ -20,6 +20,6 @@ export interface IExerciseInstanceQuestion {
 	user_answer_correct: boolean;
     question_skipped: boolean;
 
-    irt_delta_perc: number;
-    irt_delta_val: number;
+    irt_delta: number;
+    is_irt_delta_percentage: boolean;
 }
