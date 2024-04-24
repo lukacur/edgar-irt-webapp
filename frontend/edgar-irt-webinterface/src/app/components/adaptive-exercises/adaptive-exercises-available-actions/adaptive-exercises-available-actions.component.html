@@ -1,0 +1,37 @@
+<div class="flex flex-col">
+    <div class="p-2 w-full">
+        <h2 class="text-lg text-slate-600">My exercises</h2>
+        <hr class="my-3">
+        <p class="mb-3">
+            Allows you to overview your current and previous exercises
+        </p>
+
+        <button [routerLink]="['my-exercises']" mat-flat-button color="accent">
+            Go to My exercises
+        </button>
+    </div>
+
+    <div class="p-2 w-full mt-6">
+        <h2 class="text-lg text-slate-600">Question types overview</h2>
+        <hr class="my-3">
+        <p class="mb-3">
+            Overview and update question types that are allowed to appear in adaptive exercises
+        </p>
+
+        <button [routerLink]="['question-types-overview']" mat-flat-button color="accent">
+            Go to overview of question types
+        </button>
+    </div>
+
+    <div class="p-2 w-full mt-6">
+        <h2 class="text-lg text-slate-600">Question blacklist overview</h2>
+        <hr class="my-3">
+        <p class="mb-3">
+            Overview and update the adaptive exercises question blacklist
+        </p>
+
+        <button [routerLink]="['question-blacklist-overview']" mat-flat-button color="accent">
+            Go to overview of question blacklist
+        </button>
+    </div>
+</div>
