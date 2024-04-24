@@ -1,32 +1,29 @@
 <div>
     <form [formGroup]="jobExecutionForm">
         <div>
-            <label class="text-sm">Job type</label>
-            <select
-                class="p-3 border border-slate-500/50 rounded w-full"
-                [ngClass]="{
+            <app-searchable-select
+                labelText="Job type"
+                [ngClassObj]="{
                     'bg-white cursor-pointer': jobExecutionFlowStep === 0,
                     'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 0
                 }"
-                formControlName="idJobType"
-            >
-                <option
-                    *ngFor="let jt of (availableJobTypes$ | async)"
-                    [ngValue]="jt.id"
-                    (click)="selectedJobType = jt"
-                >
-                    ({{ jt.abbrevation }}) {{ jt.title }}
-                </option>
-            </select>
+                [control]="jobExecutionForm.get('jobType')!"
+                [selectableItems]="(availableJobTypes$ | async) ?? []"
+
+                valueKey="jobType"
+                textKey="optText"
+
+                [searchable]="true"
+            ></app-searchable-select>
         </div>
 
         <div
             class="shadow-md border border-slate-200 p-3 mt-3"
-            *ngIf="selectedJobType !== null && jobExecutionFlowStep === 0"
+            *ngIf="jobExecutionForm.get('jobType')?.value !== null && jobExecutionFlowStep === 0"
         >
             <h2 class="mb-3">Job type description</h2>
             <hr class="my-2">
-            <p class="mb-3">{{ selectedJobType.description }}</p>
+            <p class="mb-3">{{ jobExecutionForm.get('jobType')!.value.description }}</p>
 
             <button type="button" (click)="advanceToFlowStep(1)" mat-flat-button color="primary">Next</button>
         </div>
@@ -42,19 +39,20 @@
                 <hr class="my-2">
     
                 <div>
-                    <label class="text-sm">Calculate for course</label>
-                    <select
-                        class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
-                        [ngClass]="{
+                    <app-searchable-select
+                        labelText="Calculate for course"
+                        [ngClassObj]="{
                             'bg-white cursor-pointer': jobExecutionFlowStep === 1,
                             'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
                         }"
-                        formControlName="idCourse"
-                    >
-                        <option *ngFor="let course of (courses$ | async)" [ngValue]="course.id">
-                            ({{ course.course_acronym }}) {{ course.course_name }} - {{ course.ects_credits }} ECTS
-                        </option>
-                    </select>
+                        [control]="jobExecutionForm.get('jobSpecificConfiguration')!.get('idCourse')!"
+                        [selectableItems]="(courses$ | async) ?? []"
+
+                        valueKey="idCourse"
+                        textKey="optText"
+
+                        [searchable]="true"
+                    ></app-searchable-select>
                 </div>
     
                 <div>
@@ -89,19 +87,7 @@
                             Number of academic years the calculation will include not counting the selected academic year
                         </div>
                     </label>
-                    <!--input
-                        class="p-3 bg-white border border-slate-500/50 rounded w-full"
-                        [ngClass]="{
-                            'bg-white': jobExecutionFlowStep === 1,
-                            'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
-                        }"
-                        formControlName="numberOfIncludedPreviousYears"
-    
-                        type="number"
-    
-                        min="-1"
-                    -->
-    
+
                     <select
                         class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
                         [ngClass]="{

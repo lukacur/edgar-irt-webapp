@@ -10,6 +10,7 @@ import { JobStepItemComponent } from './job-overview/job-list-item/job-step-item
 import { JobExecutionComponent } from './job-execution/job-execution.component';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AppDirectivesModule } from 'src/app/app-directives/app-directives.module';
+import { AppCommonModule } from '../common/app-common.module';
 
 const routes: Route[] = [
     {
@@ -46,6 +47,7 @@ const routes: Route[] = [
         MatIconModule,
         MatSlideToggleModule,
         ReactiveFormsModule,
+        AppCommonModule,
         AppDirectivesModule,
     ]
 })
