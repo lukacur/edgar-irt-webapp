@@ -1,197 +1,18 @@
 import { DatabaseConnection } from "./Database/DatabaseConnection.js";
 import { DbConnProvider } from "./DbConnProvider.js";
 import { ExpressServer } from "./ExpressServer.js";
+import { IEdgarAcademicYear } from "./Models/Database/Edgar/IEdgarAcademicYear.js";
+import { IEdgarCourse } from "./Models/Database/Edgar/IEdgarCourse.js";
+import { IEdgarJobFrameworkJob } from "./Models/Database/Job/IEdgarJobFrameworkJob.js";
+import { IEdgarJobFrameworkJobStep } from "./Models/Database/Job/IEdgarJobFrameworkJobStep.js";
+import { IEdgarJobFrameworkJobType } from "./Models/Database/Job/IEdgarJobFrameworkJobType.js";
+import { IEdgarStatProcessingCourseLevelCalc } from "./Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
+import { IEdgarStatProcessingQParamCalcGenericInfo } from "./Models/Database/Statistics/IEdgarStatProcessingQParamCalcGenericInfo.js";
+import { IEdgarStatProcessingQuestionIRTInfo } from "./Models/Database/Statistics/IEdgarStatProcessingQuestionIRTInfo.js";
+import { IEdgarStatProcessingTestLevelCalc } from "./Models/Database/Statistics/IEdgarStatProcessingTestLevelCalc.js";
+import { ICourseStatisticsProcessingRequest } from "./Models/Job/ICourseStatisticsProcessingRequest.js";
+import { IStartJobRequest } from "./Models/Job/IStartJobRequest.js";
 import { PgBossProvider } from "./PgBossProvider.js";
-
-type EdgarCourse = {
-    id: number;
-    course_name: string;
-    course_acronym: string;
-    ects_credits: number;
-};
-
-type EdgarAcademicYear = {
-    id: number;
-    title: string;
-    date_start: string;
-    date_end: string;
-};
-
-type EdgarJobFrameworkJobType = {
-    id: number;
-    abbrevation: string;
-    title: string;
-    description: string;
-    request_form: object;
-};
-
-type CourseStatisticsProcessingRequest = {
-    idCourse: number;
-    idStartAcademicYear: number;
-    numberOfIncludedPreviousYears: number;
-
-    userRequested: number | null;
-
-    forceCalculation: boolean;
-};
-
-type ImportInfo = {
-    url: string;
-};
-
-type BlockingConfig = {
-    awaitDataExtraction: boolean;
-    workInBackground: boolean;
-    persistResultInBackground: boolean;
-};
-
-type InputExtractorConfig<TConfigContent extends object> = {
-    type: string;
-    importInfo?: ImportInfo;
-
-    configContent: TConfigContent;
-};
-
-type JobStepDescriptor = {
-    type: string;
-    importInfo?: ImportInfo;
-
-    stepTimeoutMs: number;
-    resultTTL?: number;
-    configContent: object;
-
-    isCritical: boolean;
-};
-
-type JobWorkerConfig = {
-    type: string;
-    importInfo?: ImportInfo;
-
-    databaseConnection: string;
-    steps: JobStepDescriptor[];
-};
-
-type DataPersistorConfig<TConfigContent extends object> = {
-    type: string;
-    importInfo?: ImportInfo;
-
-    persistanceTimeoutMs: number;
-    configContent: TConfigContent;
-};
-
-interface IJobConfiguration/* <TInputExtractorConfig, TDataPersistorConfig> */ {
-    readonly jobId: string;
-    readonly jobTypeAbbrevation: string;
-    readonly jobName: string;
-    readonly idUserStarted: number | null;
-    readonly jobQueue: string | null;
-    readonly jobTimeoutMs: number;
-    readonly periodical: boolean;
-
-    readonly blockingConfig: BlockingConfig;
-
-    readonly inputExtractorConfig: InputExtractorConfig<object>;
-
-    readonly jobWorkerConfig: JobWorkerConfig;
-
-    readonly dataPersistorConfig: DataPersistorConfig<object>;
-}
-
-type EdgarJobFrameworkJob = {
-    id: string;
-    id_job_type: number;
-    name: string;
-    id_user_started: number;
-    job_definition: IJobConfiguration;
-    started_on: string;
-    job_status: "RUNNING" | "FINISHED" | "FAILED";
-    job_status_message: string;
-    finished_on: string;
-    periodical: boolean;
-    rerun_requested: boolean;
-}
-
-type EdgarJobFrameworkJobStep = {
-    id: string;
-    started_on: string;
-    finished_on: string;
-    name: string;
-    job_step_status: "NOT_STARTED" | "RUNNING" | "SUCCESS" | "FAILURE" | "SKIP_CHAIN" | "CRITICALLY_ERRORED";
-    job_step_status_message: string;
-    ordinal: number;
-    parent_job: string;
-}
-
-type EdgarStatProcessingQuestionIRTInfo = {
-    id_course_based_info: number;
-    id_course: number;
-    calculation_group: string;
-    id_academic_years: number[];
-
-    id_test_based_info: number[];
-    id_question: number;
-
-    default_item_offset_parameter: number;
-    level_of_item_knowledge: number;
-    item_difficulty: number;
-    item_guess_probability: number;
-    item_mistake_probability: number;
-};
-
-type EdgarStatProcessingQParamCalcGenericInfo = {
-    id: number;
-    calculation_group: string;
-
-    id_based_on_course: number;
-    id_based_on_test: number | null;
-    id_question: number;
-    created_on: string;
-};
-
-type EdgarStatProcessingCourseLevelCalc = {
-    id_question_param_calculation: number;
-    score_mean: number;
-    score_std_dev: number;
-    score_median: number;
-    total_achieved: number;
-    total_achievable: number;
-    answers_count: number;
-    correct: number;
-    incorrect: number;
-    unanswered: number;
-    partial: number;
-};
-
-type EdgarStatProcessingTestLevelCalc = {
-    id_question_param_calculation: number;
-    mean: number;
-    std_dev: number;
-    count: number;
-    median: number;
-    sum: number;
-    part_of_total_sum: number;
-    correct: number;
-    incorrect: number;
-    unanswered: number;
-    partial: number;
-};
-
-
-
-
-
-interface IStartJobRequest<TRequest> {
-    readonly idJobType: number;
-
-    readonly jobName?: string | null;
-    readonly userNote?: string | null;
-    readonly periodical: boolean;
-    readonly idUserRequested?: number | null;
-
-    readonly jobMaxTimeoutMs?: number;
-
-    readonly request: TRequest;
-}
 
 const EDGAR_STATPROC_QUEUE_NAME = "edgar-irt-work-request-queue";
 
@@ -212,7 +33,7 @@ export class Main {
                 async (req, res) => {
                     const conn = DbConnProvider.getDbConn();
 
-                    const jobs: EdgarJobFrameworkJob[] = (await conn.doQuery<EdgarJobFrameworkJob>(
+                    const jobs: IEdgarJobFrameworkJob[] = (await conn.doQuery<IEdgarJobFrameworkJob>(
                         `SELECT *
                         FROM job_tracking_schema.job
                         ORDER BY started_on DESC`
@@ -246,7 +67,7 @@ export class Main {
                         return;
                     }
 
-                    const statProcReq: IStartJobRequest<CourseStatisticsProcessingRequest> = req.body;
+                    const statProcReq: IStartJobRequest<ICourseStatisticsProcessingRequest> = req.body;
                     console.log(statProcReq);
 
                     await PgBossProvider.instance.enqueue(EDGAR_STATPROC_QUEUE_NAME, statProcReq);
@@ -289,7 +110,7 @@ export class Main {
 
                     const conn = DbConnProvider.getDbConn();
 
-                    const jobSteps: EdgarJobFrameworkJobStep[] = (await conn.doQuery<EdgarJobFrameworkJobStep>(
+                    const jobSteps: IEdgarJobFrameworkJobStep[] = (await conn.doQuery<IEdgarJobFrameworkJobStep>(
                         `SELECT *
                         FROM job_tracking_schema.job_step
                         WHERE parent_job = $1
@@ -308,7 +129,7 @@ export class Main {
                 async (req, res) => {
                     const conn = DbConnProvider.getDbConn();
 
-                    const jobSteps: EdgarJobFrameworkJobStep[] = (await conn.doQuery<EdgarJobFrameworkJobStep>(
+                    const jobSteps: IEdgarJobFrameworkJobStep[] = (await conn.doQuery<IEdgarJobFrameworkJobStep>(
                         `SELECT *
                         FROM job_tracking_schema.job_step`
                     ))?.rows ?? [];
@@ -324,7 +145,7 @@ export class Main {
                 async (req, res) => {
                     const conn = DbConnProvider.getDbConn();
 
-                    const jobTypes: EdgarJobFrameworkJobType[] = (await conn.doQuery<EdgarJobFrameworkJobType>(
+                    const jobTypes: IEdgarJobFrameworkJobType[] = (await conn.doQuery<IEdgarJobFrameworkJobType>(
                         `SELECT *
                         FROM job_tracking_schema.job_type`
                     ))?.rows ?? [];
@@ -343,8 +164,8 @@ export class Main {
                 async (req, res) => {
                     const conn = DbConnProvider.getDbConn();
 
-                    const availableCourseCalculations: EdgarCourse[] =
-                        (await conn.doQuery<EdgarCourse>(
+                    const availableCourseCalculations: IEdgarCourse[] =
+                        (await conn.doQuery<IEdgarCourse>(
                             `SELECT DISTINCT course.*
                             FROM public.course
                                 JOIN statistics_schema.question_param_calculation
@@ -400,8 +221,8 @@ export class Main {
 
                     const conn = DbConnProvider.getDbConn();
 
-                    const questionIRTParameters: EdgarStatProcessingQuestionIRTInfo[] =
-                        (await conn.doQuery<EdgarStatProcessingQuestionIRTInfo>(
+                    const questionIRTParameters: IEdgarStatProcessingQuestionIRTInfo[] =
+                        (await conn.doQuery<IEdgarStatProcessingQuestionIRTInfo>(
                             `SELECT question_param_calculation.calculation_group,
                                     question_param_calculation.id_based_on_course AS id_course,
                                     question_irt_parameters.*
@@ -443,8 +264,8 @@ export class Main {
                 async (req, res) => {
                     const conn = DbConnProvider.getDbConn();
 
-                    const calculations: EdgarStatProcessingQParamCalcGenericInfo[] =
-                        (await conn.doQuery<EdgarStatProcessingQParamCalcGenericInfo>(
+                    const calculations: IEdgarStatProcessingQParamCalcGenericInfo[] =
+                        (await conn.doQuery<IEdgarStatProcessingQParamCalcGenericInfo>(
                             `SELECT *
                             FROM statistics_schema.question_param_calculation`,
                         ))?.rows ?? [];
@@ -466,8 +287,8 @@ export class Main {
 
                     const conn = DbConnProvider.getDbConn();
 
-                    const calculations: EdgarStatProcessingCourseLevelCalc[] =
-                        (await conn.doQuery<EdgarStatProcessingCourseLevelCalc>(
+                    const calculations: IEdgarStatProcessingCourseLevelCalc[] =
+                        (await conn.doQuery<IEdgarStatProcessingCourseLevelCalc>(
                             `SELECT question_param_calculation.id_question,
                                     question_param_course_level_calculation.*
                             FROM statistics_schema.question_param_course_level_calculation
@@ -495,8 +316,8 @@ export class Main {
 
                     const conn = DbConnProvider.getDbConn();
 
-                    const calculations: EdgarStatProcessingTestLevelCalc[] =
-                        (await conn.doQuery<EdgarStatProcessingTestLevelCalc>(
+                    const calculations: IEdgarStatProcessingTestLevelCalc[] =
+                        (await conn.doQuery<IEdgarStatProcessingTestLevelCalc>(
                             `SELECT question_param_calculation.id_question,
                                     question_param_calculation.id_based_on_test,
                                     question_param_test_level_calculation.*
@@ -547,7 +368,7 @@ export class Main {
                 async (req, res) => {
                     const conn = DbConnProvider.getDbConn();
 
-                    const courses: EdgarCourse[] = (await conn.doQuery<EdgarCourse>(
+                    const courses: IEdgarCourse[] = (await conn.doQuery<IEdgarCourse>(
                         `SELECT *
                         FROM public.course`
                     ))?.rows ?? [];
@@ -563,7 +384,7 @@ export class Main {
                 async (req, res) => {
                     const conn = DbConnProvider.getDbConn();
 
-                    const academicYears: EdgarAcademicYear[] = (await conn.doQuery<EdgarAcademicYear>(
+                    const academicYears: IEdgarAcademicYear[] = (await conn.doQuery<IEdgarAcademicYear>(
                         `SELECT *
                         FROM public.academic_year`
                     ))?.rows ?? [];
