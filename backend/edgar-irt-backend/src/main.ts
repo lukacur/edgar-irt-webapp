@@ -1,4 +1,5 @@
 import { AbstractController } from "./Controlllers/AbstractController.js";
+import { AdaptiveExercisesController } from "./Controlllers/AdaptiveExercisesController.js";
 import { EdgarController } from "./Controlllers/EdgarController.js";
 import { JobController } from "./Controlllers/JobController.js";
 import { StatisticsController } from "./Controlllers/StatisticsController.js";
@@ -24,11 +25,14 @@ export class Main {
             PgBossProvider.instance
         );
         const statisticsController: AbstractController = new StatisticsController(DbConnProvider.getDbConn());
-        const edgarController: EdgarController = new EdgarController(DbConnProvider.getDbConn());
+        const edgarController: AbstractController = new EdgarController(DbConnProvider.getDbConn());
+        const adaptiveExercisesController: AbstractController =
+            new AdaptiveExercisesController(DbConnProvider.getDbConn());
 
         jobController.applyController(Main.server);
         statisticsController.applyController(Main.server);
         edgarController.applyController(Main.server);
+        adaptiveExercisesController.applyController(Main.server);
         
         Main.server
             .start(
