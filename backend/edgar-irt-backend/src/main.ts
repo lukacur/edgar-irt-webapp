@@ -6,6 +6,7 @@ import { StatisticsController } from "./Controlllers/StatisticsController.js";
 import { DatabaseConnection } from "./Database/DatabaseConnection.js";
 import { DbConnProvider } from "./DbConnProvider.js";
 import { ExpressServer } from "./ExpressServer.js";
+import { IExerciseInstanceQuestion } from "./Models/Database/AdaptiveExercise/IExerciseInstanceQuestion.js";
 import { PgBossProvider } from "./PgBossProvider.js";
 
 const EDGAR_STATPROC_QUEUE_NAME = "edgar-irt-work-request-queue";
@@ -27,7 +28,12 @@ export class Main {
         const statisticsController: AbstractController = new StatisticsController(DbConnProvider.getDbConn());
         const edgarController: AbstractController = new EdgarController(DbConnProvider.getDbConn());
         const adaptiveExercisesController: AbstractController =
-            new AdaptiveExercisesController(DbConnProvider.getDbConn());
+            new AdaptiveExercisesController(
+                DbConnProvider.getDbConn(),
+                { provideQuestion: async () => ({  } as IExerciseInstanceQuestion) },
+                { generateTheta: async () => (1.0) },
+                { generateThetaDelta: async () => ({ type: "percentage", value: 0.08 }) }
+            );
 
         jobController.applyController(Main.server);
         statisticsController.applyController(Main.server);
