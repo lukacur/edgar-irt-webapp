@@ -103,8 +103,6 @@ export class JobExecutionComponent implements OnInit {
 
     startJob() {
         const form = this.jobExecutionForm.getRawValue();
-        console.log(form);
-        return;
 
         this.jobsService.startJob({
             idJobType: parseInt(form.jobType.id),
