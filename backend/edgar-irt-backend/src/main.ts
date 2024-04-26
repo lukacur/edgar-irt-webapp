@@ -8,6 +8,7 @@ import { DbConnProvider } from "./DbConnProvider.js";
 import { ExpressServer } from "./ExpressServer.js";
 import { IExerciseInstanceQuestion } from "./Models/Database/AdaptiveExercise/IExerciseInstanceQuestion.js";
 import { PgBossProvider } from "./PgBossProvider.js";
+import { CourseService } from "./Services/CourseService.js";
 
 const EDGAR_STATPROC_QUEUE_NAME = "edgar-irt-work-request-queue";
 
@@ -17,6 +18,7 @@ export class Main {
     public static async main(args: string[]): Promise<void> {
         Main.server = ExpressServer.initialize();
         DbConnProvider.setDbConn(await DatabaseConnection.fromConfigFile("./database-config.json"));
+        const courseService = new CourseService(DbConnProvider.getDbConn());
 
         Main.server.useJsonBodyParsing();
 
@@ -26,10 +28,11 @@ export class Main {
             PgBossProvider.instance
         );
         const statisticsController: AbstractController = new StatisticsController(DbConnProvider.getDbConn());
-        const edgarController: AbstractController = new EdgarController(DbConnProvider.getDbConn());
+        const edgarController: AbstractController = new EdgarController(DbConnProvider.getDbConn(), courseService);
         const adaptiveExercisesController: AbstractController =
             new AdaptiveExercisesController(
                 DbConnProvider.getDbConn(),
+                courseService,
                 { provideQuestion: async () => ({  } as IExerciseInstanceQuestion) },
                 { generateTheta: async () => (1.0) },
                 { generateThetaDelta: async () => ({ type: "percentage", value: 0.08 }) }
