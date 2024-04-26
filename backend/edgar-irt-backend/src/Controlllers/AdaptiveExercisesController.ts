@@ -54,8 +54,11 @@ export class AdaptiveExercisesController extends AbstractController {
         const allowedQuestionTypes: IQuestionType[] = (
             await this.dbConn.doQuery<IQuestionType>(
                 `SELECT id_question_type,
-                        question_type_name
-                FROM adaptive_exercise.exercise_allowed_question_type`
+                        type_name AS question_type_name,
+                        allowed_on
+                FROM adaptive_exercise.exercise_allowed_question_type
+                    JOIN public.question_type
+                        ON exercise_allowed_question_type.id_question_type = question_type.id`
             )
         )?.rows ?? [];
 
@@ -84,33 +87,61 @@ export class AdaptiveExercisesController extends AbstractController {
     }
 
     @Put("allowed-question-types/add")
-    public async addAllowedQuestionType(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idQuestionType = req.body.idQuestionType;
-        if ((idQuestionType ?? null) === null) {
+    public async addAllowedQuestionTypes(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const idQuestionTypes = req.body.idQuestionTypes;
+        if ((idQuestionTypes ?? null) === null) {
             res.sendStatus(400);
             return;
         }
 
-        await this.dbConn.doQuery(
-            `INSERT INTO adaptive_exercise.exercise_allowed_question_type (id_question_type) VALUES ($1)`,
-            [idQuestionType]
-        );
+        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
+
+        try {
+            for (const idQuestionType of idQuestionTypes) {
+                await transaction.doQuery(
+                    `INSERT INTO adaptive_exercise.exercise_allowed_question_type (id_question_type) VALUES ($1)`,
+                    [idQuestionType]
+                );
+            }
+
+            await transaction.commit();
+        } catch {
+            
+        } finally {
+            if (!transaction.isFinished()) {
+                await transaction.rollback();
+            }
+        }
 
         res.sendStatus(200);
     }
 
     @Delete("allowed-question-types/remove")
     public async removeAllowedQuestionType(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idQuestionType = req.body.idQuestionType;
-        if ((idQuestionType ?? null) === null) {
+        const idQuestionTypes = req.body.idQuestionTypes;
+        if ((idQuestionTypes ?? null) === null) {
             res.sendStatus(400);
             return;
         }
 
-        await this.dbConn.doQuery(
-            `DELETE FROM adaptive_exercise.exercise_allowed_question_type WHERE id_question_type = $1`,
-            [idQuestionType]
-        );
+        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
+
+        try {
+            for (const idQuestionType of idQuestionTypes) {
+                await transaction.doQuery(
+                    `DELETE FROM exercise_allowed_question_type WHERE id_question_type = $1`,
+                    [idQuestionType]
+                );
+            }
+
+            await transaction.commit();
+        } catch {
+            
+        } finally {
+            if (!transaction.isFinished()) {
+                await transaction.rollback();
+            }
+        }
 
         res.sendStatus(200);
     }
