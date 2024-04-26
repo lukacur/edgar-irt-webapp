@@ -6,8 +6,41 @@
             class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full flex justify-between items-center"
             (click)="optionsExpanded = !optionsExpanded"
         >
-            <div>{{ selectText ?? "" }}</div>
-            <mat-icon class="select-none">{{ (optionsExpanded) ? "expand_less" : "expand_more" }}</mat-icon>
+            <div *ngIf="!multi; else multiDisplay">
+                <div class="inline-block">{{ (selectedItems.length <= 0) ? "" : selectedItems[0][textKey] }}</div>
+            </div>
+
+            <ng-template #multiDisplay>
+                <div
+                    class="flex flex-wrap"
+                >
+                    <div
+                        class="w-fit shadow-md bg-gray-200/25 border border-slate-500/15 p-1 flex justify-between cursor-default me-2 my-1" 
+                        *ngFor="let selectedItem of selectedItems"
+                    >
+                        <div class="inline-block px-1">{{ selectedItem[textKey] ?? "" }}</div>
+                        <mat-icon
+                            class="select-none cursor-pointer text-sm inline align-middle text-center px-1"
+                            (click)="
+                                remove(selectedItem);
+                                control.setValue(getSelectedItemValues());
+                            "
+                        >close</mat-icon>
+                    </div>
+                </div>
+            </ng-template>
+
+            <div>
+                <mat-icon
+                    class="select-none cursor-pointer px-1 me-3"
+                    (click)="
+                        remove(selectedItems[0]);
+                        control.setValue(null);
+                    "
+                    *ngIf="!multi && selectedItems.length !== 0"
+                >close</mat-icon>
+                <mat-icon class="select-none">{{ (optionsExpanded) ? "expand_less" : "expand_more" }}</mat-icon>
+            </div>
         </div>
         <ul
             class="p-3 mt-1 bg-white border border-slate-500/50 rounded w-full absolute z-50"
@@ -35,13 +68,22 @@
                 class="p-2 cursor-pointer border-t border-slate-400/25 hover:bg-blue-400/15 bg-white"
                 *ngFor="let selectableItem of getFilteredItems()"
                 (click)="
-                    selectValue = selectableItem[valueKey];
-                    control.setValue(selectValue);
-                    selectText = selectableItem[textKey];
-                    optionsExpanded = false;
+                    $event.preventDefault();
+                    $event.stopPropagation();
+
+                    select(selectableItem);
+                    control.setValue(getSelectedItemValues());
+
+                    optionsExpanded = multi;
                 "
             >
                 {{ selectableItem[textKey] }}
+            </li>
+            <li
+                class="p-2 text-gray-500/50 border-t border-slate-400/25"
+                *ngIf="selectableItems.length === 0 || multi && selectableItems.length === selectedItems.length"
+            >
+                No items to select
             </li>
         </ul>
     </div>
