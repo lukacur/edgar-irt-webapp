@@ -44,20 +44,23 @@ export class AdaptiveExercisesService {
             );
     }
 
-    public addAllowedQuestionType(idQuestionType: number): Observable<void> {
+    public addAllowedQuestionTypes(idQuestionTypes: number[]): Observable<void> {
         return this.http
-            .put<void>(
+            .put(
                 `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/allowed-question-types/add`,
-                { idQuestionType }
-            );
+                { idQuestionTypes },
+                {
+                    responseType: "text"
+                }
+            ).pipe(map(() => {}));
     }
 
-    public removeAllowedQuestionType(idQuestionType: number): Observable<void> {
+    public removeAllowedQuestionTypes(idQuestionTypes: number[]): Observable<void> {
         return this.http
-            .delete<void>(
+            .delete(
                 `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/allowed-question-types/remove`,
-                { body: { idQuestionType } }
-            );
+                { body: { idQuestionTypes }, responseType: "text" }
+            ).pipe(map(() => {}));
     }
 
     public getQuestionBlacklist(): Observable<IQuestionBlacklistEntry[]> {
@@ -76,18 +79,21 @@ export class AdaptiveExercisesService {
 
     public addQuestionToBlacklist(idQuestion: number): Observable<void> {
         return this.http
-            .put<void>(
+            .put(
                 `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-blacklist/add`,
-                { idQuestion }
-            );
+                { idQuestion },
+                {
+                    responseType: "text"
+                }
+            ).pipe(map(() => {}));
     }
 
     public removeQuestionFromBlacklist(idQuestion: number): Observable<void> {
         return this.http
-            .delete<void>(
+            .delete(
                 `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-blacklist/remove`,
-                { body: { idQuestion } }
-            );
+                { body: { idQuestion }, responseType: "text" }
+            ).pipe(map(() => {}));
     }
 
     public nextQuestion(
@@ -100,6 +106,6 @@ export class AdaptiveExercisesService {
             .post<IExerciseInstanceQuestion>(
                 `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/next-question`,
                 bodyObj
-            )
+            );
     }
 }
