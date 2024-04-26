@@ -3,10 +3,10 @@ import { Injectable } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { IEdgarCourse } from '../models/edgar/course.model';
 import { environment } from 'src/environments/environment';
-import { ICourseCalculation } from '../models/statistics-processing/course-calculation.model.js';
-import { ICourseLevelStatisticsCalculation } from '../models/statistics-processing/course-level-statistics-calculation.model.js';
-import { ITestLevelStatisticsCalculation } from '../models/statistics-processing/test-level-statistics-calculation.model.js';
-import { IQuestionIrtParameters } from '../models/irt/question-irt-parameters.model.js';
+import { ICourseCalculation } from '../models/statistics-processing/course-calculation.model';
+import { ICourseLevelStatisticsCalculation } from '../models/statistics-processing/course-level-statistics-calculation.model';
+import { ITestLevelStatisticsCalculation } from '../models/statistics-processing/test-level-statistics-calculation.model';
+import { IQuestionIrtParameters } from '../models/irt/question-irt-parameters.model';
 
 @Injectable({
   providedIn: 'root'

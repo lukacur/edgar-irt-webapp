@@ -1,12 +1,12 @@
-import { HttpClient } from '@angular/common/http/index.js';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { environment } from 'src/environments/environment.js';
-import { IQuestionType } from '../models/edgar/question-type.model.js';
-import { IQuestion } from '../models/edgar/question.model.js';
-import { IExerciseInstance } from '../models/adaptive-exercises/exercise-instance.model.js';
-import { IQuestionBlacklistEntry } from '../models/adaptive-exercises/question-blacklist-entry.model.js';
-import { IExerciseInstanceQuestion } from '../models/adaptive-exercises/exercise-instance-question.model.js';
+import { map, Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
+import { IQuestionType } from '../models/edgar/question-type.model';
+import { IQuestion } from '../models/edgar/question.model';
+import { IExerciseInstance } from '../models/adaptive-exercises/exercise-instance.model';
+import { IQuestionBlacklistEntry } from '../models/adaptive-exercises/question-blacklist-entry.model';
+import { IExerciseInstanceQuestion } from '../models/adaptive-exercises/exercise-instance-question.model';
 
 @Injectable({
     providedIn: 'root'
