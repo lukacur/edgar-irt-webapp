@@ -6,17 +6,18 @@ import { IExerciseInstance } from "../Models/Database/AdaptiveExercise/IExercise
 import { Put } from "../Decorators/Put.decorator.js";
 import { Delete } from "../Decorators/Delete.decorator.js";
 import { IQuestionType } from "../Models/Database/Edgar/IQuestionType.js";
-import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
-import { IQuestionBlacklistEntry } from "../Models/Database/AdaptiveExercise/IQuestionBlacklistEntry.js";
 import { Post } from "../Decorators/Post.decorator.js";
 import { IExerciseInstanceQuestion } from "../Models/Database/AdaptiveExercise/IExerciseInstanceQuestion.js";
 import { IAdaptiveExerciseNextQuestionGenerator } from "../Logic/IAdaptiveExerciseNextQuestionGenerator.js";
 import { IAdaptiveExerciseInitialThetaGenerator } from "../Logic/IAdaptiveExerciseInitialThetaGenerator.js";
 import { IAdaptiveExerciseThetaDeltaGenerator, ThetaDeltaInfo } from "../Logic/IAdaptiveExerciseThetaDeltaGenerator.js";
+import { IEdgarNode } from "../Models/Database/Edgar/IEdgarNode.js";
+import { CourseService } from "../Services/CourseService.js";
 
 export class AdaptiveExercisesController extends AbstractController {
     constructor(
         private readonly dbConn: DatabaseConnection,
+        private readonly courseService: CourseService,
 
         private readonly nextQuestionGenerator: IAdaptiveExerciseNextQuestionGenerator,
         private readonly initialThetaGenerator: IAdaptiveExerciseInitialThetaGenerator,
@@ -146,68 +147,94 @@ export class AdaptiveExercisesController extends AbstractController {
         res.sendStatus(200);
     }
 
-    @Get("question-blacklist")
-    public async getQuestionBlacklist(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const questionBlacklist: IQuestionBlacklistEntry[] = (
-            await this.dbConn.doQuery<IQuestionBlacklistEntry>(
-                `SELECT *
-                FROM adaptive_exercise.exercise_question_blacklist`
+    @Get("course/:idCourse/question-node-whitelist")
+    public async getCourseQuestionNodeWhitelist(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const idCourse = req.params.idCourse;
+        if ((idCourse ?? null) === null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const nodeWhitelist: (IEdgarNode & { whitelisted_on: string })[] = (
+            await this.dbConn.doQuery<(IEdgarNode & { whitelisted_on: string })>(
+                `SELECT node.id,
+                        node.id_node_type,
+                        node.node_name,
+                        node.description,
+
+                        node_type.node_type_name,
+
+                        exercise_node_whitelist.whitelisted_on,
+                FROM adaptive_exercise.exercise_node_whitelist
+                    JOIN public.node
+                        ON exercise_node_whitelist.id_node = node.id
+                    JOIN public.node_type
+                        ON node.id_node_type = node_type.id
+                WHERE id_course = $1`,
+                [idCourse]
             )
         )?.rows ?? [];
 
         res
             .status(200)
-            .send(questionBlacklist);
+            .send(nodeWhitelist);
     }
 
-    @Get("blacklistable-questions")
-    public async getBlacklistableQuestions(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const blableQuestions: IQuestion[] = (
-            await this.dbConn.doQuery<IQuestion>(
-                `SELECT id,
-                        id_question_type,
-                        question_text,
-                        question_comment
-                FROM public.question
-                WHERE id NOT IN (
-                    SELECT id_question
-                    FROM adaptive_exercise.exercise_question_blacklist
-                )`
+    @Get("course/:idCourse/whitelistable-nodes")
+    public async getCourseWhitelistableQuestionNodes(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const idCourse = req.params['idCourse'];
+        if ((idCourse ?? null) === null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const whitelistedNodeIds: IEdgarNode[] = (
+            await this.dbConn.doQuery<IEdgarNode>(
+                `SELECT id_node
+                FROM adaptive_exercise.exercise_node_whitelist
+                WHERE id_course = $1`,
+                [idCourse]
             )
         )?.rows ?? [];
 
+        const allCourseNodes = await this.courseService.getCourseNodes(parseInt(idCourse));
+
         res
             .status(200)
-            .send(blableQuestions);
+            .send(allCourseNodes.filter(cn => (whitelistedNodeIds.find(wn => wn.id === cn.id)) ?? null) === null);
     }
 
-    @Put("question-blacklist/add")
-    public async addQuestionToBlacklist(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idQuestion = req.body.idQuestion;
-        if ((idQuestion ?? null) === null) {
+    @Put("question-whitelist/add")
+    public async addQuestionNodeToWhitelist(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const idNode = req.body.idNode;
+        const idCourse = req.body.idCourse;
+        if ((idCourse ?? null) === null || (idNode ?? null) === null) {
             res.sendStatus(400);
             return;
         }
 
         await this.dbConn.doQuery(
-            `INSERT INTO adaptive_exercise.exercise_question_blacklist (id_question) VALUES ($1)`,
-            [idQuestion]
+            `INSERT INTO adaptive_exercise.exercise_question_blacklist (id_node, id_course) VALUES ($1, $2)`,
+            [
+                idNode,
+                idCourse,
+            ]
         );
 
         res.sendStatus(200);
     }
 
-    @Delete("question-blacklist/remove")
-    public async removeQuestionFromBlacklist(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idQuestion = req.body.idQuestion;
-        if ((idQuestion ?? null) === null) {
+    @Delete("question-whitelist/remove")
+    public async removeQuestionNodeFromWhitelist(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const idNode = req.body.idNode;
+        if ((idNode ?? null) === null) {
             res.sendStatus(400);
             return;
         }
 
         await this.dbConn.doQuery(
-            `DELETE FROM adaptive_exercise.exercise_question_blacklist WHERE id_question = $1`,
-            [idQuestion]
+            `DELETE FROM adaptive_exercise.exercise_question_blacklist WHERE id_node = $1`,
+            [idNode]
         );
 
         res.sendStatus(200);
