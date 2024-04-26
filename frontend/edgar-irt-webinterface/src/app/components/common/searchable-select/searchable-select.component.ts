@@ -13,6 +13,9 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
     @Input("valueKey")
     valueKey: string = null!;
 
+    @Input("useObjectAsValue")
+    useObjectAsValue: boolean = false;
+
     @Input("textKey")
     textKey: string = null!;
 
@@ -108,8 +111,12 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
 
     getSelectedItemValues() {
         return (this.multi) ?
-            (this.selectedItems.map(it => it[this.valueKey])) :
-            ((this.selectedItems.length <= 0) ? null : this.selectedItems[0][this.valueKey]);
+            (this.selectedItems.map(it => (this.useObjectAsValue) ? it : it[this.valueKey])) :
+            (
+                (this.selectedItems.length <= 0) ?
+                    null :
+                    ((this.useObjectAsValue) ? this.selectedItems[0] : this.selectedItems[0][this.valueKey])
+            );
     }
 
     getFilteredItems(): any[] {
