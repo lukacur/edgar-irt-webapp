@@ -1,1 +1,110 @@
-<p>question-blacklist-overview works!</p>
+<div class="p-3 shadow-md border border-slate-500/50">
+    <h2 class="text-lg text-purple-600">Question whitelist definition</h2>
+    <hr class="my-3">
+
+    <div [formGroup]="nodeSelectionForm">
+        <app-searchable-select
+            labelText="Select a course"
+    
+            [multi]="false"
+            [searchable]="true"
+            [selectableItems]="(courses$ | async) ?? []"
+    
+            textKey="text"
+            valueKey="course"
+    
+            [useObjectAsValue]="false"
+
+            [control]="nodeSelectionForm.get('selectedCourse')!"
+        ></app-searchable-select>
+
+        <div *ngIf="(nodeSelectionForm.get('selectedCourse')?.value ?? null) !== null">
+            <hr class="my-3">
+
+            <h3 class="text-purple-600">Whitelist course question nodes</h3>
+            <hr class="mt-3">
+            <app-searchable-select
+                labelText="Select question nodes to whitelist"
+                
+                [multi]="true"
+                [searchable]="true"
+                [selectableItems]="(selectableNodes$ | async) ?? []"
+                
+                textKey="text"
+                valueKey="node"
+
+                [useObjectAsValue]="false"
+                
+                [control]="nodeSelectionForm.get('selectedNodes')!"
+            ></app-searchable-select>
+
+            <button
+                type="button"
+                mat-raised-button
+                color="primary"
+                [disabled]="!nodeSelectionForm.dirty"
+                (click)="whitelistSelectedNodes()"
+            >Confirm</button>
+        </div>
+
+        <hr class="my-3">
+
+        <div class="mt-3" *ngIf="(nodeSelectionForm.get('selectedCourse')?.value ?? null) !== null">
+            <h3 class="text-purple-600">Course whitelisted nodes</h3>
+            <hr class="my-3">
+            <div class="overflow-auto max-h-[560px]">
+                <table class="w-full p-3 text-center">
+                    <thead>
+                        <tr>
+                            <th>
+                                <mat-checkbox
+                                    color="primary"
+                                    [indeterminate]="removalSelectionStatus() === 'indeterminate'"
+                                    (change)="setRemovalSelectionToAllNodes($event.checked)"
+                                    [checked]="removalSelectionStatus() === 'full'"
+                                    [disabled]="numberOfWhitelistedNodes === 0"
+                                ></mat-checkbox>
+                            </th>
+                            <th class="text-center">ID</th>
+                            <th class="text-center">(Node type) - Name</th>
+                            <th class="text-center">Whitelisted on</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let node of (courseWhitelistedNodes$ | async) ?? []">
+                            <td>
+                                <mat-checkbox
+                                    color="primary"
+                                    [checked]="(this.nodeSelectionForm.get('toRemoveNodeIds')?.value ?? []).includes(node.id)"
+                                    (change)="
+                                        toggleNodeForRemoval(!$event.checked, node.id);
+                                    "
+                                ></mat-checkbox>
+                            </td>
+                            <td class="text-center">{{ node.id }}</td>
+                            <td class="text-center">({{ node.node_type_name }}) - {{ node.node_name }}</td>
+                            <td class="text-center">{{ node.whitelisted_on| date:"dd. MM. yyyy. HH:mm:ss" }}</td>
+                        </tr>
+                        <tr *ngIf="numberOfWhitelistedNodes === 0">
+                            <td
+                                class="py-2 text-gray-500/50"
+                                colspan="4"
+                            >No whitelisted nodes</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+    
+            <hr class="my-3">
+    
+            <button
+                class="mt-3"
+                type="button"
+                mat-flat-button
+                color="warn"
+                (click)="removeSelectedNodes()"
+                [disabled]="(nodeSelectionForm.get('toRemoveNodeIds')?.value ?? []).length === 0"
+            >Remove selected nodes</button>
+        </div>
+    </div>
+</div>
