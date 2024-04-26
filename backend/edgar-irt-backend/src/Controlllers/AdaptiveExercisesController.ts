@@ -13,6 +13,7 @@ import { IAdaptiveExerciseInitialThetaGenerator } from "../Logic/IAdaptiveExerci
 import { IAdaptiveExerciseThetaDeltaGenerator, ThetaDeltaInfo } from "../Logic/IAdaptiveExerciseThetaDeltaGenerator.js";
 import { IEdgarNode } from "../Models/Database/Edgar/IEdgarNode.js";
 import { CourseService } from "../Services/CourseService.js";
+import { IQuestionNodeWhitelistEntry } from "../Models/Database/AdaptiveExercise/IQuestionNodeWhitelistEntry.js";
 
 export class AdaptiveExercisesController extends AbstractController {
     constructor(
@@ -106,15 +107,15 @@ export class AdaptiveExercisesController extends AbstractController {
             }
 
             await transaction.commit();
+
+            res.sendStatus(200);
         } catch {
-            
+            res.sendStatus(400);
         } finally {
             if (!transaction.isFinished()) {
                 await transaction.rollback();
             }
         }
-
-        res.sendStatus(200);
     }
 
     @Delete("allowed-question-types/remove")
@@ -136,15 +137,15 @@ export class AdaptiveExercisesController extends AbstractController {
             }
 
             await transaction.commit();
+
+            res.sendStatus(200);
         } catch {
-            
+            res.sendStatus(400);
         } finally {
             if (!transaction.isFinished()) {
                 await transaction.rollback();
             }
         }
-
-        res.sendStatus(200);
     }
 
     @Get("course/:idCourse/question-node-whitelist")
@@ -162,9 +163,9 @@ export class AdaptiveExercisesController extends AbstractController {
                         node.node_name,
                         node.description,
 
-                        node_type.node_type_name,
+                        node_type.type_name AS node_type_name,
 
-                        exercise_node_whitelist.whitelisted_on,
+                        exercise_node_whitelist.whitelisted_on
                 FROM adaptive_exercise.exercise_node_whitelist
                     JOIN public.node
                         ON exercise_node_whitelist.id_node = node.id
@@ -188,8 +189,8 @@ export class AdaptiveExercisesController extends AbstractController {
             return;
         }
 
-        const whitelistedNodeIds: IEdgarNode[] = (
-            await this.dbConn.doQuery<IEdgarNode>(
+        const whitelistedNodeIds: IQuestionNodeWhitelistEntry[] = (
+            await this.dbConn.doQuery<IQuestionNodeWhitelistEntry>(
                 `SELECT id_node
                 FROM adaptive_exercise.exercise_node_whitelist
                 WHERE id_course = $1`,
@@ -201,43 +202,76 @@ export class AdaptiveExercisesController extends AbstractController {
 
         res
             .status(200)
-            .send(allCourseNodes.filter(cn => (whitelistedNodeIds.find(wn => wn.id === cn.id)) ?? null) === null);
+            .send(allCourseNodes.filter(cn => (whitelistedNodeIds.find(wn => wn.id_node === cn.id) ?? null) === null));
     }
 
     @Put("question-whitelist/add")
     public async addQuestionNodeToWhitelist(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idNode = req.body.idNode;
-        const idCourse = req.body.idCourse;
-        if ((idCourse ?? null) === null || (idNode ?? null) === null) {
+        const nodeWhitelistEntries: Omit<IQuestionNodeWhitelistEntry, "whitelisted_on">[] =
+            req.body.nodeWhitelistEntries;
+
+        if ((nodeWhitelistEntries ?? null) === null || nodeWhitelistEntries.length === 0) {
             res.sendStatus(400);
             return;
         }
 
-        await this.dbConn.doQuery(
-            `INSERT INTO adaptive_exercise.exercise_question_blacklist (id_node, id_course) VALUES ($1, $2)`,
-            [
-                idNode,
-                idCourse,
-            ]
-        );
+        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
 
-        res.sendStatus(200);
+        try {
+            for (const nodeWhitelistEntry of nodeWhitelistEntries) {
+                if (nodeWhitelistEntry.id_course === null || nodeWhitelistEntry.id_node === null) {
+                    throw new Error("Invalid entry detected, aborting");
+                }
+
+                await this.dbConn.doQuery(
+                    `INSERT INTO adaptive_exercise.exercise_node_whitelist (id_node, id_course) VALUES ($1, $2)`,
+                    [
+                        nodeWhitelistEntry.id_node,
+                        nodeWhitelistEntry.id_course,
+                    ]
+                );
+            }
+
+            await transaction.commit();
+
+            res.sendStatus(200);
+        } catch {
+            res.sendStatus(400);
+        } finally {
+            if (!transaction.isFinished()) {
+                await transaction.rollback();
+            }
+        }
     }
 
     @Delete("question-whitelist/remove")
     public async removeQuestionNodeFromWhitelist(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idNode = req.body.idNode;
-        if ((idNode ?? null) === null) {
+        const idNodes = req.body.idNodes;
+        if ((idNodes ?? null) === null) {
             res.sendStatus(400);
             return;
         }
 
-        await this.dbConn.doQuery(
-            `DELETE FROM adaptive_exercise.exercise_question_blacklist WHERE id_node = $1`,
-            [idNode]
-        );
+        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
 
-        res.sendStatus(200);
+        try {
+            for (const idNode of idNodes) {
+                await this.dbConn.doQuery(
+                    `DELETE FROM adaptive_exercise.exercise_node_whitelist WHERE id_node = $1`,
+                    [idNode]
+                );
+            }
+
+            await transaction.commit();
+
+            res.sendStatus(200);
+        } catch {
+            res.sendStatus(400);
+        } finally {
+            if (!transaction.isFinished()) {
+                await transaction.rollback();
+            }
+        }
     }
 
     private async getNthLastExerciseQuestion(
