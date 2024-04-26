@@ -205,7 +205,7 @@ export class AdaptiveExercisesController extends AbstractController {
             .send(allCourseNodes.filter(cn => (whitelistedNodeIds.find(wn => wn.id_node === cn.id) ?? null) === null));
     }
 
-    @Put("question-whitelist/add")
+    @Put("question-node-whitelist/add")
     public async addQuestionNodeToWhitelist(req: Request, res: Response, next: NextFunction): Promise<void> {
         const nodeWhitelistEntries: Omit<IQuestionNodeWhitelistEntry, "whitelisted_on">[] =
             req.body.nodeWhitelistEntries;
@@ -244,7 +244,7 @@ export class AdaptiveExercisesController extends AbstractController {
         }
     }
 
-    @Delete("question-whitelist/remove")
+    @Delete("question-node-whitelist/remove")
     public async removeQuestionNodeFromWhitelist(req: Request, res: Response, next: NextFunction): Promise<void> {
         const idNodes = req.body.idNodes;
         if ((idNodes ?? null) === null) {
