@@ -84,6 +84,7 @@
             mat-flat-button
             color="warn"
             (click)="removeSelectedQuestionTypes()"
+            [disabled]="(selectedQuestionTypesForm.get('toRemoveQuestionTypeIds')?.value ?? []).length === 0"
         >Remove selected question types</button>
     </div>
 </div>
