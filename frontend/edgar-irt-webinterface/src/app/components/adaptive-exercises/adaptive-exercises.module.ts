@@ -26,7 +26,7 @@ const routes: Route[] = [
     component: ExercisesQuestionTypesOverviewComponent,
   },
   {
-    path: "question-blacklist-overview",
+    path: "question-whitelist-overview",
     pathMatch: "full",
     component: ExercisesQuestionNodeWhitelistOverviewComponent,
   },

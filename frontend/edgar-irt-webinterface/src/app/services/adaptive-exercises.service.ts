@@ -3,10 +3,9 @@ import { Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { IQuestionType } from '../models/edgar/question-type.model';
-import { IQuestion } from '../models/edgar/question.model';
 import { IExerciseInstance } from '../models/adaptive-exercises/exercise-instance.model';
-import { IQuestionBlacklistEntry } from '../models/adaptive-exercises/question-blacklist-entry.model';
 import { IExerciseInstanceQuestion } from '../models/adaptive-exercises/exercise-instance-question.model';
+import { IEdgarNode } from '../models/edgar/node.model.js';
 
 @Injectable({
     providedIn: 'root'
@@ -63,36 +62,36 @@ export class AdaptiveExercisesService {
             ).pipe(map(() => {}));
     }
 
-    public getQuestionBlacklist(): Observable<IQuestionBlacklistEntry[]> {
+    public getCourseQuestionNodeWhitelist(idCourse: number): Observable<(IEdgarNode & { whitelisted_on: string })[]> {
         return this.http
-            .get<IQuestionBlacklistEntry[]>(
-                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-blacklist`
+            .get<(IEdgarNode & { whitelisted_on: string })[]>(
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/course/${idCourse}/question-node-whitelist`
             );
     }
 
-    public getBlacklistableQuestions(): Observable<IQuestion[]> {
+    public getCourseWhitelistableQuestionNodes(idCourse: number): Observable<IEdgarNode[]> {
         return this.http
-            .get<IQuestion[]>(
-                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/blacklistable-questions`
+            .get<IEdgarNode[]>(
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/course/${idCourse}/whitelistable-nodes`
             );
     }
 
-    public addQuestionToBlacklist(idQuestion: number): Observable<void> {
+    public addQuestionNodeToWhitelist(idCourse: number, idNode: number): Observable<void> {
         return this.http
             .put(
-                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-blacklist/add`,
-                { idQuestion },
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-whitelist/add`,
+                { idNode, idCourse },
                 {
                     responseType: "text"
                 }
             ).pipe(map(() => {}));
     }
 
-    public removeQuestionFromBlacklist(idQuestion: number): Observable<void> {
+    public removeQuestionNodeFromWhitelist(idNode: number): Observable<void> {
         return this.http
             .delete(
-                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-blacklist/remove`,
-                { body: { idQuestion }, responseType: "text" }
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-whitelist/remove`,
+                { body: { idNode }, responseType: "text" }
             ).pipe(map(() => {}));
     }
 
