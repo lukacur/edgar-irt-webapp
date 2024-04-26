@@ -6,6 +6,7 @@ import { IQuestionType } from '../models/edgar/question-type.model';
 import { IExerciseInstance } from '../models/adaptive-exercises/exercise-instance.model';
 import { IExerciseInstanceQuestion } from '../models/adaptive-exercises/exercise-instance-question.model';
 import { IEdgarNode } from '../models/edgar/node.model.js';
+import { IQuestionNodeWhitelistEntry } from '../models/adaptive-exercises/question-node-whitelist-entry.model.js';
 
 @Injectable({
     providedIn: 'root'
@@ -76,22 +77,24 @@ export class AdaptiveExercisesService {
             );
     }
 
-    public addQuestionNodeToWhitelist(idCourse: number, idNode: number): Observable<void> {
+    public addQuestionNodesToWhitelist(
+        nodeWhitelistEntries: Omit<IQuestionNodeWhitelistEntry, "whitelisted_on">[]
+    ): Observable<void> {
         return this.http
             .put(
-                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-whitelist/add`,
-                { idNode, idCourse },
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-node-whitelist/add`,
+                { nodeWhitelistEntries },
                 {
                     responseType: "text"
                 }
             ).pipe(map(() => {}));
     }
 
-    public removeQuestionNodeFromWhitelist(idNode: number): Observable<void> {
+    public removeQuestionNodesFromWhitelist(idNodes: number[]): Observable<void> {
         return this.http
             .delete(
-                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-whitelist/remove`,
-                { body: { idNode }, responseType: "text" }
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-node-whitelist/remove`,
+                { body: { idNodes }, responseType: "text" }
             ).pipe(map(() => {}));
     }
 
