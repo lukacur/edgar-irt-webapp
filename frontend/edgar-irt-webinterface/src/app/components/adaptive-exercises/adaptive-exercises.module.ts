@@ -4,8 +4,8 @@ import { Route, RouterModule } from '@angular/router';
 import { AdaptiveExercisesAvailableActionsComponent } from './adaptive-exercises-available-actions/adaptive-exercises-available-actions.component';
 import { MyExercisesComponent } from './my-exercises/my-exercises.component';
 import { ExercisesQuestionTypesOverviewComponent } from './exercises-question-types-overview/exercises-question-types-overview.component';
-import { ExercisesQuestionBlacklistOverviewComponent } from './exercises-question-blacklist-overview/exercises-question-blacklist-overview.component';
-import { MatButtonModule } from '@angular/material';
+import { ExercisesQuestionNodeWhitelistOverviewComponent } from './exercises-question-node-whitelist-overview/exercises-question-node-whitelist-overview.component';
+import { MatButtonModule, MatCheckboxModule } from '@angular/material';
 import { AppCommonModule } from '../common/app-common.module';
 import { ReactiveFormsModule } from '@angular/forms';
 
@@ -28,7 +28,7 @@ const routes: Route[] = [
   {
     path: "question-blacklist-overview",
     pathMatch: "full",
-    component: ExercisesQuestionBlacklistOverviewComponent,
+    component: ExercisesQuestionNodeWhitelistOverviewComponent,
   },
 ];
 
@@ -37,7 +37,7 @@ const routes: Route[] = [
     AdaptiveExercisesAvailableActionsComponent,
     MyExercisesComponent,
     ExercisesQuestionTypesOverviewComponent,
-    ExercisesQuestionBlacklistOverviewComponent
+    ExercisesQuestionNodeWhitelistOverviewComponent
   ],
   imports: [
     RouterModule.forChild(routes),
@@ -45,6 +45,7 @@ const routes: Route[] = [
     MatButtonModule,
     AppCommonModule,
     ReactiveFormsModule,
+    MatCheckboxModule,
   ]
 })
 export class AdaptiveExercisesModule { }

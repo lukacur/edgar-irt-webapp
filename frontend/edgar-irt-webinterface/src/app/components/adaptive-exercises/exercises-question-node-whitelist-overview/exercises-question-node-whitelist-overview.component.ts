@@ -2,9 +2,9 @@ import { Component, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-question-blacklist-overview',
-  templateUrl: './exercises-question-blacklist-overview.component.html',
+  templateUrl: './exercises-question-node-whitelist-overview.component.html',
 })
-export class ExercisesQuestionBlacklistOverviewComponent implements OnInit {
+export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit {
 
   constructor() { }
 
