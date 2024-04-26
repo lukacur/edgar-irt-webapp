@@ -1,11 +1,12 @@
-import { Component, ElementRef, HostListener, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { AbstractControl } from '@angular/forms';
+import { Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-searchable-select',
     templateUrl: './searchable-select.component.html',
 })
-export class SearchableSelectComponent implements OnInit {
+export class SearchableSelectComponent implements OnInit, OnDestroy {
     @Input("selectableItems")
     selectableItems: any[] = null!;
 
@@ -60,12 +61,27 @@ export class SearchableSelectComponent implements OnInit {
 
     optionsExpanded: boolean = false;
 
+    private readonly subscriptions: Subscription = new Subscription();
+
     constructor() { }
 
     ngOnInit(): void {
         if (this.multi) {
             this.control.setValue(this.selectedItems);
         }
+
+        this.subscriptions.add(
+            this.control.valueChanges
+                .subscribe(vl => {
+                    if (vl === null || (Array.isArray(vl) && vl.length === 0 && this.multi)) {
+                        this.selectedItems = [];
+                    }
+                })
+        );
+    }
+
+    ngOnDestroy(): void {
+        this.subscriptions.unsubscribe();
     }
 
     select(value: any): void {
