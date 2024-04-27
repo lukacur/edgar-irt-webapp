@@ -2,6 +2,7 @@ export interface IExerciseInstance {
     id: number;
 
     id_student_started: number;
+    id_course: number;
 
     start_irt_theta: number;
     current_irt_theta: number;
