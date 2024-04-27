@@ -14,11 +14,19 @@ import { IAdaptiveExerciseThetaDeltaGenerator, ThetaDeltaInfo } from "../Logic/I
 import { IEdgarNode } from "../Models/Database/Edgar/IEdgarNode.js";
 import { CourseService } from "../Services/CourseService.js";
 import { IQuestionNodeWhitelistEntry } from "../Models/Database/AdaptiveExercise/IQuestionNodeWhitelistEntry.js";
+import { ICurrentExercise } from "../Models/Database/AdaptiveExercise/ICurrentExercise.js";
+import { IQuestionAnswer } from "../Models/Database/Edgar/IQuestionAnswer.js";
+import { EdgarService } from "../Services/EdgarService.js";
+import { AdaptiveExerciseService } from "../Services/AdaptiveExerciseService.js";
+import { TransactionContext } from "../Database/TransactionContext.js";
+import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 
 export class AdaptiveExercisesController extends AbstractController {
     constructor(
         private readonly dbConn: DatabaseConnection,
         private readonly courseService: CourseService,
+        private readonly edgarService: EdgarService,
+        private readonly adaptiveExerciseService: AdaptiveExerciseService,
 
         private readonly nextQuestionGenerator: IAdaptiveExerciseNextQuestionGenerator,
         private readonly initialThetaGenerator: IAdaptiveExerciseInitialThetaGenerator,
@@ -29,10 +37,10 @@ export class AdaptiveExercisesController extends AbstractController {
         super(basePath);
     }
 
-    @Get(":userId")
-    public async getUsersExercises(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const userId = req.params['userId'];
-        if ((userId ?? null) === null) {
+    @Post("previous")
+    public async getStudentPreviousExercises(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const { idStudent, idCourse } = req.body;
+        if ((idStudent ?? null) === null || (idCourse ?? null) === null) {
             res.sendStatus(400);
             return;
         }
@@ -41,14 +49,92 @@ export class AdaptiveExercisesController extends AbstractController {
             await this.dbConn.doQuery<IExerciseInstance>(
                 `SELECT *
                 FROM adaptive_exercise.exercise_instance
-                WHERE id_student_started = $1`,
-                [userId]
+                WHERE id_student_started = $1 AND
+                        id_course = $2 AND
+                        is_finished`,
+                [
+                    /* $1 */ idStudent,
+                    /* $2 */ idCourse,
+                ]
             )
         )?.rows ?? [];
 
         res
             .status(200)
             .send(exercises);
+    }
+
+    @Post("current")
+    public async getStudentCurrentExercise(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const { idStudent, idCourse } = req.body;
+
+        if ((idStudent ?? null) === null || (idCourse ?? null) === null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const exercise: IExerciseInstance | null = (
+            await this.dbConn.doQuery<IExerciseInstance>(
+                `SELECT *
+                FROM adaptive_exercise.exercise_instance
+                WHERE id_student_started = $1 AND
+                        id_course = $2 AND
+                        NOT is_finished`,
+                [
+                    /* $1 */ idStudent,
+                    /* $2 */ idCourse,
+                ]
+            )
+        )?.rows[0] ?? null;
+
+        if (exercise === null) {
+            res.send(null);
+            return;
+        }
+
+        const lastExerciseInstanceQuestion: IExerciseInstanceQuestion | null = (
+            await this.dbConn.doQuery<IExerciseInstanceQuestion>(
+                `SELECT *
+                FROM adaptive_exercise.exercise_instance_question
+                WHERE id_exercise = $1 AND
+                        finished_on IS NULL`,
+                [
+                    /* $1 */ exercise.id,
+                ]
+            )
+        )?.rows[0] ?? null;
+
+        if (lastExerciseInstanceQuestion === null) {
+            res.send(null);
+            return;
+        }
+
+        const questionInfo = (
+            await this.dbConn.doQuery<IQuestion>(
+                `SELECT *
+                FROM public.question
+                WHERE id = $1`,
+                [lastExerciseInstanceQuestion.id_question]
+            )
+        )?.rows[0] ?? null;
+
+        const answers: IQuestionAnswer[] | null = (
+            await this.edgarService.getQuestionAnswers(lastExerciseInstanceQuestion.id_question)
+        );
+
+        const currentExercise: ICurrentExercise = {
+            exerciseInstance: exercise,
+            questionInfo: {
+                ...lastExerciseInstanceQuestion,
+                question_text: questionInfo?.question_text ?? "",
+                correct_answers: null,
+            },
+            questionAnswers: answers,
+        };
+
+        res
+            .status(200)
+            .send(currentExercise);
     }
 
     @Get("allowed-question-types")
@@ -223,7 +309,7 @@ export class AdaptiveExercisesController extends AbstractController {
                     throw new Error("Invalid entry detected, aborting");
                 }
 
-                await this.dbConn.doQuery(
+                await transaction.doQuery(
                     `INSERT INTO adaptive_exercise.exercise_node_whitelist (id_node, id_course) VALUES ($1, $2)`,
                     [
                         nodeWhitelistEntry.id_node,
@@ -256,7 +342,7 @@ export class AdaptiveExercisesController extends AbstractController {
 
         try {
             for (const idNode of idNodes) {
-                await this.dbConn.doQuery(
+                await transaction.doQuery(
                     `DELETE FROM adaptive_exercise.exercise_node_whitelist WHERE id_node = $1`,
                     [idNode]
                 );
@@ -277,11 +363,12 @@ export class AdaptiveExercisesController extends AbstractController {
     private async getNthLastExerciseQuestion(
         idExercise: number,
         offset: number = 0,
+        transaction: TransactionContext,
     ): Promise<IExerciseInstanceQuestion | null> {
         return (
-            await this.dbConn.doQuery<IExerciseInstanceQuestion>(
+            await transaction.doQuery<IExerciseInstanceQuestion>(
                 `SELECT *
-                FROM adaptive_exercise.exercise_instance_question
+                FROM exercise_instance_question
                 WHERE id_exercise = $1
                 ORDER BY question_ordinal DESC
                 OFFSET $2
@@ -306,10 +393,14 @@ export class AdaptiveExercisesController extends AbstractController {
 
     private async insertNextQuestionInfo(
         exerId: number,
-        nextQuestionInfo: IExerciseInstanceQuestion
+        nextQuestionInfo: Pick<IExerciseInstanceQuestion, "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers">,
+        transactionCtx: TransactionContext
     ): Promise<IExerciseInstanceQuestion | null> {
-        await this.dbConn.doQuery<{ id: number }>(
-            `INSERT INTO adaptive_exercise.exercise_instance_question (
+        const answersNull = nextQuestionInfo.correct_answers === null;
+        console.log({ exerId, nextQuestionInfo, });
+
+        await transactionCtx.doQuery<{ id: number }>(
+            `INSERT INTO exercise_instance_question (
                 id_exercise,
 
                 id_question,
@@ -326,11 +417,11 @@ export class AdaptiveExercisesController extends AbstractController {
                 /* $2 */ nextQuestionInfo.id_question,
                 /* $3 */ nextQuestionInfo.id_question_irt_cb_info,
                 /* $4 */ '{' + nextQuestionInfo.id_question_irt_tb_info.join(",") + '}',
-                /* $5 */ '{' + nextQuestionInfo.correct_answers.join(",") + '}',
+                /* $5 */ (answersNull) ? null : '{' + nextQuestionInfo.correct_answers!.join(",") + '}',
             ]
         );
 
-        return await this.getNthLastExerciseQuestion(exerId);
+        return await this.getNthLastExerciseQuestion(exerId, undefined, transactionCtx);
     }
 
     private async applyThetaDeltaInfo(
@@ -370,100 +461,126 @@ export class AdaptiveExercisesController extends AbstractController {
     @Post("start-exercise")
     public async startExercise(req: Request, res: Response, next: NextFunction): Promise<void> {
         const {
-            id_student_started,
-            id_course,
-            questions_count,
-            consider_previous_exercises,
+            idStudent,
+            idCourse,
+            questionsCount,
+            considerPreviousExercises,
         } = req.body;
 
-        if (!id_student_started || !id_course || !questions_count) {
+        if (!idStudent || !idCourse || !questionsCount) {
             res.sendStatus(400);
             return;
         }
 
-        const prevExercises: IExerciseInstance[] = [];
-        if (consider_previous_exercises) {
-            prevExercises.push(
-                ...(
-                    (
-                        await this.dbConn.doQuery<IExerciseInstance>(
-                            `SELECT *
-                            FROM adaptive_exercise.exercise_instance
-                            WHERE id_student_started = $1`,
-                            [id_student_started]
-                        )
-                    )?.rows ?? []
+        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
+
+        try {
+            const prevExercises: IExerciseInstance[] = [];
+            if (considerPreviousExercises) {
+                prevExercises.push(
+                    ...(
+                        (
+                            await transaction.doQuery<IExerciseInstance>(
+                                `SELECT *
+                                FROM exercise_instance
+                                WHERE id_student_started = $1`,
+                                [idStudent]
+                            )
+                        )?.rows ?? []
+                    )
                 )
-            )
-        }
+            }
+    
+            const exerId: number | null = (await transaction.doQuery<{ id: number }>(
+                `INSERT INTO exercise_instance (
+                    id_student_started,
+                    id_course,
+    
+                    start_irt_theta,
+                    current_irt_theta,
+    
+                    questions_count
+                ) VALUES ($1, $2, $3, $3, $4) RETURNING id`,
+                [
+                    /* $1 */ idStudent,
+                    /* $2 */ idCourse,
+                    /* $3 */ await this.initialThetaGenerator.generateTheta(idCourse, idStudent, prevExercises),
+                    /* $4 */ questionsCount,
+                ]
+            ))?.rows[0]?.id ?? null;
+    
+            if (exerId === null) {
+                console.log("ExerID is null");
+                res.sendStatus(500);
+                return;
+            }
+    
+            const exerInfo: IExerciseInstance | null = (
+                await transaction.doQuery<IExerciseInstance>(
+                    `SELECT *
+                    FROM exercise_instance
+                    WHERE id = $1`,
+                    [exerId]
+                )
+            )?.rows[0] ?? null;
+    
+            if (exerInfo === null) {
+                console.log("ExerInfo is null");
+                res.sendStatus(500);
+                return;
+            }
+    
+            const nextQuestionInfo = await this.nextQuestionGenerator.provideQuestion(
+                exerInfo,
+                await this.adaptiveExerciseService.getQuestionPool(idCourse, exerId, transaction),
+                true
+            );
+    
+            const insertedQuestionInfo = await this.insertNextQuestionInfo(exerId, nextQuestionInfo, transaction);
+    
+            if (insertedQuestionInfo === null) {
+                console.log("InsertedQI was null");
+                res.sendStatus(500);
+                return;
+            }
+            
+            const questionInfo = (
+                await transaction.doQuery<IQuestion>(
+                    `SELECT *
+                    FROM public.question
+                    WHERE id = $1`,
+                    [insertedQuestionInfo.id_question]
+                )
+            )?.rows[0] ?? null;
+            if (questionInfo === null) {
+                console.log("QI was null");
+                res.sendStatus(500);
+                return;
+            }
+    
+            const currentExercise: ICurrentExercise = {
+                exerciseInstance: exerInfo,
+                questionInfo: {
+                    ...insertedQuestionInfo,
+                    question_text: questionInfo.question_text,
+                    correct_answers: null,
+                },
+                questionAnswers: await this.edgarService.getQuestionAnswers(insertedQuestionInfo.id_question),
+            };
 
-        const exerId: number | null = (await this.dbConn.doQuery<{ id: number }>(
-            `INSERT INTO adaptive_exercise.exercise_instance (
-                id_student_started,
-                id_course,
-
-                start_irt_theta DOUBLE PRECISION,
-                current_irt_theta DOUBLE PRECISION,
-
-                questions_count INT
-            ) VALUES ($1, $2, $3, $3, $4) RETURNING id`,
-            [
-                /* $1 */ id_student_started,
-                /* $2 */ id_course,
-                /* $3 */ await this.initialThetaGenerator.generateTheta(id_course, id_student_started, prevExercises),
-                /* $4 */ questions_count,
-            ]
-        ))?.rows[0]?.id ?? null;
-
-        if (exerId === null) {
-            res.sendStatus(500);
-            return;
-        }
-
-        const exerInfo: IExerciseInstance | null = (
-            await this.dbConn.doQuery<IExerciseInstance>(
-                `SELECT *
-                FROM adaptive_exercise.exercise_instance
-                WHERE id = $1`,
-                [exerId]
-            )
-        )?.rows[0] ?? null;
-
-        if (exerInfo === null) {
-            res.sendStatus(500);
-            return;
-        }
-
-        const nextQuestionInfo = await this.nextQuestionGenerator.provideQuestion(exerInfo, true);
-
-        const insertedQuestionInfo = await this.insertNextQuestionInfo(exerId, nextQuestionInfo);
-
-        if (insertedQuestionInfo === null) {
-            res.sendStatus(500);
-            return;
-        }
-
-        res
-            .status(200)
-            .send(insertedQuestionInfo);
-    }
-
-    @Post("restore-exercise")
-    public async restoreExercise(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const { id_student, id_exercise } = req.body;
-        if (!id_student || !id_exercise) {
+            await transaction.commit();
+    
+            res
+                .status(200)
+                .send(currentExercise);
+        } catch (err) {
+            console.log(err);
             res.sendStatus(400);
-            return;
+        } finally {
+            if (!transaction.isFinished()) {
+                await transaction.rollback();
+            }
         }
-
-        const exerQuestion: IExerciseInstanceQuestion | null = await this.getNthLastExerciseQuestion(id_exercise);
-
-        if (exerQuestion === null) {
-            res.sendStatus(400);
-            return;
-        }
-
-        res.send(exerQuestion);
     }
 
     @Post("next-question")
@@ -525,34 +642,47 @@ export class AdaptiveExercisesController extends AbstractController {
             return;
         }
 
-        const exercise: IExerciseInstance | null = (
-            await this.dbConn.doQuery<IExerciseInstance>(
-                `SELECT *
-                FROM adaptive_exercise.exercise_instance
-                WHERE id = $1`,
-                [idExercise]
-            )
-        )?.rows[0] ?? null;
-        if (exercise === null) {
+        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
+
+        try {
+            const exercise: IExerciseInstance | null = (
+                await transaction.doQuery<IExerciseInstance>(
+                    `SELECT *
+                    FROM adaptive_exercise.exercise_instance
+                    WHERE id = $1`,
+                    [idExercise]
+                )
+            )?.rows[0] ?? null;
+            if (exercise === null) {
+                res.sendStatus(400);
+                return;
+            }
+            
+            const nextQuestionInfo = await this.nextQuestionGenerator.provideQuestion(
+                exercise,
+                await this.adaptiveExerciseService.getQuestionPool(exercise.id_course, exercise.id, transaction),
+                false,
+                { skipped: questionSkipped, correct: questionCorrect },
+            );
+    
+            const insertedQuestionInfo = await this.insertNextQuestionInfo(exercise.id, nextQuestionInfo, transaction);
+    
+            if (insertedQuestionInfo === null) {
+                res.sendStatus(500);
+                return;
+            }
+
+            await transaction.commit();
+    
+            res
+                .status(200)
+                .send(insertedQuestionInfo);
+        } catch {
             res.sendStatus(400);
-            return;
+        } finally {
+            if (!transaction.isFinished()) {
+                await transaction.rollback();
+            }
         }
-        
-        const nextQuestionInfo = await this.nextQuestionGenerator.provideQuestion(
-            exercise,
-            false,
-            { skipped: questionSkipped, correct: questionCorrect },
-        );
-
-        const insertedQuestionInfo = await this.insertNextQuestionInfo(exercise.id, nextQuestionInfo);
-
-        if (insertedQuestionInfo === null) {
-            res.sendStatus(500);
-            return;
-        }
-
-        res
-            .status(200)
-            .send(insertedQuestionInfo);
     }
 }
