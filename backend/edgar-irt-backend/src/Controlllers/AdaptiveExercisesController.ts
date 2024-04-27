@@ -397,7 +397,6 @@ export class AdaptiveExercisesController extends AbstractController {
         transactionCtx: TransactionContext
     ): Promise<IExerciseInstanceQuestion | null> {
         const answersNull = nextQuestionInfo.correct_answers === null;
-        console.log({ exerId, nextQuestionInfo, });
 
         await transactionCtx.doQuery<{ id: number }>(
             `INSERT INTO exercise_instance_question (
@@ -533,6 +532,7 @@ export class AdaptiveExercisesController extends AbstractController {
             const nextQuestionInfo = await this.nextQuestionGenerator.provideQuestion(
                 exerInfo,
                 await this.adaptiveExerciseService.getQuestionPool(idCourse, exerId, transaction),
+                transaction,
                 true
             );
     
@@ -611,6 +611,7 @@ export class AdaptiveExercisesController extends AbstractController {
 
         const thetaDeltaApplied = await this.applyThetaDeltaInfo(idExercise, thetaDeltaInfo, wasFinalQuestion);
         if (!thetaDeltaApplied) {
+            console.log("Theta delta not applied");
             res.sendStatus(500);
             return;
         }
@@ -636,6 +637,13 @@ export class AdaptiveExercisesController extends AbstractController {
         );
 
         if (wasFinalQuestion) {
+            await this.dbConn.doQuery(
+                `UPDATE adaptive_exercise.exercise_instance
+                    SET (is_finished, finished_on) = (TRUE, CURRENT_TIMESTAMP)
+                WHERE id = $1`,
+                [idExercise]
+            );
+
             res
                 .status(200)
                 .send({ exerciseComplete: true });
@@ -661,6 +669,7 @@ export class AdaptiveExercisesController extends AbstractController {
             const nextQuestionInfo = await this.nextQuestionGenerator.provideQuestion(
                 exercise,
                 await this.adaptiveExerciseService.getQuestionPool(exercise.id_course, exercise.id, transaction),
+                transaction,
                 false,
                 { skipped: questionSkipped, correct: questionCorrect },
             );
@@ -668,6 +677,7 @@ export class AdaptiveExercisesController extends AbstractController {
             const insertedQuestionInfo = await this.insertNextQuestionInfo(exercise.id, nextQuestionInfo, transaction);
     
             if (insertedQuestionInfo === null) {
+                console.log("Question info was not inserted");
                 res.sendStatus(500);
                 return;
             }
@@ -677,8 +687,9 @@ export class AdaptiveExercisesController extends AbstractController {
             res
                 .status(200)
                 .send(insertedQuestionInfo);
-        } catch {
+        } catch (err) {
             res.sendStatus(400);
+            console.log(err);
         } finally {
             if (!transaction.isFinished()) {
                 await transaction.rollback();

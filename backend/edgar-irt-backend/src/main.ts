@@ -4,6 +4,7 @@ import { EdgarController } from "./Controlllers/EdgarController.js";
 import { JobController } from "./Controlllers/JobController.js";
 import { StatisticsController } from "./Controlllers/StatisticsController.js";
 import { DatabaseConnection } from "./Database/DatabaseConnection.js";
+import { TransactionContext } from "./Database/TransactionContext.js";
 import { DbConnProvider } from "./DbConnProvider.js";
 import { ExpressServer } from "./ExpressServer.js";
 import { IExerciseInstance } from "./Models/Database/AdaptiveExercise/IExerciseInstance.js";
@@ -26,6 +27,7 @@ export class Main {
     private static async provideAQuestion(
         exercise: IExerciseInstance,
         questionPool: IQuestion[],
+        transactionCtx: TransactionContext | null,
         initial: boolean,
     ): Promise<Pick<IExerciseInstanceQuestion, "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers">> {
         const dbConn = DbConnProvider.getDbConn();
@@ -33,20 +35,26 @@ export class Main {
         const q = questionPool[Math.round(Math.random() * (questionPool.length - 1))];
         const answers = (await Main.edgarService.getQuestionAnswers(q.id, true)) as (IQuestionAnswer & { is_correct: boolean })[] | null;
 
-        const irtInfo: IEdgarStatProcessingQuestionIRTInfo | null = (
-            await dbConn.doQuery<IEdgarStatProcessingQuestionIRTInfo>(
-                `SELECT *
-                FROM statistics_schema.question_irt_parameters
-                    JOIN statistics_schema.question_param_calculation
-                        ON question_irt_parameters.id_course_based_info = question_param_calculation.id
-                WHERE question_irt_parameters.id_question = $1 AND
-                        question_param_calculation.id_based_on_course = $2`,
-                [
-                    /* $1 */ q.id,
-                    /* $2 */ exercise.id_course,
-                ]
-            )
-        )?.rows[0] ?? null;
+        const sql =
+        `SELECT *
+        FROM statistics_schema.question_irt_parameters
+            JOIN statistics_schema.question_param_calculation
+                ON question_irt_parameters.id_course_based_info = question_param_calculation.id
+        WHERE question_irt_parameters.id_question = $1 AND
+                question_param_calculation.id_based_on_course = $2`;
+        const params =
+            [
+                /* $1 */ q.id,
+                /* $2 */ exercise.id_course,
+            ];
+
+        const irtInfoArr: IEdgarStatProcessingQuestionIRTInfo[] = (
+            (transactionCtx === null) ?
+                await dbConn.doQuery<IEdgarStatProcessingQuestionIRTInfo>(sql, params) :
+                await transactionCtx.doQuery<IEdgarStatProcessingQuestionIRTInfo>(sql, params)
+        )?.rows ?? [];
+
+        const irtInfo = irtInfoArr[0] ?? null;
         if (irtInfo === null) {
             throw new Error("IRT info was null");
         }
