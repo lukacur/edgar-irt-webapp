@@ -5,9 +5,10 @@ import { AdaptiveExercisesAvailableActionsComponent } from './adaptive-exercises
 import { MyExercisesComponent } from './my-exercises/my-exercises.component';
 import { ExercisesQuestionTypesOverviewComponent } from './exercises-question-types-overview/exercises-question-types-overview.component';
 import { ExercisesQuestionNodeWhitelistOverviewComponent } from './exercises-question-node-whitelist-overview/exercises-question-node-whitelist-overview.component';
-import { MatButtonModule, MatCheckboxModule } from '@angular/material';
+import { MatButtonModule, MatCheckboxModule, MatSlideToggleModule } from '@angular/material';
 import { AppCommonModule } from '../common/app-common.module';
 import { ReactiveFormsModule } from '@angular/forms';
+import { ExerciseComponent } from './exercise/exercise.component';
 
 const routes: Route[] = [
   {
@@ -19,6 +20,11 @@ const routes: Route[] = [
     path: "my-exercises",
     pathMatch: "full",
     component: MyExercisesComponent,
+  },
+  {
+    path: "exercise",
+    pathMatch: "full",
+    component: ExerciseComponent,
   },
   {
     path: "question-types-overview",
@@ -37,7 +43,8 @@ const routes: Route[] = [
     AdaptiveExercisesAvailableActionsComponent,
     MyExercisesComponent,
     ExercisesQuestionTypesOverviewComponent,
-    ExercisesQuestionNodeWhitelistOverviewComponent
+    ExercisesQuestionNodeWhitelistOverviewComponent,
+    ExerciseComponent
   ],
   imports: [
     RouterModule.forChild(routes),
@@ -46,6 +53,7 @@ const routes: Route[] = [
     AppCommonModule,
     ReactiveFormsModule,
     MatCheckboxModule,
+    MatSlideToggleModule,
   ]
 })
 export class AdaptiveExercisesModule { }

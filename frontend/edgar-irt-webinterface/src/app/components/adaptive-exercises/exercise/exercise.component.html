@@ -1,0 +1,55 @@
+<div class="p-3" *ngIf="!loading">
+    <h2 class="text-lg text-purple-600">
+        Your exercise on course {{ currentExerciseCourse?.course_name ?? "" }}. Game on!
+    </h2>
+    <hr class="my-3">
+    <div>
+        <h3 class="text-purple-600">
+            Question {{ currentExercise?.questionInfo?.question_ordinal }}/{{ currentExercise?.exerciseInstance?.questions_count ?? "" }}
+        </h3>
+        <hr class="my-3">
+        <div>
+            {{ currentExercise?.questionInfo?.question_text ?? "" }}
+        </div>
+        <hr class="my-3">
+        <div class="flex flex-col justify-center items-center">
+            <div
+                *ngFor="let questionAnswer of currentExercise?.questionAnswers ?? []; index as i"
+                class="shadow-md border border-slate-500/50 hover:bg-blue-300/25 w-full rounded p-3 mb-3 cursor-pointer"
+                [ngClass]="{
+                    'border-green-200 bg-gray-400/25': studentAnswers.includes(questionAnswer.ordinal)
+                }"
+                (click)="toggleAnswerSelection(questionAnswer.ordinal)"
+            >
+                {{ i + 1 }}. {{ questionAnswer.answer_text }}
+            </div>
+        </div>
+        <hr class="my-3">
+
+        <div class="flex flex-col justify-between items-center">
+            <div class="flex w-full justify-around items-center mb-3">
+                <button class="w-1/4" type="button" mat-flat-button color="primary">
+                    Save answer and continue
+                </button>
+    
+                <button class="w-1/4" type="button" mat-flat-button color="accent">
+                    Skip question
+                </button>
+            </div>
+
+            <hr class="mb-3 w-3/4">
+
+            <div class="flex w-full justify-around items-center">
+                <button class="w-1/4" type="button" mat-flat-button color="primary">
+                    Answer correctly
+                </button>
+
+                <button class="w-1/4" type="button" mat-flat-button color="warn">Answer incorrectly</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div *ngIf="loading">
+    Loading exercise...
+</div>
