@@ -18,21 +18,85 @@
 
         <div *ngIf="startExerciseForm.get('selectedCourse')!.value !== null">
             <div class="p-3 shadow-md shadow-gray-500/35 rounded border border-slate-500/15">
-                <h2 class="text-lg">Current exercises</h2>
+                <h2 class="text-lg">Current exercise</h2>
                 <hr class="my-3">
-                <div>
-                    <p class="mb-3">No active exercises</p>
-                    <button type="button" mat-flat-button color="primary">Start new exercise</button>
+                <div *ngIf="currentlyActiveExercise === null; else hasExercise">
+                    <p class="mb-3">No currently active exercise</p>
+                    <hr class="my-3">
+
+                    <div>
+                        <app-searchable-select
+                            labelText="Pick a number of questions you want in your exercise"
+
+                            [multi]="false"
+                            [searchable]="false"
+                            [selectableItems]="selectableQuestionCounts"
+
+                            textKey="text"
+                            valueKey="value"
+
+                            [useObjectAsValue]="false"
+
+                            [control]="startExerciseForm.get('questionsCount')!"
+                        ></app-searchable-select>
+
+                        <div>
+                            <mat-slide-toggle
+                                class="block mb-3"
+                                formControlName="considerPreviousExercises"
+                                [labelPosition]="'before'"
+                                color="accent"
+                            >Previous exercise success impacts starting point?</mat-slide-toggle>
+                        </div>
+                        <button
+                            type="button"
+                            mat-flat-button
+                            color="primary"
+                            (click)="startExercise()"
+                        >Start new exercise</button>
+                    </div>
                 </div>
+
+                <ng-template #hasExercise>
+                    <div>
+                        <div class="mb-3">You have an active exercise</div>
+                        <button type="button" mat-flat-button color="primary" (click)="continueExercise()">
+                            Continue your active exercise
+                        </button>
+                    </div>
+                </ng-template>
             </div>
 
             <hr class="my-4">
-            
+
             <div class="p-3 shadow-md shadow-gray-500/35 rounded border border-slate-500/15">
                 <h2 class="text-lg">Previous exercises</h2>
                 <hr class="my-3">
-                <div>
-                    <p class="mb-3">No previous exercises</p>
+                <div class="overflow-auto max-h-[560px]">
+                    <table class="w-full p-3 text-center">
+                        <thead>
+                            <tr>
+                                <th class="text-center">ID</th>
+                                <th class="text-center">Started on</th>
+                                <th class="text-center">Finished on</th>
+                                <th class="text-center">Final IRT score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let exercise of (previousExercises$ | async) ?? []">
+                                <td class="text-center">{{ exercise.id }}</td>
+                                <td class="text-center">{{ exercise.started_on | date:"dd. MM. yyyy. HH:mm:ss" }}</td>
+                                <td class="text-center">{{ exercise.finished_on | date:"dd. MM. yyyy. HH:mm:ss" }}</td>
+                                <td class="text-center">{{ exercise.final_irt_theta }}</td>
+                            </tr>
+                            <tr *ngIf="numberOfPreviousExercises === 0">
+                                <td
+                                    class="py-2 text-gray-500/50"
+                                    colspan="4"
+                                >No previous exercises</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
