@@ -455,7 +455,7 @@ export class AdaptiveExercisesController extends AbstractController {
                     /* $3 */ idExercise,
                 ]
             )
-        ) ?? null) === null;
+        ) ?? null) !== null;
     }
 
     @Post("start-exercise")
