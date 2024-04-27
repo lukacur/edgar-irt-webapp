@@ -9,8 +9,8 @@ export interface IExerciseInstanceQuestion {
 
     question_ordinal: number;
 
-    student_answers: number[];
-    correct_answers: number[];
+    student_answers: number[] | null;
+    correct_answers: number[] | null;
 
     student_answer_code: string;
     student_answer_code_pl: number;
