@@ -17,6 +17,8 @@ export class AdaptiveExerciseService {
             await transaction.doQuery<IQuestion>(
                 `SELECT question.*
                 FROM public.question
+                    JOIN statistics_schema.question_param_calculation
+                        ON question.id = question_param_calculation.id_question
                     JOIN adaptive_exercise.exercise_allowed_question_type
                         ON question.id_question_type = exercise_allowed_question_type.id_question_type
                     JOIN public.question_node
