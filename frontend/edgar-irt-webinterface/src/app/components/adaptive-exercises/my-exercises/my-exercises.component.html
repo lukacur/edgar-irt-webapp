@@ -79,7 +79,10 @@
                                 <th class="text-center">ID</th>
                                 <th class="text-center">Started on</th>
                                 <th class="text-center">Finished on</th>
+                                <th class="text-center">Start IRT score</th>
                                 <th class="text-center">Final IRT score</th>
+                                <th class="text-center">IRT score delta</th>
+                                <th class="text-center">IRT score increase/decrese %</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -87,7 +90,14 @@
                                 <td class="text-center">{{ exercise.id }}</td>
                                 <td class="text-center">{{ exercise.started_on | date:"dd. MM. yyyy. HH:mm:ss" }}</td>
                                 <td class="text-center">{{ exercise.finished_on | date:"dd. MM. yyyy. HH:mm:ss" }}</td>
-                                <td class="text-center">{{ exercise.final_irt_theta }}</td>
+                                <td class="text-center">{{ exercise.start_irt_theta.toFixed(4) }}</td>
+                                <td class="text-center">{{ exercise.final_irt_theta.toFixed(4) }}</td>
+                                <td class="text-center">
+                                    {{ (exercise.final_irt_theta - exercise.start_irt_theta).toFixed(4) }}
+                                </td>
+                                <td class="text-center">
+                                    {{ (exercise.final_irt_theta / exercise.start_irt_theta).toFixed(4) }}
+                                </td>
                             </tr>
                             <tr *ngIf="numberOfPreviousExercises === 0">
                                 <td
