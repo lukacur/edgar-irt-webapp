@@ -7,7 +7,7 @@ import { ExercisesQuestionTypesOverviewComponent } from './exercises-question-ty
 import { ExercisesQuestionNodeWhitelistOverviewComponent } from './exercises-question-node-whitelist-overview/exercises-question-node-whitelist-overview.component';
 import { MatButtonModule, MatCheckboxModule, MatSlideToggleModule } from '@angular/material';
 import { AppCommonModule } from '../common/app-common.module';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ExerciseComponent } from './exercise/exercise.component';
 
 const routes: Route[] = [
@@ -52,6 +52,7 @@ const routes: Route[] = [
     MatButtonModule,
     AppCommonModule,
     ReactiveFormsModule,
+    FormsModule,
     MatCheckboxModule,
     MatSlideToggleModule,
   ]
