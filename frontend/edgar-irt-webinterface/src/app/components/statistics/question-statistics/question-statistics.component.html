@@ -49,16 +49,16 @@
                 <table class="p-3 text-center w-full">
                     <thead class="sticky top-0 bg-white">
                         <th>Question ID</th>
-                        <th>Score mean</th>
-                        <th>Score stddev</th>
-                        <th>Score median</th>
+                        <th>Score % mean</th>
+                        <th>Score % stddev</th>
+                        <th>Score % median</th>
                         <th>Total score achieved</th>
                         <th>Total achievable score</th>
                         <th>Number of answers</th>
-                        <th>Correct answers</th>
-                        <th>Incorrect answers</th>
-                        <th>Unanswered</th>
-                        <th>Partial answers</th>
+                        <th>% of correct answers</th>
+                        <th>% of incorrect answers</th>
+                        <th>% of unanswered</th>
+                        <th>% of partial answers</th>
                     </thead>
                     <tbody>
                         <tr *ngFor="let clCalc of (courseLevelCalcs ?? [])">
@@ -82,16 +82,16 @@
                                     (click)="$event.preventDefault(); $event.stopPropagation();"
                                 >Click to open IRT overview</span>
                             </td>
-                            <td>{{ clCalc.score_mean }}</td>
-                            <td>{{ clCalc.score_std_dev }}</td>
-                            <td>{{ clCalc.score_median }}</td>
+                            <td>{{ clCalc.score_perc_mean }}</td>
+                            <td>{{ clCalc.score_perc_std_dev }}</td>
+                            <td>{{ clCalc.score_perc_median }}</td>
                             <td>{{ clCalc.total_achieved }}</td>
                             <td>{{ clCalc.total_achievable }}</td>
                             <td>{{ clCalc.answers_count }}</td>
-                            <td>{{ clCalc.correct }}</td>
-                            <td>{{ clCalc.incorrect }}</td>
-                            <td>{{ clCalc.unanswered }}</td>
-                            <td>{{ clCalc.partial }}</td>
+                            <td>{{ clCalc.correct_perc }}</td>
+                            <td>{{ clCalc.incorrect_perc }}</td>
+                            <td>{{ clCalc.unanswered_perc }}</td>
+                            <td>{{ clCalc.partial_perc }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -113,16 +113,16 @@
                     <thead class="sticky top-0 bg-white">
                         <th>Question ID</th>
                         <th>Test ID</th>
-                        <th>Score mean</th>
-                        <th>Score stddev</th>
-                        <th>Score median</th>
+                        <th>Score % mean</th>
+                        <th>Score % stddev</th>
+                        <th>Score % median</th>
                         <th>Total score sum</th>
                         <th>Part of total score sum on test</th>
                         <th>Number of answers</th>
-                        <th>Correct answers</th>
-                        <th>Incorrect answers</th>
-                        <th>Unanswered</th>
-                        <th>Partial answers</th>
+                        <th>% of correct answers</th>
+                        <th>% of incorrect answers</th>
+                        <th>% of unanswered</th>
+                        <th>% of partial answers</th>
                     </thead>
                     <tbody>
                         <tr *ngFor="let tlCalc of (testLevelCalcs ?? [])">
@@ -147,16 +147,16 @@
                                 >Click to open IRT overview</span>
                             </td>
                             <td>{{ tlCalc.id_based_on_test }}</td>
-                            <td>{{ tlCalc.mean }}</td>
-                            <td>{{ tlCalc.std_dev }}</td>
-                            <td>{{ tlCalc.median }}</td>
-                            <td>{{ tlCalc.sum }}</td>
+                            <td>{{ tlCalc.score_perc_mean }}</td>
+                            <td>{{ tlCalc.score_perc_std_dev }}</td>
+                            <td>{{ tlCalc.score_perc_median }}</td>
+                            <td>{{ tlCalc.score_sum }}</td>
                             <td>{{ tlCalc.part_of_total_sum }}</td>
                             <td>{{ tlCalc.count }}</td>
-                            <td>{{ tlCalc.correct }}</td>
-                            <td>{{ tlCalc.incorrect }}</td>
-                            <td>{{ tlCalc.unanswered }}</td>
-                            <td>{{ tlCalc.partial }}</td>
+                            <td>{{ tlCalc.correct_perc }}</td>
+                            <td>{{ tlCalc.incorrect_perc }}</td>
+                            <td>{{ tlCalc.unanswered_perc }}</td>
+                            <td>{{ tlCalc.partial_perc }}</td>
                         </tr>
                     </tbody>
                 </table>
