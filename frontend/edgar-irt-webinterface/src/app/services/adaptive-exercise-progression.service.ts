@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, firstValueFrom, Observable } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, Observable, tap } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { IExerciseInstance } from '../models/adaptive-exercises/exercise-instance.model';
 import { HttpClient } from '@angular/common/http';
-import { IExerciseInstanceQuestion } from '../models/adaptive-exercises/exercise-instance-question.model';
 import { ICurrentExercise } from '../models/adaptive-exercises/current-exercise.model';
 
 type StartExerciseRequest = {
@@ -18,6 +17,9 @@ type StartExerciseRequest = {
 })
 export class AdaptiveExerciseProgressionService {
     private readonly idTestStudent: number | null = environment.production ? null : 23; // id_app_user is 46
+
+    private activatedExerciseInstanceIdStudent: number | null = null;
+    private activatedExerciseInstanceIdCourse: number | null = null;
 
     private readonly activatedExerciseInstanceInfo: BehaviorSubject<ICurrentExercise | null> =
         new BehaviorSubject<ICurrentExercise | null>(null);
@@ -57,6 +59,8 @@ export class AdaptiveExerciseProgressionService {
                     subject.error(new Error("Student does not have a currently active exercise"));
                 }
 
+                this.activatedExerciseInstanceIdStudent = idStudent;
+                this.activatedExerciseInstanceIdCourse = idCourse;
                 this.activatedExerciseInstanceInfo.next(currentExercise);
                 subject.next(this.activatedExerciseInstanceInfo.value!);
             })();
@@ -78,16 +82,34 @@ export class AdaptiveExerciseProgressionService {
             );
     }
 
+    private async advanceCurrentExercise() {
+        const currentExercise = await firstValueFrom(this.getStudentCurrentExercise(
+            this.activatedExerciseInstanceIdStudent,
+            this.activatedExerciseInstanceIdCourse!,
+        ));
+
+        this.activatedExerciseInstanceInfo.next(currentExercise);
+    }
+
     public nextQuestion(
         idExercise: number,
-        questionSkipped: boolean,
-        questionCorrect: boolean,
-    ): Observable<IExerciseInstanceQuestion | { exerciseCompleted: true }> {
-        const bodyObj = (environment.production) ? { idExercise } : { idExercise, questionSkipped, questionCorrect };
+        studentAnswers: number[] | null,
+        studentTextAnswer: string | null,
+        questionSkipped: boolean | null,
+        questionCorrect: boolean | null,
+    ): Observable<ICurrentExercise | { exerciseComplete: true }> {
         return this.http
-            .post<IExerciseInstanceQuestion>(
+            .post<ICurrentExercise>(
                 `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/next-question`,
-                bodyObj
+                {
+                    idExercise,
+                    studentAnswers,
+                    studentTextAnswer,
+                    questionSkipped,
+                    questionCorrect,
+                }
+            ).pipe(
+                tap(_ => this.advanceCurrentExercise())
             );
     }
 }
