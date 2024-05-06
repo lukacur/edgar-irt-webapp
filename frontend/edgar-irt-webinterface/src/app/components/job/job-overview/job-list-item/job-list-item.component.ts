@@ -3,6 +3,7 @@ import { Observable, tap } from 'rxjs';
 import { IJobStep } from 'src/app/models/jobs/job-step.model';
 import { IJob } from 'src/app/models/jobs/job.model';
 import { JobsService } from 'src/app/services/jobs.service';
+import { JobUtil } from 'src/app/util/job.util';
 
 @Component({
   selector: 'app-job-list-item',
@@ -27,21 +28,11 @@ export class JobListItemComponent implements OnInit {
   ) { }
 
   getJobStatusText() {
-    switch (this.jobInfo.job_status) {
-      case 'RUNNING': return "Running...";
-      case 'FINISHED': return "Finished";
-      case 'FAILED': return "Failed";
-      default: return this.jobInfo.job_status;
-    }
+    return JobUtil.getJobStatusText(this.jobInfo);
   }
 
   getJobStatusColor() {
-    switch (this.jobInfo.job_status) {
-      case 'RUNNING': return 'text-yellow-500';
-      case 'FINISHED': return 'text-green-500';
-      case 'FAILED': return 'text-red-500';
-      default: return 'text-slate-500';
-    }
+    return JobUtil.getJobStatusColor(this.jobInfo);
   }
 
   ngOnInit(): void {
