@@ -21,6 +21,14 @@ import { AdaptiveExerciseService } from "../Services/AdaptiveExerciseService.js"
 import { TransactionContext } from "../Database/TransactionContext.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 
+type NextExerciseQuestionRequest = {
+    readonly idExercise: number,
+    readonly studentAnswers: number[] | null,
+    readonly studentTextAnswer: string | null,
+    readonly questionSkipped: boolean | null,
+    readonly questionCorrect: boolean | null,
+};
+
 export class AdaptiveExercisesController extends AbstractController {
     constructor(
         private readonly dbConn: DatabaseConnection,
@@ -378,9 +386,12 @@ export class AdaptiveExercisesController extends AbstractController {
         )?.rows[0] ?? null;
     }
 
-    private async getAllButLastExerciseQuestion(idExercise: number): Promise<IExerciseInstanceQuestion[]> {
+    private async getAllButLastExerciseQuestion(
+        transaction: TransactionContext,
+        idExercise: number
+    ): Promise<IExerciseInstanceQuestion[]> {
         return (
-            await this.dbConn.doQuery<IExerciseInstanceQuestion>(
+            await transaction.doQuery<IExerciseInstanceQuestion>(
                 `SELECT *
                 FROM adaptive_exercise.exercise_instance_question
                 WHERE id_exercise = $1
@@ -396,7 +407,7 @@ export class AdaptiveExercisesController extends AbstractController {
         nextQuestionInfo: Pick<IExerciseInstanceQuestion, "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers">,
         transactionCtx: TransactionContext
     ): Promise<IExerciseInstanceQuestion | null> {
-        const answersNull = nextQuestionInfo.correct_answers === null;
+        const answersNull = nextQuestionInfo.correct_answers === null || nextQuestionInfo.correct_answers.length === 0;
 
         await transactionCtx.doQuery<{ id: number }>(
             `INSERT INTO exercise_instance_question (
@@ -424,12 +435,13 @@ export class AdaptiveExercisesController extends AbstractController {
     }
 
     private async applyThetaDeltaInfo(
+        transaction: TransactionContext,
         idExercise: number,
         deltaInfo: ThetaDeltaInfo,
         wasLastQuestion: boolean
     ): Promise<boolean> {
         const current: number | null = (
-            await this.dbConn.doQuery<{ current_irt_theta: number }>(
+            await transaction.doQuery<{ current_irt_theta: number }>(
                 `SELECT current_irt_theta
                 FROM adaptive_exercise.exercise_instance
                 WHERE id = $1`,
@@ -444,7 +456,7 @@ export class AdaptiveExercisesController extends AbstractController {
         const nextValue = ((deltaInfo.type === "absolute") ? (current + deltaInfo.value) : (current * deltaInfo.value));
 
         return ((
-            await this.dbConn.doQuery(
+            await transaction.doQuery(
                 `UPDATE adaptive_exercise.exercise_instance
                     SET (current_irt_theta, final_irt_theta) = ($1, $2)
                 WHERE id = $3`,
@@ -583,76 +595,155 @@ export class AdaptiveExercisesController extends AbstractController {
         }
     }
 
+    private async setLastQuestionAnswer(
+        transaction: TransactionContext,
+        idExercise: number,
+        answerCodeText: string | null,
+        answers: number[] | null,
+    ): Promise<{ success: boolean, answerCorrect: boolean }> {
+        const exerInstQuestion = await this.getNthLastExerciseQuestion(idExercise, 0, transaction);
+        if (exerInstQuestion === null) {
+            throw new Error("Exercise has no defined last question");
+        }
+
+        if (exerInstQuestion.correct_answers === null) {
+            // TODO: Integrate with code evaluation
+            const res = await transaction.doQuery(
+                `UPDATE adaptive_exercise.exercise_instance_question
+                    SET (student_answer_code, student_answer_text, user_answer_correct) = ($1, $1, FALSE)
+                    WHERE id = $2`,
+                [
+                    /* $1 */ answerCodeText,
+                    /* $2 */ exerInstQuestion.id,
+                ]
+            );
+            if (res === null) {
+                throw new Error(`Unable to update values for the last exercise question (exer. ID: ${idExercise})`);
+            }
+
+            return { success: true, answerCorrect: false, };
+        }
+
+        if (answers !== null) {
+            const answerCorrect =
+                answers.every(answer => exerInstQuestion.correct_answers?.includes(answer)) &&
+                    answers.length === exerInstQuestion.correct_answers.length;
+
+            const res = await transaction.doQuery(
+                `UPDATE adaptive_exercise.exercise_instance_question
+                    SET (student_answers, user_answer_correct) = ($1, $2)
+                    WHERE id = $3`,
+                [
+                    /* $1 */ '{' + answers.join(', ') + '}',
+                    /* $2 */ answerCorrect,
+                    /* $3 */ exerInstQuestion.id,
+                ]
+            );
+            if (res === null) {
+                throw new Error(`Unable to update values for the last exercise question (exer. ID: ${idExercise})`);
+            }
+
+            return {
+                success: true,
+                answerCorrect,
+            };
+        }
+
+        return { success: true, answerCorrect: false };
+    }
+
     @Post("next-question")
     public async getNextExerciseQuestion(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idExercise = req.body.idExercise;
+        const {
+            idExercise,
+            studentAnswers,
+            studentTextAnswer,
+            questionSkipped,
+            questionCorrect,
+        } = req.body as NextExerciseQuestionRequest;
+
         if ((idExercise ?? null) === null) {
             res.sendStatus(400);
-            return;
-        }
-
-        const questionCorrect: boolean = req.body.questionCorrect ?? false;
-        const questionSkipped: boolean = req.body.questionSkipped ?? false;
-
-        const thetaDeltaInfo = await this.thetaDeltaGenerator.generateThetaDelta(
-            { correct: questionCorrect, skipped: questionSkipped },
-            await this.getAllButLastExerciseQuestion(idExercise)
-        );
-        
-        const wasFinalQuestion: boolean = (await this.dbConn.doQuery<{ was_final: boolean }>(
-            `SELECT questions_count = MAX(question_ordinal) AS was_final
-            FROM adaptive_exercise.exercise_instance
-                JOIN adaptive_exercise.exercise_instance_question
-                    ON exercise_instance.id = exercise_instance_question.id_exercise
-            WHERE exercise_instance.id = $1
-            GROUP BY exercise_instance.id`,
-            [idExercise]
-        ))?.rows[0]?.was_final ?? false;
-
-        const thetaDeltaApplied = await this.applyThetaDeltaInfo(idExercise, thetaDeltaInfo, wasFinalQuestion);
-        if (!thetaDeltaApplied) {
-            console.log("Theta delta not applied");
-            res.sendStatus(500);
-            return;
-        }
-
-        await this.dbConn.doQuery(
-            `UPDATE adaptive_exercise.exercise_instance_question
-                SET (
-                    finished_on,
-                    user_answer_correct,
-                    question_skipped,
-                    irt_delta,
-                    is_irt_delta_percentage
-                ) = (CURRENT_TIMESTAMP, $1, $2, $3, $4)
-            WHERE id_exercise = $5 AND
-                    finished_on IS NULL`,
-            [
-                /* $1 */questionCorrect,
-                /* $2 */questionSkipped,
-                /* $3 */thetaDeltaInfo.value,
-                /* $4 */thetaDeltaInfo.type === "percentage",
-                /* $5 */idExercise
-            ]
-        );
-
-        if (wasFinalQuestion) {
-            await this.dbConn.doQuery(
-                `UPDATE adaptive_exercise.exercise_instance
-                    SET (is_finished, finished_on) = (TRUE, CURRENT_TIMESTAMP)
-                WHERE id = $1`,
-                [idExercise]
-            );
-
-            res
-                .status(200)
-                .send({ exerciseComplete: true });
             return;
         }
 
         const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
 
         try {
+            const answerSetActionResult = await this.setLastQuestionAnswer(
+                transaction,
+                idExercise,
+                studentTextAnswer,
+                studentAnswers,
+            );
+        
+            const wasFinalQuestion: boolean = (await transaction.doQuery<{ was_final: boolean }>(
+                `SELECT questions_count = MAX(question_ordinal) AS was_final
+                FROM adaptive_exercise.exercise_instance
+                    JOIN adaptive_exercise.exercise_instance_question
+                        ON exercise_instance.id = exercise_instance_question.id_exercise
+                WHERE exercise_instance.id = $1
+                GROUP BY exercise_instance.id`,
+                [idExercise]
+            ))?.rows[0]?.was_final ?? false;
+
+            const thetaDeltaInfo = await this.thetaDeltaGenerator.generateThetaDelta(
+                {
+                    correct: (questionSkipped) ? false : (questionCorrect ?? answerSetActionResult.answerCorrect),
+                    skipped: questionSkipped ?? false,
+                },
+                await this.getAllButLastExerciseQuestion(transaction, idExercise)
+            );
+
+            const thetaDeltaApplied = await this.applyThetaDeltaInfo(
+                transaction,
+                idExercise,
+                thetaDeltaInfo,
+                wasFinalQuestion
+            );
+            if (!thetaDeltaApplied) {
+                console.log("Theta delta not applied");
+                res.sendStatus(500);
+                return;
+            }
+
+            await transaction.doQuery(
+                `UPDATE adaptive_exercise.exercise_instance_question
+                    SET (
+                        finished_on,
+                        user_answer_correct,
+                        question_skipped,
+                        irt_delta,
+                        is_irt_delta_percentage
+                    ) = (CURRENT_TIMESTAMP, $1, $2, $3, $4)
+                WHERE id_exercise = $5 AND
+                        finished_on IS NULL`,
+                [
+                    /* $1 */(questionSkipped) ? false : (questionCorrect ?? answerSetActionResult.answerCorrect),
+                    /* $2 */questionSkipped ?? false,
+                    /* $3 */thetaDeltaInfo.value,
+                    /* $4 */thetaDeltaInfo.type === "percentage",
+                    /* $5 */idExercise
+                ]
+            );
+
+            if (wasFinalQuestion) {
+                await transaction.doQuery(
+                    `UPDATE adaptive_exercise.exercise_instance
+                        SET (is_finished, finished_on) = (TRUE, CURRENT_TIMESTAMP)
+                    WHERE id = $1`,
+                    [idExercise]
+                );
+
+                await transaction.commit();
+
+                res
+                    .status(200)
+                    .send({ exerciseComplete: true });
+                return;
+            }
+
+        
             const exercise: IExerciseInstance | null = (
                 await transaction.doQuery<IExerciseInstance>(
                     `SELECT *
@@ -671,7 +762,10 @@ export class AdaptiveExercisesController extends AbstractController {
                 await this.adaptiveExerciseService.getQuestionPool(exercise.id_course, exercise.id, transaction),
                 transaction,
                 false,
-                { skipped: questionSkipped, correct: questionCorrect },
+                {
+                    correct: (questionSkipped) ? false : (questionCorrect ?? answerSetActionResult.answerCorrect),
+                    skipped: questionSkipped ?? false,
+                },
             );
     
             const insertedQuestionInfo = await this.insertNextQuestionInfo(exercise.id, nextQuestionInfo, transaction);
