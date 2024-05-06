@@ -34,37 +34,36 @@
 
     <div *ngIf="selectedCalculation !== null">
         <hr class="my-3">
-
-        <div class="p-3 shadow-md border border-slate-400/25 rounded mb-3">
-            <div class="flex items-center cursor-pointer" (click)="courseLevelExpanded = !courseLevelExpanded">
-                <mat-icon class="inline-block w-fit select-none me-2">
-                    {{ (courseLevelExpanded) ? 'expand_more' : 'chevron_right' }}
-                </mat-icon>
-                <h2 class="inline-block">
-                    Course-level calculations
-                </h2>
-            </div>
-
-            <div class="overflow-auto max-h-[560px]" *ngIf="courseLevelExpanded">
-                <table class="p-3 text-center w-full">
-                    <thead class="sticky top-0 bg-white">
-                        <th>Question ID</th>
-                        <th>Score % mean</th>
-                        <th>Score % stddev</th>
-                        <th>Score % median</th>
-                        <th>Total score achieved</th>
-                        <th>Total achievable score</th>
-                        <th>Number of answers</th>
-                        <th>% of correct answers</th>
-                        <th>% of incorrect answers</th>
-                        <th>% of unanswered</th>
-                        <th>% of partial answers</th>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let clCalc of (courseLevelCalcs ?? [])">
+        <div class="overflow-auto max-h-[560px]">
+            <table class="p-3 text-center w-full">
+                <thead class="sticky top-0 bg-white">
+                    <th>Question ID</th>
+                    <th>Score % mean</th>
+                    <th>Score % stddev</th>
+                    <th>Score % median</th>
+                    <th>Total score achieved</th>
+                    <th>Total achievable score</th>
+                    <th>Number of answers</th>
+                    <th>% of correct answers</th>
+                    <th>% of incorrect answers</th>
+                    <th>% of unanswered</th>
+                    <th>% of partial answers</th>
+                </thead>
+                <tbody>
+                    <ng-template
+                        ngFor
+                        let-clCalc
+                        [ngForOf]="(courseLevelCalcs ?? [])"
+                    >
+                        <tr
+                            class="hover:bg-blue-400/25"
+                            title="Click to oveview exam-level calculations including this question"
+                            (click)="toggleVisibilityWithClasses(qTlInfo)"
+                        >
                             <td>
                                 <span
                                     class="underline cursor-pointer"
+                                    title="Click to open IRT overview"
                                     [routerLink]="['..', 'question-irt-overview', clCalc.id_question]"
                                 >
                                     {{ clCalc.id_question }}
@@ -82,85 +81,119 @@
                                     (click)="$event.preventDefault(); $event.stopPropagation();"
                                 >Click to open IRT overview</span>
                             </td>
-                            <td>{{ clCalc.score_perc_mean }}</td>
-                            <td>{{ clCalc.score_perc_std_dev }}</td>
-                            <td>{{ clCalc.score_perc_median }}</td>
+                            <td>
+                                <div
+                                    class="px-2 py-1 rounded-lg w-full"
+                                    [appGradient]="clCalc.score_perc_mean"
+                                    [gradientStart]="{ r: 255, g: 75, b: 75 }"
+                                    [gradientEnd]="{ r: 150, g: 255, b: 150 }"
+                                    gradientType="background"
+                                >{{ (clCalc.score_perc_mean * 100).toFixed(2) }}</div>
+                            </td>
+                            <td>
+                                <div
+                                    class="px-2 py-1 rounded-lg w-full"
+                                    [appGradient]="clCalc.score_perc_std_dev"
+                                    [gradientStart]="{ r: 150, g: 255, b: 150 }"
+                                    [gradientEnd]="{ r: 255, g: 75, b: 75 }"
+                                    gradientType="background"
+                                >{{ (clCalc.score_perc_std_dev * 100).toFixed(2) }}</div>
+                            </td>
+                            <td>
+                                <div
+                                    class="px-2 py-1 rounded-lg w-full"
+                                    [appGradient]="clCalc.score_perc_median"
+                                    [gradientStart]="{ r: 255, g: 75, b: 75 }"
+                                    [gradientEnd]="{ r: 150, g: 255, b: 150 }"
+                                    gradientType="background"
+                                >{{ (clCalc.score_perc_median * 100).toFixed(2) }}</div>
+                            </td>
                             <td>{{ clCalc.total_achieved }}</td>
                             <td>{{ clCalc.total_achievable }}</td>
                             <td>{{ clCalc.answers_count }}</td>
-                            <td>{{ clCalc.correct_perc }}</td>
-                            <td>{{ clCalc.incorrect_perc }}</td>
-                            <td>{{ clCalc.unanswered_perc }}</td>
-                            <td>{{ clCalc.partial_perc }}</td>
+                            <td>{{ (clCalc.correct_perc * 100).toFixed(2) }}</td>
+                            <td>{{ (clCalc.incorrect_perc * 100).toFixed(2) }}</td>
+                            <td>{{ (clCalc.unanswered_perc * 100).toFixed(2) }}</td>
+                            <td>{{ (clCalc.partial_perc * 100).toFixed(2) }}</td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="p-3 shadow-md border border-slate-400/25 rounded">
-            <div class="flex items-center cursor-pointer" (click)="testLevelExpanded = !testLevelExpanded">
-                <mat-icon class="inline-block w-fit select-none me-2">
-                    {{ (testLevelExpanded) ? 'expand_more' : 'chevron_right' }}
-                </mat-icon>
-                <h2 class="inline-block">
-                    Test-level calculations
-                </h2>
-            </div>
-
-            <div class="overflow-auto max-h-[560px]" *ngIf="testLevelExpanded">
-                <table class="p-3 text-center w-full">
-                    <thead class="sticky top-0 bg-white">
-                        <th>Question ID</th>
-                        <th>Test ID</th>
-                        <th>Score % mean</th>
-                        <th>Score % stddev</th>
-                        <th>Score % median</th>
-                        <th>Total score sum</th>
-                        <th>Part of total score sum on test</th>
-                        <th>Number of answers</th>
-                        <th>% of correct answers</th>
-                        <th>% of incorrect answers</th>
-                        <th>% of unanswered</th>
-                        <th>% of partial answers</th>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let tlCalc of (testLevelCalcs ?? [])">
-                            <td>
-                                <span
-                                    class="underline cursor-pointer"
-                                    [routerLink]="['..', 'question-irt-overview', tlCalc.id_question]"
-                                >
-                                    {{ tlCalc.id_question }}
-                                </span> <mat-icon
-                                    class="text-sm cursor-pointer"
-                                    title="Click to open IRT overview"
-                                    (click)="showHelp($event, helpText)"
-                                >
-                                    help
-                                </mat-icon>
-
-                                <span
-                                    #helpText
-                                    class="hidden"
-                                    (click)="$event.preventDefault(); $event.stopPropagation();"
-                                >Click to open IRT overview</span>
+                        <tr #qTlInfo class="hidden border mx-2">
+                            <td class="p-8" colspan="11">
+                                <div class="overflow-auto max-h-[560px]">
+                                    <table class="p-3 text-center w-full">
+                                        <thead>
+                                            <th>Exam ID</th>
+                                            <th>Score % mean</th>
+                                            <th>Score % stddev</th>
+                                            <th>Score % median</th>
+                                            <th>Total score sum</th>
+                                            <th>Part of total score sum on exam (%)</th>
+                                            <th>Number of answers</th>
+                                            <th>% of correct answers</th>
+                                            <th>% of incorrect answers</th>
+                                            <th>% of unanswered</th>
+                                            <th>% of partial answers</th>
+                                        </thead>
+                                        <tbody>
+                                            <tr
+                                                *ngFor="
+                                                    let tlCalc of (
+                                                        getTestLevelCalculationsForQuestion(
+                                                            clCalc.id_question
+                                                        ) ?? []
+                                                    )
+                                                "
+                                            >
+                                                <td>{{ tlCalc.id_based_on_test }}</td>
+                                                <td>
+                                                    <div
+                                                        class="px-2 py-1 rounded-lg w-full"
+                                                        [appGradient]="tlCalc.score_perc_mean"
+                                                        [gradientStart]="{ r: 255, g: 75, b: 75 }"
+                                                        [gradientEnd]="{ r: 150, g: 255, b: 150 }"
+                                                        gradientType="background"
+                                                    >{{ (tlCalc.score_perc_mean * 100).toFixed(2) }}</div>
+                                                </td>
+                                                <td>
+                                                    <div
+                                                        class="px-2 py-1 rounded-lg w-full"
+                                                        [appGradient]="tlCalc.score_perc_std_dev"
+                                                        [gradientStart]="{ r: 150, g: 255, b: 150 }"
+                                                        [gradientEnd]="{ r: 255, g: 75, b: 75 }"
+                                                        gradientType="background"
+                                                    >{{ (tlCalc.score_perc_std_dev * 100).toFixed(2) }}</div>
+                                                </td>
+                                                <td>
+                                                    <div
+                                                        class="px-2 py-1 rounded-lg w-full"
+                                                        [appGradient]="tlCalc.score_perc_median"
+                                                        [gradientStart]="{ r: 255, g: 75, b: 75 }"
+                                                        [gradientEnd]="{ r: 150, g: 255, b: 150 }"
+                                                        gradientType="background"
+                                                    >{{ (tlCalc.score_perc_median * 100).toFixed(2) }}</div>
+                                                </td>
+                                                <td>{{ tlCalc.score_sum }}</td>
+                                                <td>{{ (tlCalc.part_of_total_sum * 100).toFixed(2) }}</td>
+                                                <td>{{ tlCalc.count }}</td>
+                                                <td>{{ (tlCalc.correct_perc * 100).toFixed(2) }}</td>
+                                                <td>{{ (tlCalc.incorrect_perc * 100).toFixed(2) }}</td>
+                                                <td>{{ (tlCalc.unanswered_perc * 100).toFixed(2) }}</td>
+                                                <td>{{ (tlCalc.partial_perc * 100).toFixed(2) }}</td>
+                                            </tr>
+                                            <tr class="hidden first:table-row">
+                                                <td colspan="11">No exam level calculations for this question</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </td>
-                            <td>{{ tlCalc.id_based_on_test }}</td>
-                            <td>{{ tlCalc.score_perc_mean }}</td>
-                            <td>{{ tlCalc.score_perc_std_dev }}</td>
-                            <td>{{ tlCalc.score_perc_median }}</td>
-                            <td>{{ tlCalc.score_sum }}</td>
-                            <td>{{ tlCalc.part_of_total_sum }}</td>
-                            <td>{{ tlCalc.count }}</td>
-                            <td>{{ tlCalc.correct_perc }}</td>
-                            <td>{{ tlCalc.incorrect_perc }}</td>
-                            <td>{{ tlCalc.unanswered_perc }}</td>
-                            <td>{{ tlCalc.partial_perc }}</td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
+                    </ng-template>
+
+                    <tr *ngIf="(courseLevelCalcs ?? []).length === 0">
+                        <td colspan="11">No course level calcultions found</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

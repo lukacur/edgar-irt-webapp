@@ -39,6 +39,14 @@ export class QuestionStatisticsComponent implements OnInit {
         this.courses$ = this.statisticsService.getCoursesWithCalculatedStatistics();
     }
 
+    toggleVisibilityWithClasses(element: HTMLElement) {
+        if (element.classList.contains('hidden')) {
+            element.classList.remove('hidden');
+        } else {
+            element.classList.add('hidden');
+        }
+    }
+
     private getCalculations$() {
         if (this.selectedCourse === null) {
             throw new Error("Course not selected");
@@ -83,10 +91,6 @@ export class QuestionStatisticsComponent implements OnInit {
             .subscribe(calcs => this.courseCalculations = calcs);
     }
 
-    private getTestLevelCalculations$() {
-        
-    }
-
     selectCalculation(calculation: { calculationGroup: string, acYears: string }) {
         this.selectedCalculation = calculation;
 
@@ -97,6 +101,10 @@ export class QuestionStatisticsComponent implements OnInit {
         this.statisticsService.getTestLevelCalculations(this.selectedCalculation.calculationGroup)
             .pipe(take(1))
             .subscribe(tlCalcs => this.testLevelCalcs = tlCalcs);
+    }
+
+    getTestLevelCalculationsForQuestion(idQuestion: number) {
+        return this.testLevelCalcs?.filter(tlc => tlc.id_question === idQuestion) ?? [];
     }
 
     showHelp(event: MouseEvent, helpSpan: HTMLSpanElement) {

@@ -7,6 +7,7 @@ import { Route, RouterModule } from '@angular/router';
 import { MatButtonModule, MatIconModule, MatSortModule, MatTableModule } from '@angular/material';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AppCommonModule } from '../common/app-common.module';
+import { AppDirectivesModule } from 'src/app/app-directives/app-directives.module';
 
 const routes: Route[] = [
   {
@@ -46,6 +47,7 @@ const routes: Route[] = [
     MatTableModule,
     MatSortModule,
     AppCommonModule,
+    AppDirectivesModule,
   ]
 })
 export class StatisticsModule { }
