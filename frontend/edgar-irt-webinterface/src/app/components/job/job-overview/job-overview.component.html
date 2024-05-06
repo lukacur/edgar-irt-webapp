@@ -1,7 +1,95 @@
 <div>
-    <div class="flex flex-col">
+    <div>
+        <h2 class="text-purple-600 text-lg inline-block me-3">Job execution overview</h2>
+        <button
+            mat-flat-button
+            color="primary"
+            (click)="alternativeDisplay = false"
+            *ngIf="alternativeDisplay"
+        >Switch to table display</button>
+        <button
+            mat-stroked-button
+            color="primary"
+            (click)="alternativeDisplay = true"
+            *ngIf="!alternativeDisplay"
+        >Switch to card display</button>
+    </div>
+    <hr class="my-2">
+    <div
+        *ngIf="loading"
+    >
+        <mat-progress-spinner
+            class="inline-block"
+            mode="indeterminate"
+            [diameter]="25"
+        ></mat-progress-spinner> Loading...
+    </div>
+
+    <div *ngIf="!alternativeDisplay">
+        <div class="overflow-auto max-h-[560px]">
+            <table class="w-full" *ngIf="expandedJobId === null">
+                <thead>
+                    <tr class="border-b sticky top-0 bg-white">
+                        <th class="py-2">Job name</th>
+                        <th class="py-2">User note</th>
+                        <th class="py-2">Status</th>
+                        <th class="py-2">Status message</th>
+                        <th class="py-2">Started on</th>
+                        <th class="py-2">Finshed on</th>
+                        <th class="py-2">Duration (HH:mm:ss)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+                        class="hover:bg-blue-400/25 text-center cursor-pointer border-b"
+                        title="Click to expand for more information"
+                        *ngFor="let job of ((jobs$ | async) ?? [])"
+    
+                        (click)="expandJob(job.id)"
+                    >
+                        <td class="p-2">{{ job.name }}</td>
+                        <td class="p-2">{{ job.user_note }}</td>
+                        <td class="p-2"><span [classList]="[getJobStatusColor(job)]">{{ getJobStatusText(job) }}</span></td>
+                        <td class="p-2">{{ job.job_status_message }}</td>
+                        <td class="p-2">{{ job.started_on | date:"dd. MM. yyyy. HH:mm:ss" }}</td>
+                        <td class="p-2">{{ job.finished_on | date:"dd. MM. yyyy. HH:mm:ss" }}</td>
+                        <td class="p-2">{{ getDurationBetweenDates(job.started_on, job.finished_on) }}</td>
+                    </tr>
+                    <tr
+                        class="text-center border-y"
+                        *ngIf="!loading && ((jobs$ | async) ?? []).length === 0"
+                    >
+                        <td class="p-2" colspan="7">
+                            <span class="inline-block me-4">
+                                No previously started jobs.
+                            </span>
+                            <a
+                                [routerLink]="['/jobs', 'execution']"
+                                mat-flat-button
+                                color="primary"
+                            >
+                                Create one now
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div *ngIf="expandedJobInfo !== null">
+            <mat-icon (click)="expandJob(null)" class="cursor-pointer">close</mat-icon>
+            <app-job-list-item
+                [id]="expandedJobInfo.id"
+                [jobInfo]="expandedJobInfo"
+                [defaultExpanded]="true"
+            ></app-job-list-item>
+        </div>
+    </div>
+
+
+    <div class="flex flex-col" *ngIf="alternativeDisplay">
         <div
-            *ngFor="let job of (jobs$ | async)"
+            *ngFor="let job of ((jobs$ | async) ?? [])"
             [appScrollInto]="job.id === expandedJobId"
         >
             <app-job-list-item
@@ -9,6 +97,21 @@
                 [jobInfo]="job"
                 [defaultExpanded]="job.id === expandedJobId"
             ></app-job-list-item>
+        </div>
+
+        <div
+            *ngIf="((jobs$ | async) ?? []).length === 0 && !loading"
+        >
+            <span class="inline-block me-4">
+                No previously started jobs.
+            </span>
+            <a
+                [routerLink]="['/jobs', 'execution']"
+                mat-flat-button
+                color="primary"
+            >
+                Create one now
+            </a>
         </div>
     </div>
 </div>
