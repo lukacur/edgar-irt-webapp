@@ -67,9 +67,7 @@ export class JobOverviewComponent implements OnInit {
 
         if (this.route.snapshot.queryParamMap.has("jobId")) {
             this.expandedJobId = this.route.snapshot.queryParamMap.get("jobId");
-            this.jobs$.pipe(
-                map(jobs => this.expandedJobInfo = jobs.find(j => j.id === this.expandedJobId) ?? null)
-            );
+            this.expandJob(this.expandedJobId);
         }
     }
 }
