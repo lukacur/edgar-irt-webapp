@@ -103,7 +103,7 @@ export class QuestionStatisticsComponent implements OnInit {
             .subscribe(tlCalcs => this.testLevelCalcs = tlCalcs);
     }
 
-    getTestLevelCalculationsForQuestion(idQuestion: number) {
+    getExamLevelCalculationsForQuestion(idQuestion: number) {
         return this.testLevelCalcs?.filter(tlc => tlc.id_question === idQuestion) ?? [];
     }
 
