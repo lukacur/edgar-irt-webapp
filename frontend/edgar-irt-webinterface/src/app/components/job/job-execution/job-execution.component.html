@@ -23,7 +23,7 @@
         >
             <h2 class="mb-3">Job type description</h2>
             <hr class="my-2">
-            <p class="mb-3">{{ jobExecutionForm.get('jobType')!.value.description }}</p>
+            <p class="mb-3">{{ jobExecutionForm.get('jobType')!.value?.description ?? "-" }}</p>
 
             <button type="button" (click)="advanceToFlowStep(1)" mat-flat-button color="primary">Next</button>
         </div>
@@ -103,33 +103,6 @@
                         </option>
                     </select>
                 </div>
-    
-                <div class="mb-3">
-                    <label class="text-sm">
-                        Maximum job timeout (ms)
-                        <mat-icon
-                            class="cursor-pointer text-sm"
-                            title="For most jobs 200000 ms should be enogh"
-                            (click)="
-                                tooltip.classList.contains('hidden') ?
-                                    tooltip.classList.remove('hidden') :
-                                    tooltip.classList.add('hidden')"
-                        >help</mat-icon>
-                        <div #tooltip class="hidden text-xs">For most jobs 200000 ms should be enogh</div>
-                    </label>
-                    <input
-                        class="p-3 bg-white border border-slate-500/50 rounded w-full"
-                        [ngClass]="{
-                            'bg-white': jobExecutionFlowStep === 1,
-                            'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
-                        }"
-                        formControlName="maxJobTimeoutMs"
-    
-                        type="number"
-    
-                        min="0"
-                    >
-                </div>
 
                 <hr class="my-3">
 
@@ -169,6 +142,33 @@
                     rows="10"
                     formControlName="userNote"
                 ></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="text-sm">
+                    Maximum job timeout (ms)
+                    <mat-icon
+                        class="cursor-pointer text-sm"
+                        title="For most jobs 200000 ms should be enogh"
+                        (click)="
+                            tooltip.classList.contains('hidden') ?
+                                tooltip.classList.remove('hidden') :
+                                tooltip.classList.add('hidden')"
+                    >help</mat-icon>
+                    <div #tooltip class="hidden text-xs">For most jobs 200000 ms should be enogh</div>
+                </label>
+                <input
+                    class="p-3 bg-white border border-slate-500/50 rounded w-full"
+                    [ngClass]="{
+                        'bg-white': jobExecutionFlowStep === 1,
+                        'bg-gray-200/50 cursor-not-allowed': jobExecutionFlowStep !== 1
+                    }"
+                    formControlName="maxJobTimeoutMs"
+
+                    type="number"
+
+                    min="0"
+                >
             </div>
 
             <hr class="my-3">

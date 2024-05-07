@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, Validators } from '@angular/forms';
 import { map, Observable } from 'rxjs';
 import { IAcademicYear } from 'src/app/models/edgar/academic-year.model.js';
-import { IEdgarCourse } from 'src/app/models/edgar/course.model';
 import { IJobType } from 'src/app/models/jobs/job-type.model';
 import { EdgarService } from 'src/app/services/edgar.service';
 import { JobsService } from 'src/app/services/jobs.service';
@@ -15,7 +14,25 @@ export class JobExecutionComponent implements OnInit {
     private static readonly MAX_PREVIOUS_INCLUDED_YEAR = 10;
     readonly previousIncludedYearsChoices: number[] = [];
 
-    jobExecutionForm: FormGroup = null!
+    readonly jobExecutionForm = new FormGroup(
+        {
+            jobType: new FormControl<IJobType | null>(null, [Validators.required]),
+
+            maxJobTimeoutMs: new FormControl<number | null>(200000, [Validators.required, Validators.min(0)]),
+
+            jobSpecificConfiguration: new FormGroup({
+                idCourse: new FormControl<number | null>(null, [Validators.required]),
+                idStartAcademicYear: new FormControl<number | null>(null, [Validators.required]),
+                numberOfIncludedPreviousYears: new FormControl<number | null>(null, [Validators.required]),
+                forceCalculation: new FormControl(false, []),
+            }),
+
+            jobName: new FormControl<string | null>(null, []),
+            userNote: new FormControl<string | null>(null, []),
+            periodical: new FormControl(false, []),
+        }
+    );
+
     availableJobTypes$: Observable<{ jobType: IJobType, optText: string }[]> | null = null;
 
     jobExecutionFlowStep: number = 0;
@@ -34,24 +51,6 @@ export class JobExecutionComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.jobExecutionForm = new FormGroup(
-            {
-                jobType: new FormControl(null, [Validators.required]),
-
-                jobSpecificConfiguration: new FormGroup({
-                    idCourse: new FormControl(null, [Validators.required]),
-                    idStartAcademicYear: new FormControl(null, [Validators.required]),
-                    numberOfIncludedPreviousYears: new FormControl(null, [Validators.required]),
-                    maxJobTimeoutMs: new FormControl(200000, [Validators.required, Validators.min(0)]),
-                    forceCalculation: new FormControl(false, []),
-                }),
-
-                jobName: new FormControl(null, []),
-                userNote: new FormControl(null, []),
-                periodical: new FormControl(false, []),
-            }
-        );
-
         this.availableJobTypes$ = this.jobsService.getAllJobTypes()
             .pipe(
                 map(jTypes =>
@@ -103,13 +102,17 @@ export class JobExecutionComponent implements OnInit {
 
     startJob() {
         const form = this.jobExecutionForm.getRawValue();
+        if (!form.jobType) {
+            throw new Error("Invalid job type");
+        }
 
         this.jobsService.startJob({
-            idJobType: parseInt(form.jobType.id),
+            idJobType: form.jobType.id,
             jobName: form.jobName,
             userNote: form.userNote,
-            periodical: form.periodical,
+            periodical: form.periodical ?? false,
             request: form.jobSpecificConfiguration,
+            jobMaxTimeoutMs: form.maxJobTimeoutMs ?? undefined,
         }).subscribe({
             next: () => {
                 window.alert("Job start request sent successfully");
