@@ -5,6 +5,7 @@ import { environment } from 'src/environments/environment';
 import { IQuestionType } from '../models/edgar/question-type.model';
 import { IEdgarNode } from '../models/edgar/node.model.js';
 import { IQuestionNodeWhitelistEntry } from '../models/adaptive-exercises/question-node-whitelist-entry.model.js';
+import { IEdgarCourse } from '../models/edgar/course.model.js';
 
 @Injectable({
     providedIn: 'root'
@@ -13,6 +14,13 @@ export class AdaptiveExercisesService {
     constructor(
         private readonly http: HttpClient,
     ) { }
+
+    public getCoursesWithStartableExercises(): Observable<IEdgarCourse[]> {
+        return this.http
+            .get<IEdgarCourse[]>(
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/courses-startable`
+            );
+    }
 
     public getAllowedQuestionTypes(): Observable<IQuestionType[]> {
         return this.http
