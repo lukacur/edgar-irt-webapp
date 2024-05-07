@@ -6,7 +6,7 @@ import { ICurrentExercise } from 'src/app/models/adaptive-exercises/current-exer
 import { IExerciseInstance } from 'src/app/models/adaptive-exercises/exercise-instance.model';
 import { IEdgarCourse } from 'src/app/models/edgar/course.model';
 import { AdaptiveExerciseProgressionService } from 'src/app/services/adaptive-exercise-progression.service';
-import { StatisticsService } from 'src/app/services/statistics.service';
+import { AdaptiveExercisesService } from 'src/app/services/adaptive-exercises.service';
 
 @Component({
     selector: 'app-my-exercises',
@@ -38,7 +38,7 @@ export class MyExercisesComponent implements OnInit, OnDestroy {
     readonly subscriptions: Subscription[] = [];
 
     constructor(
-        private readonly statisticsService: StatisticsService,
+        private readonly adaptveExercisesService: AdaptiveExercisesService,
         private readonly adaptiveExerciseProgressionService: AdaptiveExerciseProgressionService,
 
         private readonly route: ActivatedRoute,
@@ -89,7 +89,7 @@ export class MyExercisesComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.courses$ = this.statisticsService.getCoursesWithCalculatedStatistics()
+        this.courses$ = this.adaptveExercisesService.getCoursesWithStartableExercises()
             .pipe(map(courses => {
                 return courses.map(crs => ({
                     courseTitle: `(${crs.course_acronym}) ${crs.course_name} - ${crs.ects_credits} ECTS`,
