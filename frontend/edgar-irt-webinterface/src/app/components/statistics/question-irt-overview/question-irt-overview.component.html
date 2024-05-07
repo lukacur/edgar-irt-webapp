@@ -24,6 +24,8 @@
                     <th class="px-2">Item difficulty</th>
                     <th class="px-2">Guess probability</th>
                     <th class="px-2">Mistake probability</th>
+
+                    <th class="px-2">Question class</th>
                 </thead>
                 <tbody>
                     <tr>
@@ -47,6 +49,13 @@
                         <td>{{ questionIrtParams.item_difficulty.toFixed(4) }}</td>
                         <td>{{ questionIrtParams.item_guess_probability.toFixed(4) }}</td>
                         <td>{{ questionIrtParams.item_mistake_probability.toFixed(4) }}</td>
+
+                        <td>
+                            <div
+                                #badge
+                                class="rounded-lg w-full p-3"
+                            >{{ setClassificationBadge(badge, questionIrtParams) }}</div>
+                        </td>
                     </tr>
                 </tbody>
             </table>

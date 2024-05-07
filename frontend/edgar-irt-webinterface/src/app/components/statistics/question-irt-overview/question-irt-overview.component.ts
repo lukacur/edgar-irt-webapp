@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LogisticFunction } from 'src/app/models/irt/logistic-function.model';
 import { IQuestionIrtParameters } from 'src/app/models/irt/question-irt-parameters.model';
 import { StatisticsService } from 'src/app/services/statistics.service';
+import { QuestionUtil } from 'src/app/util/question.util';
 
 @Component({
     selector: 'app-question-irt-overview',
@@ -49,4 +50,10 @@ export class QuestionIrtOverviewComponent implements OnInit {
         return (theta: number) => logFn.fourParamLogisticFn(theta);
     }
 
+    setClassificationBadge(badgeDiv: HTMLDivElement, irtParams: IQuestionIrtParameters): string {
+        const classification = QuestionUtil.classifyQuestion(irtParams);
+
+        badgeDiv.classList.add(QuestionUtil.getColorClassForClassification("bg", classification!));
+        return QuestionUtil.getQuestionClassificationText(classification!);
+    }
 }
