@@ -9,8 +9,8 @@ export interface IJob {
     job_definition: IJobConfiguration;
     started_on: string;
     job_status: "RUNNING" | "FINISHED" | "FAILED";
-    job_status_message: string;
-    finished_on: string;
+    job_status_message: string | null;
+    finished_on: string | null;
     periodical: boolean;
     rerun_requested: boolean;
 }

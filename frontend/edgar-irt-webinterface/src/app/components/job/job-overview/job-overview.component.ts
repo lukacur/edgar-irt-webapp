@@ -25,7 +25,11 @@ export class JobOverviewComponent implements OnInit {
         private readonly route: ActivatedRoute,
     ) { }
 
-    getDurationBetweenDates(date1: string, date2: string) {
+    getDurationBetweenDates(date1: string | null, date2: string | null) {
+        if (date1 === null || date2 === null) {
+            return "-";
+        }
+
         const dt1 = new Date(date1);
         const dt2 = new Date(date2);
 
