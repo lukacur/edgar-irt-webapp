@@ -20,6 +20,7 @@ import { EdgarService } from "../Services/EdgarService.js";
 import { AdaptiveExerciseService } from "../Services/AdaptiveExerciseService.js";
 import { TransactionContext } from "../Database/TransactionContext.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
+import { IEdgarCourse } from "../Models/Database/Edgar/IEdgarCourse.js";
 
 type NextExerciseQuestionRequest = {
     readonly idExercise: number,
@@ -43,6 +44,24 @@ export class AdaptiveExercisesController extends AbstractController {
         basePath: string = "adaptive-exercises"
     ) {
         super(basePath);
+    }
+
+    @Get("courses-startable")
+    public async getCoursesWithStartableExercises(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const courses: IEdgarCourse[] = (
+            await this.dbConn.doQuery<IEdgarCourse>(
+                `SELECT DISTINCT course.*
+                FROM public.course
+                    JOIN statistics_schema.question_param_calculation
+                        ON course.id = question_param_calculation.id_based_on_course
+                    JOIN adaptive_exercise.exercise_node_whitelist
+                        ON course.id = exercise_node_whitelist.id_course`
+            )
+        )?.rows ?? [];
+
+        res
+            .status(200)
+            .send(courses);
     }
 
     @Post("previous")
