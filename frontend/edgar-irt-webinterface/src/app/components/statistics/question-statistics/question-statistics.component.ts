@@ -1,24 +1,31 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { map, Observable, take } from 'rxjs';
+import { map, Observable, Subscription, take, tap } from 'rxjs';
 import { IEdgarCourse } from 'src/app/models/edgar/course.model';
-import { ICourseLevelStatisticsCalculation } from 'src/app/models/statistics-processing/course-level-statistics-calculation.model.js';
-import { ITestLevelStatisticsCalculation } from 'src/app/models/statistics-processing/test-level-statistics-calculation.model.js';
+import { LogisticFunction } from 'src/app/models/irt/logistic-function.model';
+import { IBaseIrtParameters } from 'src/app/models/irt/question-irt-parameters.model';
+import { ICourseLevelStatisticsCalculation } from 'src/app/models/statistics-processing/course-level-statistics-calculation.model';
+import { ITestLevelStatisticsCalculation } from 'src/app/models/statistics-processing/test-level-statistics-calculation.model';
 import { StatisticsService } from 'src/app/services/statistics.service';
+import { QuestionUtil } from 'src/app/util/question.util';
 
 @Component({
     selector: 'app-question-statistics',
     templateUrl: './question-statistics.component.html',
 })
-export class QuestionStatisticsComponent implements OnInit {
+export class QuestionStatisticsComponent implements OnInit, OnDestroy {
     selectedCourse: IEdgarCourse | null = null;
     selectedCalculation: { calculationGroup: string, acYears: string } | null = null;
 
-    courses$: Observable<IEdgarCourse[]> | null = null;
+    selectorCourses$: Observable<{ text: string, idCourse: number }[]> | null = null;
+    courses: IEdgarCourse[] | null = null;
 
     courseCalculations: { calculationGroup: string, acYears: string }[] = [];
 
-    questionStatisticsForm: FormGroup = null!;
+    readonly questionStatisticsForm = new FormGroup({
+        idCourse: new FormControl<number | null>(null, [Validators.required]),
+        idCalculation: new FormControl(null, [Validators.required]),
+    });
 
     courseLevelExpanded: boolean = false;
     courseLevelCalcs: ICourseLevelStatisticsCalculation[] | null = null;
@@ -26,17 +33,62 @@ export class QuestionStatisticsComponent implements OnInit {
     testLevelExpanded: boolean = false;
     testLevelCalcs: ITestLevelStatisticsCalculation[] | null = null;
 
+    private readonly subscriptions: Subscription[] = [];
+
     constructor(
         private readonly statisticsService: StatisticsService,
     ) { }
 
     ngOnInit(): void {
-        this.questionStatisticsForm = new FormGroup({
-            idCourse: new FormControl(null, [Validators.required]),
-            idCalculation: new FormControl(null, [Validators.required]),
-        });
+        this.subscriptions.push(
+            this.questionStatisticsForm.get("idCourse")!.valueChanges.subscribe(idCourse => {
+                const course = this.courses?.find(crs => crs.id === idCourse) ?? null;
+                if (course === null) {
+                    throw new Error(
+                        "Selected course ID is invalid (course with selected ID does not exist or was deleted)"
+                    );
+                }
 
-        this.courses$ = this.statisticsService.getCoursesWithCalculatedStatistics();
+                this.selectCourse(course);
+            })
+        );
+
+        this.selectorCourses$ = this.statisticsService.getCoursesWithCalculatedStatistics().pipe(
+            tap(crss => this.courses = crss),
+            map(courses => 
+                courses.map(course => {
+                    return {
+                        text: `(${course.course_acronym}) ${course.course_name} - ${course.ects_credits} ECTS`,
+                        idCourse: course.id
+                    };
+                })
+            )
+        );
+    }
+
+    ngOnDestroy(): void {
+        this.subscriptions.forEach(sub => sub.unsubscribe());
+    }
+
+    prepareLogisticFunction(questionIrtParams: IBaseIrtParameters): (theta: number) => number {
+        const logFn = LogisticFunction.withParams(
+            {
+                levelOfItemKnowledge: questionIrtParams.level_of_item_knowledge,
+                itemDifficulty: questionIrtParams.item_difficulty,
+                itemGuessProbability: questionIrtParams.item_guess_probability,
+                itemMistakeProbability: questionIrtParams.item_mistake_probability,
+            },
+            questionIrtParams.default_item_offset_parameter
+        );
+
+        return (theta: number) => logFn.fourParamLogisticFn(theta);
+    }
+
+    setClassificationBadge(badgeDiv: HTMLDivElement, irtParams: IBaseIrtParameters): string {
+        const classification = QuestionUtil.classifyQuestion(irtParams);
+
+        badgeDiv.classList.add(QuestionUtil.getColorClassForClassification("bg", classification!));
+        return QuestionUtil.getQuestionClassificationText(classification!);
     }
 
     toggleVisibilityWithClasses(element: HTMLElement) {

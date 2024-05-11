@@ -2,18 +2,23 @@
     <form [formGroup]="questionStatisticsForm">
         <h2 class="text-blue-400">Please choose a course</h2>
         <div>
-            <label class="text-sm">Course with statistics</label>
-            <select
-                class="p-3 bg-white border border-slate-500/50 rounded cursor-pointer w-full"
-                formControlName="idCourse"
+            <app-searchable-select
+                labelText="Course with statistics"
+        
+                [multi]="false"
+                [searchable]="true"
+                [selectableItems]="(selectorCourses$ | async) ?? []"
+        
+                textKey="text"
+                valueKey="idCourse"
+        
+                [useObjectAsValue]="false"
+
+                [control]="questionStatisticsForm.get('idCourse')!"
+
+                noItemsText="No courses have calculated statistics"
             >
-                <option
-                    *ngFor="let course of (courses$ | async)" [ngValue]="course.id"
-                    (click)="selectCourse(course)"
-                >
-                    ({{ course.course_acronym }}) {{ course.course_name }} - {{ course.ects_credits }} ECTS
-                </option>
-            </select>
+            </app-searchable-select>
         </div>
 
         <div *ngIf="selectedCourse !== null">
@@ -37,17 +42,40 @@
         <div class="overflow-auto max-h-[560px]">
             <table class="p-3 text-center w-full">
                 <thead class="sticky top-0 bg-white">
-                    <th>Question ID</th>
-                    <th>Score % mean</th>
-                    <th>Score % stddev</th>
-                    <th>Score % median</th>
-                    <th>Total score achieved</th>
-                    <th>Total achievable score</th>
-                    <th>Number of answers</th>
-                    <th>% of correct answers</th>
-                    <th>% of incorrect answers</th>
-                    <th>% of unanswered</th>
-                    <th>% of partial answers</th>
+                    <tr>
+                        <th>Question ID</th>
+                        <th>Score % mean</th>
+                        <th>Score % stddev</th>
+                        <th>Score % median</th>
+                        <th>Total score achieved</th>
+                        <th>Total achievable score</th>
+                        <th>Number of answers</th>
+                        <th>% of correct answers</th>
+                        <th>% of incorrect answers</th>
+                        <th>% of unanswered</th>
+                        <th>% of partial answers</th>
+                        <th>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>IRT information</th>
+                                    </tr>
+                                    <tr>
+                                        <th>
+                                            <div class="flex justify-between items-center text-center">
+                                                <div class="w-2/12">Default item offset constant</div>
+                                                <div class="w-2/12">Level of item knowledge</div>
+                                                <div class="w-2/12">Item difficulty</div>
+                                                <div class="w-2/12">Guess probability</div>
+                                                <div class="w-2/12">Mistake probability</div>
+                                            </div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </th>
+                        <th class="px-2">Question class</th>
+                    </tr>
                 </thead>
                 <tbody>
                     <ng-template
@@ -115,9 +143,26 @@
                             <td>{{ (clCalc.incorrect_perc * 100).toFixed(2) }}</td>
                             <td>{{ (clCalc.unanswered_perc * 100).toFixed(2) }}</td>
                             <td>{{ (clCalc.partial_perc * 100).toFixed(2) }}</td>
+
+                            <td>
+                                <div class="flex justify-between items-center text-center">
+                                    <div class="w-2/12">{{ clCalc.default_item_offset_parameter.toFixed(4) }}</div>
+                                    <div class="w-2/12">{{ clCalc.level_of_item_knowledge.toFixed(4) }}</div>
+                                    <div class="w-2/12">{{ clCalc.item_difficulty.toFixed(4) }}</div>
+                                    <div class="w-2/12">{{ clCalc.item_guess_probability.toFixed(4) }}</div>
+                                    <div class="w-2/12">{{ clCalc.item_mistake_probability.toFixed(4) }}</div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div
+                                    #badge
+                                    class="px-2 py-1 rounded-lg w-full"
+                                >{{ setClassificationBadge(badge, clCalc) }}</div>
+                            </td>
                         </tr>
                         <tr #qTlInfo class="hidden border mx-2">
-                            <td class="p-8" colspan="11">
+                            <td class="p-8" colspan="13">
                                 <div class="overflow-auto max-h-[560px]">
                                     <table class="p-3 text-center w-full">
                                         <thead>
@@ -190,7 +235,7 @@
                     </ng-template>
 
                     <tr *ngIf="(courseLevelCalcs ?? []).length === 0">
-                        <td colspan="11">No course level calcultions found</td>
+                        <td colspan="13">No course level calcultions found</td>
                     </tr>
                 </tbody>
             </table>
