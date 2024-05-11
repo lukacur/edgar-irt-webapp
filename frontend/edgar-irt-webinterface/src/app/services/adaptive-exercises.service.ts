@@ -6,6 +6,7 @@ import { IQuestionType } from '../models/edgar/question-type.model';
 import { IEdgarNode } from '../models/edgar/node.model.js';
 import { IQuestionNodeWhitelistEntry } from '../models/adaptive-exercises/question-node-whitelist-entry.model.js';
 import { IEdgarCourse } from '../models/edgar/course.model.js';
+import { IExerciseDefinition } from '../models/adaptive-exercises/exercise-definition.model.js';
 
 @Injectable({
     providedIn: 'root'
@@ -55,17 +56,49 @@ export class AdaptiveExercisesService {
             ).pipe(map(() => {}));
     }
 
-    public getCourseQuestionNodeWhitelist(idCourse: number): Observable<(IEdgarNode & { whitelisted_on: string })[]> {
+    public getCourseExerciseDefinitions(idCourse: number): Observable<IExerciseDefinition[]> {
         return this.http
-            .get<(IEdgarNode & { whitelisted_on: string })[]>(
-                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/course/${idCourse}/question-node-whitelist`
+            .post<IExerciseDefinition[]>(
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/course-exercise-definitions`,
+                { idCourse }
             );
     }
 
-    public getCourseWhitelistableQuestionNodes(idCourse: number): Observable<IEdgarNode[]> {
+    public createExerciseDefinition(idCourse: number, exerciseName: string): Observable<void> {
+        return this.http
+            .post(
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/define-exercise`,
+                { idCourse, exerciseName },
+                {
+                    responseType: "text"
+                }
+            ).pipe(map(_ => {}));
+    }
+
+    public removeExerciseDefinitions(removedExerciseDefinitions: IExerciseDefinition[]): Observable<void> {
+        return this.http
+            .delete(
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/exercise-definition/remove`,
+                {
+                    body: { definitionIds: removedExerciseDefinitions.map(def => def.id) },
+                    responseType: "text"
+                }
+            ).pipe(map(_ => {}));
+    }
+
+    public getExerciseDefinitionNodeWhitelist(
+        idExerciseDefinition: number,
+    ): Observable<(IEdgarNode & { whitelisted_on: string })[]> {
+        return this.http
+            .get<(IEdgarNode & { whitelisted_on: string })[]>(
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/exercise-definition/${idExerciseDefinition}/question-node-whitelist`
+            );
+    }
+
+    public getExerciseDefinitionWhitelistableQuestionNodes(idExerciseDefinition: number): Observable<IEdgarNode[]> {
         return this.http
             .get<IEdgarNode[]>(
-                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/course/${idCourse}/whitelistable-nodes`
+                `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/exercise-definition/${idExerciseDefinition}/whitelistable-nodes`
             );
     }
 
@@ -82,11 +115,13 @@ export class AdaptiveExercisesService {
             ).pipe(map(() => {}));
     }
 
-    public removeQuestionNodesFromWhitelist(idNodes: number[]): Observable<void> {
+    public removeQuestionNodesFromWhitelist(
+        nodes: Omit<IQuestionNodeWhitelistEntry, "whitelisted_on">[]
+    ): Observable<void> {
         return this.http
             .delete(
                 `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/question-node-whitelist/remove`,
-                { body: { idNodes }, responseType: "text" }
+                { body: { nodes }, responseType: "text" }
             ).pipe(map(() => {}));
     }
 }
