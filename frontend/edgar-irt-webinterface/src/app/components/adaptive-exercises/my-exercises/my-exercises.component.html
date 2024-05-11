@@ -91,6 +91,8 @@
                         <thead>
                             <tr>
                                 <th class="text-center">ID</th>
+                                <th class="text-center">Exercise name</th>
+                                <th class="text-center">Question count</th>
                                 <th class="text-center">Started on</th>
                                 <th class="text-center">Finished on</th>
                                 <th class="text-center">Start IRT score</th>
@@ -102,6 +104,8 @@
                         <tbody>
                             <tr *ngFor="let exercise of (previousExercises$ | async) ?? []">
                                 <td class="text-center">{{ exercise.id }}</td>
+                                <td class="text-center">{{ exercise.exercise_name }}</td>
+                                <td class="text-center">{{ exercise.questions_count }}</td>
                                 <td class="text-center">{{ exercise.started_on | date:"dd. MM. yyyy. HH:mm:ss" }}</td>
                                 <td class="text-center">{{ exercise.finished_on | date:"dd. MM. yyyy. HH:mm:ss" }}</td>
                                 <td class="text-center">{{ exercise.start_irt_theta.toFixed(4) }}</td>
@@ -116,7 +120,7 @@
                             <tr *ngIf="numberOfPreviousExercises === 0">
                                 <td
                                     class="py-2 text-gray-500/50"
-                                    colspan="4"
+                                    colspan="9"
                                 >No previous exercises</td>
                             </tr>
                         </tbody>
