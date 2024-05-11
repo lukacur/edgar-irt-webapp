@@ -75,11 +75,14 @@ export class AdaptiveExercisesController extends AbstractController {
 
         const exercises: IExerciseInstance[] = (
             await this.dbConn.doQuery<IExerciseInstance>(
-                `SELECT *
+                `SELECT exercise_instance.*,
+                    exercise_name
                 FROM adaptive_exercise.exercise_instance
+                    JOIN adaptive_exercise.exercise_definition
+                        ON exercise_instance.id_exercise_definition = exercise_definition.id
                 WHERE id_student_started = $1 AND
-                        id_course = $2 AND
-                        is_finished`,
+                    exercise_instance.id_course = $2 AND
+                    is_finished`,
                 [
                     /* $1 */ idStudent,
                     /* $2 */ idCourse,
