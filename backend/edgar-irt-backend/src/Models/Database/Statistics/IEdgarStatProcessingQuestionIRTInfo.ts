@@ -14,7 +14,7 @@ export interface IEdgarStatProcessingQuestionIRTInfo {
      */
     id_academic_years: number[];
 
-    id_test_based_info: number[];
+    testBasedInfo: { id_test_based_info: number, id_based_on_test: number }[];
     id_question: number;
 
     default_item_offset_parameter: number;
