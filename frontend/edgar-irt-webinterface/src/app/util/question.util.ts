@@ -1,9 +1,9 @@
-import { IQuestionIrtParameters } from "../models/irt/question-irt-parameters.model.js";
+import { IBaseIrtParameters } from "../models/irt/question-irt-parameters.model.js";
 
 type QuestionClassification = "very_easy" | "easy" | "normal" | "hard" | "very_hard"
 
 export interface IQuestionClassifier {
-    classifyQuestion(question: IQuestionIrtParameters): QuestionClassification;
+    classifyQuestion(question: IBaseIrtParameters): QuestionClassification;
 }
 
 export class QuestionUtil {
@@ -43,7 +43,7 @@ export class QuestionUtil {
         QuestionUtil.classifier = classifier;
     }
 
-    public static classifyQuestion(question: IQuestionIrtParameters) {
+    public static classifyQuestion(question: IBaseIrtParameters) {
         return QuestionUtil.classifier?.classifyQuestion(question);
     }
 
