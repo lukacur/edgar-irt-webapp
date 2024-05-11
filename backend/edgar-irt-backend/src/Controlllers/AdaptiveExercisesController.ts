@@ -21,6 +21,7 @@ import { AdaptiveExerciseService } from "../Services/AdaptiveExerciseService.js"
 import { TransactionContext } from "../Database/TransactionContext.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 import { IEdgarCourse } from "../Models/Database/Edgar/IEdgarCourse.js";
+import { IExerciseDefinition } from "../Models/Database/AdaptiveExercise/IExerciseDefinition.js";
 
 type NextExerciseQuestionRequest = {
     readonly idExercise: number,
@@ -261,10 +262,92 @@ export class AdaptiveExercisesController extends AbstractController {
         }
     }
 
-    @Get("course/:idCourse/question-node-whitelist")
-    public async getCourseQuestionNodeWhitelist(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idCourse = req.params.idCourse;
+    @Post("course-exercise-definitions")
+    public async getCourseExerciseDefinitions(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const idCourse = req.body.idCourse;
         if ((idCourse ?? null) === null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const definitions: IExerciseDefinition[] = (
+            await this.dbConn.doQuery<IExerciseDefinition>(
+                `SELECT *
+                FROM adaptive_exercise.exercise_definition
+                WHERE id_course = $1`,
+                [ idCourse ]
+            )
+        )?.rows ?? [];
+
+        res.send(definitions);
+    }
+
+    @Post("define-exercise")
+    public async createExerciseDefinition(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const { idCourse, exerciseName } = req.body;
+        if ((idCourse ?? null) === null || (exerciseName ?? null) === null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const success = (
+            await this.dbConn.doQuery(
+                `INSERT INTO adaptive_exercise.exercise_definition (id_course, exercise_name) VALUES ($1, $2)`,
+                [
+                    /* $1 */ idCourse,
+                    /* $2 */ exerciseName
+                ]
+            )
+        ) !== null;
+
+        if (!success) {
+            res.sendStatus(400);
+            return;
+        }
+
+        res.sendStatus(202);
+    }
+
+    @Delete("exercise-definition/remove")
+    public async removeExerciseDefinitions(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const { definitionIds } = req.body as { definitionIds: number[] };
+        if (definitionIds === null || definitionIds.length === 0) {
+            res.sendStatus(400);
+            return;
+        }
+
+        console.log(definitionIds);
+
+        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
+
+        try {
+            for (const defId of definitionIds) {
+                await transaction.doQuery(
+                    `DELETE FROM exercise_definition WHERE id = $1`,
+                    [ defId ]
+                );
+            }
+
+            await transaction.commit();
+
+            res.sendStatus(200);
+        } catch {
+            res.sendStatus(400);
+        } finally {
+            if (!transaction.isFinished()) {
+                await transaction.rollback();
+            }
+        }
+    }
+
+    @Get("exercise-definition/:idExerciseDefinition/question-node-whitelist")
+    public async getExerciseDefinitionQuestionNodeWhitelist(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const idExerciseDefinition = req.params.idExerciseDefinition;
+        if ((idExerciseDefinition ?? null) === null) {
             res.sendStatus(400);
             return;
         }
@@ -284,8 +367,8 @@ export class AdaptiveExercisesController extends AbstractController {
                         ON exercise_node_whitelist.id_node = node.id
                     JOIN public.node_type
                         ON node.id_node_type = node_type.id
-                WHERE id_course = $1`,
-                [idCourse]
+                WHERE id_exercise_definition = $1`,
+                [idExerciseDefinition]
             )
         )?.rows ?? [];
 
@@ -294,10 +377,10 @@ export class AdaptiveExercisesController extends AbstractController {
             .send(nodeWhitelist);
     }
 
-    @Get("course/:idCourse/whitelistable-nodes")
+    @Get("exercise-definition/:idExerciseDefinition/whitelistable-nodes")
     public async getCourseWhitelistableQuestionNodes(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idCourse = req.params['idCourse'];
-        if ((idCourse ?? null) === null) {
+        const idExerciseDefinition = req.params['idExerciseDefinition'];
+        if ((idExerciseDefinition ?? null) === null) {
             res.sendStatus(400);
             return;
         }
@@ -306,12 +389,28 @@ export class AdaptiveExercisesController extends AbstractController {
             await this.dbConn.doQuery<IQuestionNodeWhitelistEntry>(
                 `SELECT id_node
                 FROM adaptive_exercise.exercise_node_whitelist
-                WHERE id_course = $1`,
-                [idCourse]
+                WHERE id_exercise_definition = $1`,
+                [idExerciseDefinition]
             )
         )?.rows ?? [];
 
-        const allCourseNodes = await this.courseService.getCourseNodes(parseInt(idCourse));
+        const courseId: number | null = (
+            await this.dbConn.doQuery<{ id_course: number }>(
+                `SELECT id_course
+                FROM adaptive_exercise.exercise_definition
+                WHERE id = $1`,
+                [ idExerciseDefinition ]
+            )
+        )?.rows[0]?.id_course ?? null;
+
+        if (courseId === null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const allCourseNodes = await this.courseService.getCourseNodes(
+            (typeof(courseId) === "string") ? parseInt(courseId) : courseId
+        );
 
         res
             .status(200)
@@ -332,15 +431,16 @@ export class AdaptiveExercisesController extends AbstractController {
 
         try {
             for (const nodeWhitelistEntry of nodeWhitelistEntries) {
-                if (nodeWhitelistEntry.id_course === null || nodeWhitelistEntry.id_node === null) {
+                if (nodeWhitelistEntry.id_exercise_definiton === null || nodeWhitelistEntry.id_node === null) {
                     throw new Error("Invalid entry detected, aborting");
                 }
 
                 await transaction.doQuery(
-                    `INSERT INTO adaptive_exercise.exercise_node_whitelist (id_node, id_course) VALUES ($1, $2)`,
+                    `INSERT INTO adaptive_exercise.exercise_node_whitelist (id_exercise_definition, id_node)
+                        VALUES ($1, $2)`,
                     [
+                        nodeWhitelistEntry.id_exercise_definiton,
                         nodeWhitelistEntry.id_node,
-                        nodeWhitelistEntry.id_course,
                     ]
                 );
             }
@@ -359,8 +459,8 @@ export class AdaptiveExercisesController extends AbstractController {
 
     @Delete("question-node-whitelist/remove")
     public async removeQuestionNodeFromWhitelist(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const idNodes = req.body.idNodes;
-        if ((idNodes ?? null) === null) {
+        const nodes: Omit<IQuestionNodeWhitelistEntry, "whitelisted_on">[] = req.body.nodes;
+        if ((nodes ?? null) === null) {
             res.sendStatus(400);
             return;
         }
@@ -368,10 +468,15 @@ export class AdaptiveExercisesController extends AbstractController {
         const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
 
         try {
-            for (const idNode of idNodes) {
+            for (const node of nodes) {
                 await transaction.doQuery(
-                    `DELETE FROM adaptive_exercise.exercise_node_whitelist WHERE id_node = $1`,
-                    [idNode]
+                    `DELETE FROM adaptive_exercise.exercise_node_whitelist
+                    WHERE id_exercise_definition = $1 AND
+                        id_node = $2`,
+                    [
+                        /* $1 */ node.id_exercise_definiton,
+                        /* $2 */ node.id_node,
+                    ]
                 );
             }
 
