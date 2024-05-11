@@ -8,6 +8,7 @@ import { MatButtonModule, MatIconModule, MatSortModule, MatTableModule } from '@
 import { ReactiveFormsModule } from '@angular/forms';
 import { AppCommonModule } from '../common/app-common.module';
 import { AppDirectivesModule } from 'src/app/app-directives/app-directives.module';
+import { QuestionStatisticsPlotComponent } from './question-statistics-plot/question-statistics-plot.component';
 
 const routes: Route[] = [
   {
@@ -19,6 +20,11 @@ const routes: Route[] = [
       path: "question-statistics",
       pathMatch: "full",
       component: QuestionStatisticsComponent,
+  },
+  {
+      path: "question-statistics-plot",
+      pathMatch: "full",
+      component: QuestionStatisticsPlotComponent,
   },
   {
       path: "question-irt-overview/:idQuestion",
@@ -35,7 +41,8 @@ const routes: Route[] = [
   declarations: [
     StatisticsAvailableActionsComponent,
     QuestionStatisticsComponent,
-    QuestionIrtOverviewComponent
+    QuestionIrtOverviewComponent,
+    QuestionStatisticsPlotComponent
   ],
   imports: [
     RouterModule.forChild(routes),
