@@ -8,6 +8,7 @@ import { ICurrentExercise } from '../models/adaptive-exercises/current-exercise.
 type StartExerciseRequest = {
     idStudent: number | null;
     idCourse: number;
+    idExerciseDefinition: number;
     questionsCount: number;
     considerPreviousExercises: boolean;
 };

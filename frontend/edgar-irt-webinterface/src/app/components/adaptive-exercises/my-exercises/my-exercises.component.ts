@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BehaviorSubject, map, Observable, Subscription, tap } from 'rxjs';
 import { ICurrentExercise } from 'src/app/models/adaptive-exercises/current-exercise.model';
+import { IExerciseDefinition } from 'src/app/models/adaptive-exercises/exercise-definition.model.js';
 import { IExerciseInstance } from 'src/app/models/adaptive-exercises/exercise-instance.model';
 import { IEdgarCourse } from 'src/app/models/edgar/course.model';
 import { AdaptiveExerciseProgressionService } from 'src/app/services/adaptive-exercise-progression.service';
@@ -15,6 +16,7 @@ import { AdaptiveExercisesService } from 'src/app/services/adaptive-exercises.se
 export class MyExercisesComponent implements OnInit, OnDestroy {
     readonly startExerciseForm = new FormGroup({
         selectedCourse: new FormControl<IEdgarCourse | null>(null, [Validators.required]),
+        selectedExerciseDefinition: new FormControl<IExerciseDefinition | null>(null, [Validators.required]),
         questionsCount: new FormControl<number | null>(null, [Validators.required]),
         considerPreviousExercises: new FormControl<boolean | null>(false),
     });
@@ -29,6 +31,7 @@ export class MyExercisesComponent implements OnInit, OnDestroy {
     ]
 
     courses$: Observable<{ courseTitle: string, course: IEdgarCourse }[]> = null!;
+    exerciseDefinitions$: Observable<{ exerciseName: string, exerciseDefinition: IExerciseDefinition }[]> = null!;
 
     currentlyActiveExercise: ICurrentExercise | null = null;
     previousExercises$: Observable<IExerciseInstance[]> = new BehaviorSubject([]);
@@ -59,6 +62,11 @@ export class MyExercisesComponent implements OnInit, OnDestroy {
             return;
         }
 
+        if (formValue.selectedExerciseDefinition === null) {
+            window.alert("Please select an exercise definition");
+            return;
+        }
+
         if (formValue.questionsCount === null) {
             window.alert("Please specify a question count for the exercise");
             return;
@@ -67,6 +75,7 @@ export class MyExercisesComponent implements OnInit, OnDestroy {
         this.adaptiveExerciseProgressionService.startExercise({
             idStudent: null,
             idCourse: formValue.selectedCourse.id,
+            idExerciseDefinition: formValue.selectedExerciseDefinition.id,
             questionsCount: formValue.questionsCount,
             considerPreviousExercises: formValue.considerPreviousExercises ?? false,
         }).subscribe(_ => {
@@ -97,16 +106,30 @@ export class MyExercisesComponent implements OnInit, OnDestroy {
                 }));
             }));
 
-        this.startExerciseForm.get('selectedCourse')?.valueChanges.subscribe(crs => {
-            if (crs !== null) {
-                this.previousExercises$ =
-                    this.adaptiveExerciseProgressionService.getStudentPreviousExercises(null, crs.id)
-                        .pipe(tap(exercises => this.numberOfPreviousExercises = exercises.length));
+        this.subscriptions.push(
+            this.startExerciseForm.get('selectedCourse')!.valueChanges.subscribe(crs => {
+                if (crs !== null) {
+                    this.exerciseDefinitions$ = this.adaptveExercisesService.getCourseExerciseDefinitions(crs.id)
+                        .pipe(
+                            map(exerDefs =>
+                                exerDefs.map(def => {
+                                    return {
+                                        exerciseName: def.exercise_name,
+                                        exerciseDefinition: def,
+                                    };
+                                })
+                            )
+                        );
 
-                this.adaptiveExerciseProgressionService.getStudentCurrentExercise(null, crs.id)
-                    .subscribe(ex => this.currentlyActiveExercise = ex);
-            }
-        });
+                    this.previousExercises$ =
+                        this.adaptiveExerciseProgressionService.getStudentPreviousExercises(null, crs.id)
+                            .pipe(tap(exercises => this.numberOfPreviousExercises = exercises.length));
+    
+                    this.adaptiveExerciseProgressionService.getStudentCurrentExercise(null, crs.id)
+                        .subscribe(ex => this.currentlyActiveExercise = ex);
+                }
+            }),
+        );
     }
 
     ngOnDestroy(): void {
