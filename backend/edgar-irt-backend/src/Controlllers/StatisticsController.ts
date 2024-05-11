@@ -67,36 +67,54 @@ export class StatisticsController extends AbstractController {
             return;
         }
 
-        const questionIRTParameters: IEdgarStatProcessingQuestionIRTInfo[] =
-            (await this.dbConn.doQuery<IEdgarStatProcessingQuestionIRTInfo>(
-                `SELECT question_param_calculation.calculation_group,
-                        question_param_calculation.id_based_on_course AS id_course,
-                        question_irt_parameters.*
-                FROM statistics_schema.question_irt_parameters
-                    JOIN statistics_schema.question_param_course_level_calculation
-                        ON question_irt_parameters.id_course_based_info =
-                            question_param_course_level_calculation.id_question_param_calculation
+        const questionIRTParameters: IEdgarStatProcessingQuestionIRTInfo[] = (
+            await this.dbConn.doQuery<IEdgarStatProcessingQuestionIRTInfo>(
+                `SELECT id_question_param_calculation AS id_course_based_info,
+                        default_item_offset_parameter,
+                        level_of_item_knowledge,
+                        item_difficulty,
+                        item_guess_probability,
+                        item_mistake_probability,
+                        question_irt_classification,
+                        id_based_on_course AS id_course,
+                        calculation_group,
+                        id_question
+                FROM statistics_schema.question_param_course_level_calculation
                     JOIN statistics_schema.question_param_calculation
-                        ON question_param_calculation.id =
-                            question_param_course_level_calculation.id_question_param_calculation
-                WHERE question_irt_parameters.id_question = $1`,
-                [qId],
-            ))?.rows ?? [];
+                        ON question_param_course_level_calculation.id_question_param_calculation =
+                            question_param_calculation.id
+                WHERE question_param_calculation.id_question = $1`,
+                [ qId ]
+            )
+        )?.rows ?? [];
 
-        for (const entry of questionIRTParameters) {
-            const acYears =
-                (await this.dbConn.doQuery<{ id_academic_year: number }>(
+        for (const info of questionIRTParameters) {
+            const acYearIds: number[] = (
+                await this.dbConn.doQuery<{ id_academic_year: number }>(
                     `SELECT DISTINCT id_academic_year
                     FROM statistics_schema.question_param_calculation
                         JOIN statistics_schema.question_param_calculation_academic_year
                             ON question_param_calculation.id =
                                 question_param_calculation_academic_year.id_question_param_calculation
-                    WHERE calculation_group = $1
-                    ORDER BY id_academic_year`,
-                    [entry.calculation_group],
-                ))?.rows ?? [];
+                    WHERE calculation_group = $1`,
+                    [ info.calculation_group ]
+                )
+            )?.rows.map(r => r.id_academic_year) ?? [];
 
-            entry.id_academic_years = acYears.map(el => el.id_academic_year);
+            const tbInfoIds: { id_test_based_info: number, id_based_on_test: number }[] = (
+                await this.dbConn.doQuery<{ id_test_based_info: number, id_based_on_test: number }>(
+                    `SELECT DISTINCT id AS id_test_based_info,
+                            id_based_on_test
+                    FROM statistics_schema.question_param_calculation
+                    WHERE id_based_on_test IS NOT NULL AND
+                            calculation_group = $1 AND
+                            id_question = $2`,
+                    [ info.calculation_group, qId ]
+                )
+            )?.rows ?? [];
+
+            info.id_academic_years = acYearIds;
+            info.testBasedInfo = tbInfoIds;
         }
 
         res
