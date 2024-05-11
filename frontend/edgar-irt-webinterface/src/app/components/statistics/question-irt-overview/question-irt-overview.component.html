@@ -16,7 +16,7 @@
                     <th class="px-2">Question ID</th>
                     <th class="px-2">Based on corse-level calculation (course ID)</th>
                     <th class="px-2">Calculation group (ac. years)</th>
-                    <th class="px-2">Based on exam-level calculations</th>
+                    <th class="px-2">Based on exam-level calculations (exam ID)</th>
 
                     <th class="px-2">Default item offset constant</th>
 
@@ -41,7 +41,7 @@
                                 {{ questionIrtParams.calculation_group }}
                             </span> ({{ questionIrtParams.id_academic_years.join(", ") }})
                         </td>
-                        <td>{{ questionIrtParams.id_test_based_info.join(", ") }}</td>
+                        <td>{{ getTbInfoAsString(questionIrtParams).join(", ") }}</td>
 
                         <td>{{ questionIrtParams.default_item_offset_parameter.toFixed(4) }}</td>
 

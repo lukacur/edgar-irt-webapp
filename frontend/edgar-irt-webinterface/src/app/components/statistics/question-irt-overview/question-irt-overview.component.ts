@@ -36,6 +36,10 @@ export class QuestionIrtOverviewComponent implements OnInit {
             });
     }
 
+    getTbInfoAsString(irtParams: IQuestionIrtParameters) {
+        return irtParams.testBasedInfo.map(tbi => `${tbi.id_test_based_info} (${tbi.id_based_on_test})`);
+    }
+
     prepareLogisticFunction(questionIrtParams: IQuestionIrtParameters): (theta: number) => number {
         const logFn = LogisticFunction.withParams(
             {
