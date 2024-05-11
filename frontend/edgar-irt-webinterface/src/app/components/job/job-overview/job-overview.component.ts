@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { map, Observable, take, tap } from 'rxjs';
 import { IJob } from 'src/app/models/jobs/job.model';
@@ -9,7 +9,11 @@ import { JobUtil } from 'src/app/util/job.util';
     selector: 'app-job-overview',
     templateUrl: './job-overview.component.html',
 })
-export class JobOverviewComponent implements OnInit {
+export class JobOverviewComponent implements OnInit, OnDestroy {
+    refreshInterval: number | null = null;
+    currentRefreshDuration: number = 15;
+    timeToNextRefresh: number = this.currentRefreshDuration;
+
     expandedJobId: string | null = null;
 
     expandedJobInfo: IJob | null = null;
@@ -24,6 +28,17 @@ export class JobOverviewComponent implements OnInit {
 
         private readonly route: ActivatedRoute,
     ) { }
+
+    refreshPage() {
+        this.loading = true;
+
+        this.jobs$ = this.jobsService.getAllJobs().pipe(tap(_ => this.loading = false));
+
+        if (this.route.snapshot.queryParamMap.has("jobId")) {
+            this.expandedJobId = this.route.snapshot.queryParamMap.get("jobId");
+            this.expandJob(this.expandedJobId);
+        }
+    }
 
     getDurationBetweenDates(date1: string | null, date2: string | null) {
         if (date1 === null || date2 === null) {
@@ -56,6 +71,12 @@ export class JobOverviewComponent implements OnInit {
             take(1),
             map(jobs => this.expandedJobInfo = jobs.find(j => j.id === this.expandedJobId) ?? null),
         ).subscribe(j => this.expandedJobInfo = j);
+
+        if (jobId !== null) {
+            this.stopRefreshInterval();
+        } else {
+            this.startRefreshInterval();
+        }
     }
 
     getJobStatusText(job: IJob) {
@@ -66,12 +87,53 @@ export class JobOverviewComponent implements OnInit {
         return JobUtil.getJobStatusColor(job);
     }
 
-    ngOnInit(): void {
-        this.jobs$ = this.jobsService.getAllJobs().pipe(tap(_ => this.loading = false));
+    private startRefreshInterval() {
+        let count = this.currentRefreshDuration - this.timeToNextRefresh;
+        this.refreshInterval = setInterval(
+            () => {
+                this.timeToNextRefresh--;
 
-        if (this.route.snapshot.queryParamMap.has("jobId")) {
-            this.expandedJobId = this.route.snapshot.queryParamMap.get("jobId");
-            this.expandJob(this.expandedJobId);
+                if (count === this.currentRefreshDuration) {
+                    count = 0;
+                    this.refreshPage();
+                    this.timeToNextRefresh = this.currentRefreshDuration;
+                }
+
+                count += 1;
+            },
+            1000
+        ) as any;
+    }
+
+    private stopRefreshInterval() {
+        if (this.refreshInterval !== null) {
+            clearInterval(this.refreshInterval);
+        }
+    }
+
+    updateRefresh() {
+        if (this.refreshInterval !== null) {
+            clearInterval(this.refreshInterval);
+        }
+
+        this.timeToNextRefresh = this.currentRefreshDuration;
+
+        this.startRefreshInterval();
+    }
+
+    refreshNow() {
+        this.refreshPage();
+        this.updateRefresh();
+    }
+
+    ngOnInit(): void {
+        this.refreshPage();
+        this.startRefreshInterval();
+    }
+
+    ngOnDestroy(): void {
+        if (this.refreshInterval !== null) {
+            clearInterval(this.refreshInterval);
         }
     }
 }

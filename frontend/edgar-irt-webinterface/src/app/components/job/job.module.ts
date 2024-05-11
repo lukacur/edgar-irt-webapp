@@ -8,7 +8,7 @@ import { JobListItemComponent } from './job-overview/job-list-item/job-list-item
 import { MatIconModule, MatProgressSpinnerModule, MatSlideToggleModule } from '@angular/material';
 import { JobStepItemComponent } from './job-overview/job-list-item/job-step-item/job-step-item.component';
 import { JobExecutionComponent } from './job-execution/job-execution.component';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AppDirectivesModule } from 'src/app/app-directives/app-directives.module';
 import { AppCommonModule } from '../common/app-common.module';
 
@@ -47,6 +47,7 @@ const routes: Route[] = [
         MatIconModule,
         MatSlideToggleModule,
         MatProgressSpinnerModule,
+        FormsModule,
         ReactiveFormsModule,
         AppCommonModule,
         AppDirectivesModule,

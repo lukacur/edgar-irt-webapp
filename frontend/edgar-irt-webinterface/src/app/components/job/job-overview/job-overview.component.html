@@ -13,6 +13,33 @@
             (click)="alternativeDisplay = true"
             *ngIf="!alternativeDisplay"
         >Switch to card display</button>
+
+        <div class="ms-2 flex items-center">
+            <div class="me-5 place-self-start">
+                <label class="text-sm">Page auto refresh interval (s)</label>
+                <input
+                    type="number"
+                    class="p-3 bg-white border border-slate-500/50 rounded block"
+                    [value]="currentRefreshDuration"
+                    [(ngModel)]="currentRefreshDuration"
+                    [ngModelOptions]="{ standalone: true }"
+                    (blur)="updateRefresh()"
+
+                    [disabled]="expandedJobId !== null"
+                >
+            </div>
+            <div class="me-5 mt-4">
+                <button
+                    mat-flat-button
+                    color="primary"
+                    (click)="refreshNow()"
+                    [disabled]="expandedJobId !== null"
+                >Refresh now</button>
+            </div>
+            <div class="w-1/3 mt-4 select-none">
+                Next refresh in: {{ timeToNextRefresh }} s {{ (expandedJobId !== null) ? "(halted)" : "" }}
+            </div>
+        </div>
     </div>
     <hr class="my-2">
     <div
