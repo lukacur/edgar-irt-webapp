@@ -58,7 +58,8 @@
                     >
                     <mat-icon
                         class="absolute top-1/2 -translate-y-1/2 right-0 mx-3 select-none cursor-pointer"
-                        (click)="clearSearch()"
+                        (click)="clearSearch($event)"
+                        *ngIf="searchInput.value"
                     >
                         close
                     </mat-icon>
@@ -83,7 +84,7 @@
                 class="p-2 text-gray-500/50 border-t border-slate-400/25"
                 *ngIf="selectableItems.length === 0 || multi && selectableItems.length === selectedItems.length"
             >
-                No items to select
+                {{ noItemsText }}
             </li>
         </ul>
     </div>

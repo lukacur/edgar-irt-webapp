@@ -34,10 +34,13 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
     @Input("multi")
     multi: boolean = false;
 
+    @Input("noItemsText")
+    noItemsText: string = "No items to select";
+
     @HostListener('window:keyup', ['$event'])
     listenForEscape(event: KeyboardEvent) {
         if (event.key.toLocaleLowerCase() === "escape") {
-            this.clearSearch();
+            this.clearSearch(event);
         }
     }
 
@@ -70,7 +73,7 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         if (this.multi) {
-            this.control.setValue(this.selectedItems);
+            this.control.setValue([]);
         }
 
         this.subscriptions.add(
@@ -127,7 +130,9 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
             .filter(it => !this.multi || !this.selectedItems.includes(it));
     }
 
-    clearSearch(): void {
+    clearSearch(event: Event): void {
+        event.stopPropagation();
+        event.preventDefault();
         this.searchTerm = "";
         this.searchInput?.nativeElement.focus();
     }
