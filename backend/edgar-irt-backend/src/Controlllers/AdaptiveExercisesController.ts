@@ -55,8 +55,8 @@ export class AdaptiveExercisesController extends AbstractController {
                 FROM public.course
                     JOIN statistics_schema.question_param_calculation
                         ON course.id = question_param_calculation.id_based_on_course
-                    JOIN adaptive_exercise.exercise_node_whitelist
-                        ON course.id = exercise_node_whitelist.id_course`
+                    JOIN adaptive_exercise.exercise_definition
+                        ON course.id = exercise_definition.id_course`
             )
         )?.rows ?? [];
 
@@ -539,19 +539,17 @@ export class AdaptiveExercisesController extends AbstractController {
 
                 id_question,
 
-                id_question_irt_cb_info,
-                id_question_irt_tb_info,
+                id_question_param_course_level_calculation,
 
                 question_ordinal,
 
                 correct_answers
-            ) VALUES ($1, $2, $3, $4, 1, $5)`,
+            ) VALUES ($1, $2, $3, 1, $4)`,
             [
                 /* $1 */ exerId,
                 /* $2 */ nextQuestionInfo.id_question,
                 /* $3 */ nextQuestionInfo.id_question_irt_cb_info,
-                /* $4 */ '{' + nextQuestionInfo.id_question_irt_tb_info.join(",") + '}',
-                /* $5 */ (answersNull) ? null : '{' + nextQuestionInfo.correct_answers!.join(",") + '}',
+                /* $4 */ (answersNull) ? null : '{' + nextQuestionInfo.correct_answers!.join(",") + '}',
             ]
         );
 
@@ -598,11 +596,12 @@ export class AdaptiveExercisesController extends AbstractController {
         const {
             idStudent,
             idCourse,
+            idExerciseDefinition,
             questionsCount,
             considerPreviousExercises,
         } = req.body;
 
-        if (!idStudent || !idCourse || !questionsCount) {
+        if (!idStudent || !idCourse || !idExerciseDefinition || !questionsCount) {
             res.sendStatus(400);
             return;
         }
@@ -623,24 +622,26 @@ export class AdaptiveExercisesController extends AbstractController {
                             )
                         )?.rows ?? []
                     )
-                )
+                );
             }
     
             const exerId: number | null = (await transaction.doQuery<{ id: number }>(
                 `INSERT INTO exercise_instance (
                     id_student_started,
                     id_course,
+                    id_exercise_definition,
     
                     start_irt_theta,
                     current_irt_theta,
     
                     questions_count
-                ) VALUES ($1, $2, $3, $3, $4) RETURNING id`,
+                ) VALUES ($1, $2, $3, $4, $4, $5) RETURNING id`,
                 [
                     /* $1 */ idStudent,
                     /* $2 */ idCourse,
-                    /* $3 */ await this.initialThetaGenerator.generateTheta(idCourse, idStudent, prevExercises),
-                    /* $4 */ questionsCount,
+                    /* $3 */ idExerciseDefinition,
+                    /* $4 */ await this.initialThetaGenerator.generateTheta(idCourse, idStudent, prevExercises),
+                    /* $5 */ questionsCount,
                 ]
             ))?.rows[0]?.id ?? null;
     

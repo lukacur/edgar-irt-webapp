@@ -25,12 +25,20 @@ export class AdaptiveExerciseService {
                         ON question.id = question_node.id_question
                     JOIN adaptive_exercise.exercise_node_whitelist
                         ON question_node.id_node = exercise_node_whitelist.id_node
+                    JOIN adaptive_exercise.exercise_instance
+                        ON exercise_node_whitelist.id_exercise_definition = exercise_instance.id_exercise_definition
+                    JOIN adaptive_exercise.exercise_definition
+                        ON exercise_instance.id_exercise_definition = exercise_definition.id
                     LEFT JOIN adaptive_exercise.exercise_instance_question
                         ON question.id = exercise_instance_question.id_question
-                WHERE question.is_active AND -- // TODO: Should this be done?
-                        exercise_node_whitelist.id_course = $1 AND
-                        exercise_instance_question.id IS NULL`,
-                [idCourse]
+                WHERE question.is_active AND
+                    exercise_definition.id_course = $1 AND
+                    exercise_instance.id = $2 AND
+                    exercise_instance_question.id IS NULL`,
+                [
+                    /* $1 */ idCourse,
+                    /* $2 */ idExercise,
+                ]
             )
         )?.rows ?? [];
     }
