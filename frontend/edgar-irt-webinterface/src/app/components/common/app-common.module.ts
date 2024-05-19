@@ -4,13 +4,15 @@ import { SearchableSelectComponent } from './searchable-select/searchable-select
 import { MatIconModule } from '@angular/material';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { SingleVariableFunctionVisualizerComponent } from './single-variable-function-visualizer/single-variable-function-visualizer.component';
+import { HistogramComponent } from './histogram/histogram.component';
 
 
 
 @NgModule({
   declarations: [
     SearchableSelectComponent,
-    SingleVariableFunctionVisualizerComponent
+    SingleVariableFunctionVisualizerComponent,
+    HistogramComponent
   ],
   imports: [
     CommonModule,
@@ -21,6 +23,7 @@ import { SingleVariableFunctionVisualizerComponent } from './single-variable-fun
   exports: [
     SearchableSelectComponent,
     SingleVariableFunctionVisualizerComponent,
+    HistogramComponent,
   ]
 })
 export class AppCommonModule { }
