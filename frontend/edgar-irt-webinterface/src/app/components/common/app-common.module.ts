@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { SingleVariableFunctionVisualizerComponent } from './single-variable-function-visualizer/single-variable-function-visualizer.component';
 import { HistogramComponent } from './histogram/histogram.component';
+import { BarChartComponent } from './bar-chart/bar-chart.component';
 
 
 
@@ -12,7 +13,8 @@ import { HistogramComponent } from './histogram/histogram.component';
   declarations: [
     SearchableSelectComponent,
     SingleVariableFunctionVisualizerComponent,
-    HistogramComponent
+    HistogramComponent,
+    BarChartComponent
   ],
   imports: [
     CommonModule,
@@ -24,6 +26,7 @@ import { HistogramComponent } from './histogram/histogram.component';
     SearchableSelectComponent,
     SingleVariableFunctionVisualizerComponent,
     HistogramComponent,
+    BarChartComponent,
   ]
 })
 export class AppCommonModule { }
