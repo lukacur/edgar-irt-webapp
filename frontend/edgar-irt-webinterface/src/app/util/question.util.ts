@@ -82,4 +82,12 @@ export class QuestionUtil {
 
         return "bg-slate-500";
     }
+
+    public static getAvailableClasses(): QuestionClassification[] {
+        return [ 'very_easy', 'easy', 'normal', 'hard', 'very_hard' ];
+    }
+
+    public static questionClassHexColors(): string[] {
+        return [ '#81c784', '#4caf50', '#ffeb3b', '#ff9800', '#f44336' ];
+    }
 }
