@@ -53,22 +53,58 @@
             </div>
 
             <div class="w-full flex flex-col lg:flex-row justify-between items-center">
-                <div class="w-full lg:w-1/4">
+                <div #meanHistCont class="w-full lg:w-1/4">
                     <h2 class="color-blue-400">Score % mean histogram</h2>
                     <hr class="my-3">
-                    <svg #meanHistogram></svg>
+                    <app-histogram
+                        [data]="prepareMeanHistogramData()"
+                        [mappingKey]="null"
+
+                        [domainStart]="-10"
+                        [domainEnd]="120"
+
+                        [thresholdCount]="30"
+
+                        [chartWidth]="meanHistCont.clientWidth"
+
+                        *ngIf="courseLevelCalcs !== null && courseLevelCalcs.length !== 0"
+                    ></app-histogram>
                 </div>
 
-                <div class="w-full lg:w-1/4">
+                <div #stdDevHistCont class="w-full lg:w-1/4">
                     <h2 class="color-blue-400">Score % standard deviation histogram</h2>
                     <hr class="my-3">
-                    <svg #stdDevHistogram></svg>
+                    <app-histogram
+                        [data]="prepareStdDevHistogramData()"
+                        [mappingKey]="null"
+
+                        [domainStart]="-10"
+                        [domainEnd]="120"
+
+                        [thresholdCount]="30"
+
+                        [chartWidth]="stdDevHistCont.clientWidth"
+
+                        *ngIf="courseLevelCalcs !== null && courseLevelCalcs.length !== 0"
+                    ></app-histogram>
                 </div>
 
-                <div class="w-full lg:w-1/4">
+                <div #medianHistCont class="w-full lg:w-1/4">
                     <h2 class="color-blue-400">Score % median histogram</h2>
                     <hr class="my-3">
-                    <svg #medianHistogram></svg>
+                    <app-histogram
+                        [data]="prepareMedianHistogramData()"
+                        [mappingKey]="null"
+
+                        [domainStart]="-10"
+                        [domainEnd]="120"
+
+                        [thresholdCount]="30"
+
+                        [chartWidth]="medianHistCont.clientWidth"
+
+                        *ngIf="courseLevelCalcs !== null && courseLevelCalcs.length !== 0"
+                    ></app-histogram>
                 </div>
             </div>
 

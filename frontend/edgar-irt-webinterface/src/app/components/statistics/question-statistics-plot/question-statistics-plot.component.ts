@@ -111,28 +111,19 @@ export class QuestionStatisticsPlotComponent implements OnInit {
         
     }
     //#endregion
-    @ViewChild("meanHistogram")
-    meanHistogram: ElementRef<SVGSVGElement> | null = null;
 
-    private createMeanHistogram() {
-        
+    //#region Histogram data
+    prepareMeanHistogramData(): number[] {
+        return this.courseLevelCalcs?.map(clc => clc.score_perc_mean * 100) ?? [];
     }
 
-    @ViewChild("stdDevHistogram")
-    stdDevHistogram: ElementRef<SVGSVGElement> | null = null;
-
-    private createStdDevHistogram() {
-        
+    prepareStdDevHistogramData() {
+        return this.courseLevelCalcs?.map(clc => clc.score_perc_std_dev * 100) ?? [];
     }
 
-    @ViewChild("medianHistogram")
-    medianHistogram: ElementRef<SVGSVGElement> | null = null;
-
-    private createMedianHistogram() {
-        
+    prepareMedianHistogramData() {
+        return this.courseLevelCalcs?.map(clc => clc.score_perc_median * 100) ?? [];
     }
-
-    //#region Histograms init
     //#endregion
 
 
