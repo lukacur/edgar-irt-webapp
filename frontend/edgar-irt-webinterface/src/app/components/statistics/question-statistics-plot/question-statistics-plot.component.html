@@ -46,10 +46,21 @@
         <hr class="my-3">
         
         <div class="flex flex-col">
-            <div class="w-full">
+            <div #questionDiffBarChart class="w-full">
                 <h2 class="color-blue-400">Question difficulty bar chart</h2>
                 <hr class="my-3">
-                <svg #difficultyBarChart></svg>
+                <app-bar-chart
+                    [classes]="availableQuestionClasses"
+                    [classColors]="questionClassesColors"
+
+                    [data]="prepareDifficultyBarChartData()"
+                    dataClassKey="qClass"
+                    dataValueKey="count"
+
+                    [chartWidth]="questionDiffBarChart.clientWidth"
+
+                    *ngIf="courseLevelCalcs !== null && courseLevelCalcs.length !== 0"
+                ></app-bar-chart>
             </div>
 
             <div class="w-full flex flex-col lg:flex-row justify-between items-center">

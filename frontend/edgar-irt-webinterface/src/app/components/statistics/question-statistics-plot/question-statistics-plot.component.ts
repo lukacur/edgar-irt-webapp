@@ -4,6 +4,7 @@ import { map, Observable, Subscription, take } from 'rxjs';
 import { IEdgarCourse } from 'src/app/models/edgar/course.model.js';
 import { ICourseLevelStatisticsCalculation } from 'src/app/models/statistics-processing/course-level-statistics-calculation.model.js';
 import { StatisticsService } from 'src/app/services/statistics.service';
+import { QuestionUtil } from 'src/app/util/question.util';
 
 @Component({
     selector: 'app-question-info-plot',
@@ -102,13 +103,25 @@ export class QuestionStatisticsPlotComponent implements OnInit {
             .subscribe(clCalcs => {this.courseLevelCalcs = clCalcs; console.log(clCalcs);});
     }
 
+    readonly availableQuestionClasses = QuestionUtil.getAvailableClasses();
+    readonly questionClassesColors = QuestionUtil.questionClassHexColors();
 
     //#region Difficulty bar chart init
-    @ViewChild("difficultyBarChart")
-    difficultyBarChart: ElementRef<SVGSVGElement> | null = null;
+    prepareDifficultyBarChartData(): { qClass: string, count: number }[] {
+        const classificationObj: { [key: string]: number } = {};
+        for (const questionClass of this.availableQuestionClasses) {
+            classificationObj[questionClass] = 0;
+        }
 
-    private createDifficultyBarChart() {
-        
+        this.courseLevelCalcs?.forEach(clc => classificationObj[clc.question_irt_classification]++);
+
+        const retArr: { qClass: string, count: number }[] = [];
+
+        for (const questionClass of this.availableQuestionClasses) {
+            retArr.push({ qClass: questionClass, count: classificationObj[questionClass] });
+        }
+
+        return retArr;
     }
     //#endregion
 
