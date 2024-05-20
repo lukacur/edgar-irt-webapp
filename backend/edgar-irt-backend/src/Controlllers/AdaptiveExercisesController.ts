@@ -610,6 +610,7 @@ export class AdaptiveExercisesController extends AbstractController {
             idCourse,
             idExerciseDefinition,
             questionsCount,
+            startDifficulty,
             considerPreviousExercises,
         } = req.body;
 
@@ -642,18 +643,22 @@ export class AdaptiveExercisesController extends AbstractController {
                     id_student_started,
                     id_course,
                     id_exercise_definition,
+
+                    start_difficulty,
+                    current_difficulty,
     
                     start_irt_theta,
                     current_irt_theta,
     
                     questions_count
-                ) VALUES ($1, $2, $3, $4, $4, $5) RETURNING id`,
+                ) VALUES ($1, $2, $3, $4, $4, $5, $5, $6) RETURNING id`,
                 [
                     /* $1 */ idStudent,
                     /* $2 */ idCourse,
                     /* $3 */ idExerciseDefinition,
-                    /* $4 */ await this.initialThetaGenerator.generateTheta(idCourse, idStudent, prevExercises),
-                    /* $5 */ questionsCount,
+                    /* $4 */ startDifficulty,
+                    /* $5 */ await this.initialThetaGenerator.generateTheta(idCourse, idStudent, prevExercises),
+                    /* $6 */ questionsCount,
                 ]
             ))?.rows[0]?.id ?? null;
     

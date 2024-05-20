@@ -1,9 +1,14 @@
+import { QuestionIrtClassification } from "../Statistics/IEdgarStatProcessingCourseLevelCalc.js";
+
 export interface IExerciseInstance {
     id: number;
 
     id_student_started: number;
 
     id_course: number;
+
+    start_difficulty: QuestionIrtClassification;
+    current_difficulty: QuestionIrtClassification;
 
     start_irt_theta: number;
     current_irt_theta: number;
