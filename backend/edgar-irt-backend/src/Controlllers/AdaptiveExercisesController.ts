@@ -22,7 +22,7 @@ import { TransactionContext } from "../Database/TransactionContext.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 import { IEdgarCourse } from "../Models/Database/Edgar/IEdgarCourse.js";
 import { IExerciseDefinition } from "../Models/Database/AdaptiveExercise/IExerciseDefinition.js";
-import { QuestionIrtClassification } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
+import { IEdgarStatProcessingCourseLevelCalc, QuestionIrtClassification } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
 
 type NextExerciseQuestionRequest = {
     readonly idExercise: number,
@@ -570,6 +570,31 @@ export class AdaptiveExercisesController extends AbstractController {
             ]
         );
 
+        const questionCourseLevelCalc = (
+            await transactionCtx.doQuery<IEdgarStatProcessingCourseLevelCalc>(
+                `SELECT *
+                FROM statistics_schema.question_param_course_level_calculation
+                WHERE id_question_param_calculation = $1`,
+                [ nextQuestionInfo.id_question_irt_cb_info ]
+            )
+        )?.rows[0] ?? null;
+        if (questionCourseLevelCalc === null) {
+            throw new Error(
+                `Course level calculation for question with ID ${nextQuestionInfo.id_question} could not be found` +
+                ` (course level calculation ID ${nextQuestionInfo.id_question_irt_cb_info})`
+            );
+        }
+
+        await transactionCtx.doQuery(
+            `UPDATE adaptive_exercise.exercise_instance
+            SET current_difficulty = $1
+            WHERE id = $2`,
+            [
+                /* $1 */ questionCourseLevelCalc.question_irt_classification,
+                /* $2 */ exerId,
+            ]
+        );
+
         return await this.getNthLastExerciseQuestion(exerId, undefined, transactionCtx);
     }
 
@@ -637,8 +662,12 @@ export class AdaptiveExercisesController extends AbstractController {
                             await transaction.doQuery<IExerciseInstance>(
                                 `SELECT *
                                 FROM exercise_instance
-                                WHERE id_student_started = $1`,
-                                [idStudent]
+                                WHERE id_student_started = $1 AND
+                                    id_exercise_definition = $2`,
+                                [
+                                    /* $1 */ idStudent,
+                                    /* $2 */ idExerciseDefinition,
+                                ]
                             )
                         )?.rows ?? []
                     )
