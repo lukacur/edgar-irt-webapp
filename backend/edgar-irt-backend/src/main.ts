@@ -150,7 +150,15 @@ export class Main {
                 adaptiveExerciseService,
                 { provideQuestion: Main.provideAQuestion },
                 { generateTheta: async () => (1.0) },
-                { generateThetaDelta: async () => ({ type: "percentage", value: 0.08 }) }
+                {
+                    generateThetaDelta: async (currentQuestionStatus) => ({
+                        type: "percentage",
+                        value:
+                            (currentQuestionStatus.skipped) ?
+                                -0.04 :
+                                ((currentQuestionStatus.correct) ? 0.08 : -0.08)
+                    })
+                }
             );
 
         const exerDefController: AbstractController = new ExerciseDefinitionController(DbConnProvider.getDbConn());

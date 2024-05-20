@@ -83,7 +83,8 @@ export class AdaptiveExercisesController extends AbstractController {
                         ON exercise_instance.id_exercise_definition = exercise_definition.id
                 WHERE id_student_started = $1 AND
                     exercise_instance.id_course = $2 AND
-                    is_finished`,
+                    is_finished
+                ORDER BY started_on DESC`,
                 [
                     /* $1 */ idStudent,
                     /* $2 */ idCourse,
@@ -525,11 +526,15 @@ export class AdaptiveExercisesController extends AbstractController {
     private async getAllButLastExerciseQuestion(
         transaction: TransactionContext,
         idExercise: number
-    ): Promise<IExerciseInstanceQuestion[]> {
+    ): Promise<(IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification })[]> {
         return (
-            await transaction.doQuery<IExerciseInstanceQuestion>(
-                `SELECT *
+            await transaction.doQuery<IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification }>(
+                `SELECT exercise_instance_question.*,
+                    question_param_course_level_calculation.question_irt_classification
                 FROM adaptive_exercise.exercise_instance_question
+                    JOIN statistics_schema.question_param_course_level_calculation
+                        ON exercise_instance_question.id_question_param_course_level_calculation =
+                            question_param_course_level_calculation.id_question_param_calculation
                 WHERE id_exercise = $1
                 ORDER BY question_ordinal DESC
                 OFFSET 1`,
@@ -587,7 +592,9 @@ export class AdaptiveExercisesController extends AbstractController {
             return false;
         }
 
-        const nextValue = ((deltaInfo.type === "absolute") ? (current + deltaInfo.value) : (current * deltaInfo.value));
+        const nextValue = ((deltaInfo.type === "absolute") ?
+            (current + deltaInfo.value) :
+            (current * (1 + deltaInfo.value)));
 
         return ((
             await transaction.doQuery(
