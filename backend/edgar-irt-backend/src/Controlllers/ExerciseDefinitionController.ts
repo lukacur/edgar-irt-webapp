@@ -1,12 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { DatabaseConnection } from "../Database/DatabaseConnection.js";
 import { Get } from "../Decorators/Get.decorator.js";
-import { IAdaptiveExerciseInitialThetaGenerator } from "../Logic/IAdaptiveExerciseInitialThetaGenerator.js";
-import { IAdaptiveExerciseNextQuestionGenerator } from "../Logic/IAdaptiveExerciseNextQuestionGenerator.js";
-import { IAdaptiveExerciseThetaDeltaGenerator } from "../Logic/IAdaptiveExerciseThetaDeltaGenerator.js";
-import { AdaptiveExerciseService } from "../Services/AdaptiveExerciseService.js";
-import { CourseService } from "../Services/CourseService.js";
-import { EdgarService } from "../Services/EdgarService.js";
 import { AbstractController } from "./AbstractController.js";
 
 type NodeQuestionClass = { id_node: number, class_name: string, number_of_questions: number };
@@ -14,13 +8,6 @@ type NodeQuestionClass = { id_node: number, class_name: string, number_of_questi
 export class ExerciseDefinitionController extends AbstractController {
     constructor(
         private readonly dbConn: DatabaseConnection,
-        /*private readonly courseService: CourseService,
-        private readonly edgarService: EdgarService,
-        private readonly adaptiveExerciseService: AdaptiveExerciseService,
-
-        private readonly nextQuestionGenerator: IAdaptiveExerciseNextQuestionGenerator,
-        private readonly initialThetaGenerator: IAdaptiveExerciseInitialThetaGenerator,
-        private readonly thetaDeltaGenerator: IAdaptiveExerciseThetaDeltaGenerator,*/
 
         basePath: string = "exercise-definition"
     ) {
