@@ -1,6 +1,7 @@
 import { AbstractController } from "./Controlllers/AbstractController.js";
 import { AdaptiveExercisesController } from "./Controlllers/AdaptiveExercisesController.js";
 import { EdgarController } from "./Controlllers/EdgarController.js";
+import { ExerciseDefinitionController } from "./Controlllers/ExerciseDefinitionController.js";
 import { JobController } from "./Controlllers/JobController.js";
 import { StatisticsController } from "./Controlllers/StatisticsController.js";
 import { DatabaseConnection } from "./Database/DatabaseConnection.js";
@@ -147,10 +148,13 @@ export class Main {
                 { generateThetaDelta: async () => ({ type: "percentage", value: 0.08 }) }
             );
 
+        const exerDefController: AbstractController = new ExerciseDefinitionController(DbConnProvider.getDbConn());
+
         jobController.applyController(Main.server);
         statisticsController.applyController(Main.server);
         edgarController.applyController(Main.server);
         adaptiveExercisesController.applyController(Main.server);
+        exerDefController.applyController(Main.server);
         
         Main.server
             .start(
