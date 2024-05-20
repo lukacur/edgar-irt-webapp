@@ -105,10 +105,44 @@
 
         <div *ngIf="expandedJobInfo !== null">
             <mat-icon (click)="expandJob(null)" class="cursor-pointer">close</mat-icon>
+
+            <table class="w-full border border-slate-200">
+                <thead>
+                    <tr class="border-b">
+                        <th class="py-2">ID</th>
+                        <th class="py-2">Name</th>
+                        <th class="py-2">Status</th>
+                        <th class="py-2">Status message</th>
+                        <th class="py-2">Started on</th>
+                        <th class="py-2">Finished on</th>
+                        <th class="py-2">Duration (HH:mm:ss)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+                        class="hover:bg-blue-400/25 text-center border-b"
+                        *ngFor="let jobStep of ((expandedJobJobSteps$ | async) ?? [])"
+                    >
+                        <td class="py-2">{{ jobStep.id }}</td>
+                        <td class="py-2">{{ jobStep.name }}</td>
+                        <td class="p-2">
+                            <span [classList]="[getJobStepStatusColor(jobStep)]">
+                                {{ getJobStepStatusText(jobStep) }}
+                            </span>
+                        </td>
+                        <td class="py-2">{{ jobStep.job_step_status_message }}</td>
+                        <td class="py-2">{{ jobStep.started_on | date:"dd. MM. yyyy. HH:mm:ss" }}</td>
+                        <td class="py-2">{{ (jobStep.finished_on | date:"dd. MM. yyyy. HH:mm:ss") || "-" }}</td>
+                        <td class="py-2">{{ getDurationBetweenDates(jobStep.started_on, jobStep.finished_on) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
             <app-job-list-item
                 [id]="expandedJobInfo.id"
                 [jobInfo]="expandedJobInfo"
                 [defaultExpanded]="true"
+                *ngIf="false && true"
             ></app-job-list-item>
         </div>
     </div>

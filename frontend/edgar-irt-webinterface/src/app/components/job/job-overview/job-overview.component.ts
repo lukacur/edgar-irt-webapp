@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { map, Observable, take, tap } from 'rxjs';
+import { IJobStep } from 'src/app/models/jobs/job-step.model';
 import { IJob } from 'src/app/models/jobs/job.model';
 import { JobsService } from 'src/app/services/jobs.service';
 import { JobUtil } from 'src/app/util/job.util';
@@ -18,6 +19,8 @@ export class JobOverviewComponent implements OnInit, OnDestroy {
 
     expandedJobInfo: IJob | null = null;
     jobs$: Observable<IJob[]> | null = null;
+
+    expandedJobJobSteps$: Observable<IJobStep[]> | null = null;
 
     loading: boolean = true;
 
@@ -72,7 +75,9 @@ export class JobOverviewComponent implements OnInit, OnDestroy {
             map(jobs => this.expandedJobInfo = jobs.find(j => j.id === this.expandedJobId) ?? null),
         ).subscribe(j => this.expandedJobInfo = j);
 
+        
         if (jobId !== null) {
+            this.expandedJobJobSteps$ = this.jobsService.getJobSteps(jobId);
             this.stopRefreshInterval();
         } else {
             this.startRefreshInterval();
@@ -85,6 +90,14 @@ export class JobOverviewComponent implements OnInit, OnDestroy {
 
     getJobStatusColor(job: IJob) {
         return JobUtil.getJobStatusColor(job);
+    }
+
+    getJobStepStatusText(jobStep: IJobStep) {
+        return JobUtil.getJobStepStatusText(jobStep);
+    }
+
+    getJobStepStatusColor(jobStep: IJobStep) {
+        return JobUtil.getJobStepStatusColor(jobStep);
     }
 
     private startRefreshInterval() {
@@ -109,6 +122,10 @@ export class JobOverviewComponent implements OnInit, OnDestroy {
         if (this.refreshInterval !== null) {
             clearInterval(this.refreshInterval);
         }
+    }
+
+    getExpandedJobJobSteps() {
+        
     }
 
     updateRefresh() {
