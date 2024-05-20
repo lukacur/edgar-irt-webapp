@@ -9,7 +9,12 @@ export interface IAdaptiveExerciseNextQuestionGenerator {
         questionPool: IQuestion[],
         transactionCtx: TransactionContext | null,
         initial: true,
-    ): Promise<Pick<IExerciseInstanceQuestion, "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers">>;
+    ): Promise<
+        Pick<
+            IExerciseInstanceQuestion,
+            "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers"
+        >
+    >;
 
     provideQuestion(
         exercise: IExerciseInstance,
@@ -17,5 +22,10 @@ export interface IAdaptiveExerciseNextQuestionGenerator {
         transactionCtx: TransactionContext | null,
         initial: false,
         lastQuestionInfo: { skipped: boolean, correct: boolean },
-    ): Promise<Pick<IExerciseInstanceQuestion, "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers">>;
+    ): Promise<
+        Pick<
+            IExerciseInstanceQuestion,
+            "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers"
+        >
+    >;
 }

@@ -22,6 +22,7 @@ import { TransactionContext } from "../Database/TransactionContext.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 import { IEdgarCourse } from "../Models/Database/Edgar/IEdgarCourse.js";
 import { IExerciseDefinition } from "../Models/Database/AdaptiveExercise/IExerciseDefinition.js";
+import { QuestionIrtClassification } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
 
 type NextExerciseQuestionRequest = {
     readonly idExercise: number,
@@ -125,8 +126,12 @@ export class AdaptiveExercisesController extends AbstractController {
 
         const lastExerciseInstanceQuestion: IExerciseInstanceQuestion | null = (
             await this.dbConn.doQuery<IExerciseInstanceQuestion>(
-                `SELECT *
+                `SELECT exercise_instance_question.*,
+                        question_param_course_level_calculation.question_irt_classification
                 FROM adaptive_exercise.exercise_instance_question
+                    JOIN statistics_schema.question_param_course_level_calculation
+                        ON exercise_instance_question.id_question_param_course_level_calculation =
+                            question_param_course_level_calculation.id_question_param_calculation
                 WHERE id_exercise = $1 AND
                         finished_on IS NULL`,
                 [
@@ -499,11 +504,15 @@ export class AdaptiveExercisesController extends AbstractController {
         idExercise: number,
         offset: number = 0,
         transaction: TransactionContext,
-    ): Promise<IExerciseInstanceQuestion | null> {
+    ): Promise<IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification } | null> {
         return (
-            await transaction.doQuery<IExerciseInstanceQuestion>(
-                `SELECT *
+            await transaction.doQuery<IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification }>(
+                `SELECT exercise_instance_question.*,
+                    question_param_course_level_calculation.question_irt_classification
                 FROM exercise_instance_question
+                    JOIN statistics_schema.question_param_course_level_calculation
+                        ON exercise_instance_question.id_question_param_course_level_calculation =
+                            question_param_course_level_calculation.id_question_param_calculation
                 WHERE id_exercise = $1
                 ORDER BY question_ordinal DESC
                 OFFSET $2
@@ -533,7 +542,7 @@ export class AdaptiveExercisesController extends AbstractController {
         exerId: number,
         nextQuestionInfo: Pick<IExerciseInstanceQuestion, "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers">,
         transactionCtx: TransactionContext
-    ): Promise<IExerciseInstanceQuestion | null> {
+    ): Promise<IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification } | null> {
         const answersNull = nextQuestionInfo.correct_answers === null || nextQuestionInfo.correct_answers.length === 0;
 
         await transactionCtx.doQuery<{ id: number }>(

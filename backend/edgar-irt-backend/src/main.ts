@@ -30,7 +30,12 @@ export class Main {
         questionPool: IQuestion[],
         transactionCtx: TransactionContext | null,
         initial: boolean,
-    ): Promise<Pick<IExerciseInstanceQuestion, "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers">> {
+    ): Promise<
+        Pick<
+            IExerciseInstanceQuestion,
+            "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers"
+        >
+    > {
         const dbConn = DbConnProvider.getDbConn();
 
         const q = questionPool[Math.round(Math.random() * (questionPool.length - 1))];

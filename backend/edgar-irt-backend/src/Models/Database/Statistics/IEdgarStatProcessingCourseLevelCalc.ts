@@ -1,3 +1,4 @@
+export type QuestionIrtClassification = "very_easy" | "easy" | "normal" | "hard" | "very_hard";
 export interface IEdgarStatProcessingCourseLevelCalc {
     id_question_param_calculation: number;
 
@@ -20,5 +21,5 @@ export interface IEdgarStatProcessingCourseLevelCalc {
     item_difficulty: number;
     item_guess_probability: number;
     item_mistake_probability: number;
-    question_irt_classification: "easy" | "very_easy" | "normal" | "hard" | "very_hard";
+    question_irt_classification: QuestionIrtClassification;
 }
