@@ -12,9 +12,20 @@ export class BarChartComponent implements AfterViewInit {
     @Input('classColors')
     classColors: string[] = [];
 
+    private dataValue: any[] = [];
 
     @Input('data')
-    data: any[] = [];
+    set data(val: any[]) {
+        this.dataValue = val;
+        if ((this.barChartBase ?? null) !== null) {
+            this.barChartBase!.nativeElement.innerHTML = "";
+            this.displayChart();
+        }
+    }
+
+    get data() {
+        return this.dataValue;
+    }
 
     @Input('dataClassKey')
     dataClassKey: string = "";
@@ -52,7 +63,7 @@ export class BarChartComponent implements AfterViewInit {
         return ret;
     }
 
-    ngAfterViewInit(): void {
+    private displayChart() {
         const classMapArray = this.dataClassKey?.split('.') ?? [];
         const valueMapArray = this.dataValueKey?.split('.') ?? [];
         const maxValue = this.extractValueFromObj(
@@ -138,5 +149,9 @@ export class BarChartComponent implements AfterViewInit {
             .attr("fill", d => (color !== null) ? color(this.extractValueFromObj(d, classMapArray)) : "#69b3a2")
             .on("mousemove", mousemove)
             .on("mouseleave", mouseleave);
+    }
+
+    ngAfterViewInit(): void {
+        this.displayChart();
     }
 }
