@@ -4,12 +4,14 @@ import { environment } from 'src/environments/environment';
 import { IExerciseInstance } from '../models/adaptive-exercises/exercise-instance.model';
 import { HttpClient } from '@angular/common/http';
 import { ICurrentExercise } from '../models/adaptive-exercises/current-exercise.model';
+import { QuestionIrtClassification } from '../util/question.util.js';
 
 type StartExerciseRequest = {
     idStudent: number | null;
     idCourse: number;
     idExerciseDefinition: number;
     questionsCount: number;
+    startDifficulty: QuestionIrtClassification | null;
     considerPreviousExercises: boolean;
 };
 

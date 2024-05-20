@@ -54,6 +54,40 @@
                             [control]="startExerciseForm.get('questionsCount')!"
                         ></app-searchable-select>
 
+                        <div class="flex flex-col md:flex-row justify-between items-center mb-3">
+                            <button
+                                class="
+                                    rounded-lg 
+                                    p-3
+                                    border border-slate-200
+                                    active:shadow-none active:bg-gray-200/50
+                                    disabled:bg-gray-200/25
+                                    disabled:active:shadow-md
+                                "
+
+                                *ngFor="let difficulty of availableDifficulties"
+                                
+                                [ngClass]="[
+                                    (startExerciseForm.get('selectedStartDifficulty')?.value === difficulty) ?
+                                        QUtil.getColorClassForClassification('bg', difficulty) : '',
+
+                                    (startExerciseForm.get('selectedStartDifficulty')?.value === difficulty) ?
+                                        'shadow-none' :
+                                        'shadow-md'
+                                ]"
+                                (click)="
+                                    startExerciseForm.get('selectedStartDifficulty')?.setValue(
+                                        (difficulty === startExerciseForm.get('selectedStartDifficulty')?.value) ?
+                                            null :
+                                            difficulty
+                                    )
+                                "
+                                [disabled]="startExerciseForm.get('considerPreviousExercises')?.value"
+                            >
+                                Start on {{ QUtil.getQuestionClassificationText(difficulty) }} difficulty
+                            </button>
+                        </div>
+
                         <div>
                             <mat-slide-toggle
                                 class="block mb-3"

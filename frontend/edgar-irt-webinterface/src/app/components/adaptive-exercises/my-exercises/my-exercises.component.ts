@@ -8,17 +8,23 @@ import { IExerciseInstance } from 'src/app/models/adaptive-exercises/exercise-in
 import { IEdgarCourse } from 'src/app/models/edgar/course.model';
 import { AdaptiveExerciseProgressionService } from 'src/app/services/adaptive-exercise-progression.service';
 import { AdaptiveExercisesService } from 'src/app/services/adaptive-exercises.service';
+import { QuestionIrtClassification, QuestionUtil } from 'src/app/util/question.util';
 
 @Component({
     selector: 'app-my-exercises',
     templateUrl: './my-exercises.component.html',
 })
 export class MyExercisesComponent implements OnInit, OnDestroy {
+    readonly QUtil = QuestionUtil;
+
+    readonly availableDifficulties = QuestionUtil.getAvailableClasses();
+
     readonly startExerciseForm = new FormGroup({
         selectedCourse: new FormControl<IEdgarCourse | null>(null, [Validators.required]),
         selectedExerciseDefinition: new FormControl<IExerciseDefinition | null>(null, [Validators.required]),
         questionsCount: new FormControl<number | null>(null, [Validators.required]),
         considerPreviousExercises: new FormControl<boolean | null>(false),
+        selectedStartDifficulty: new FormControl<QuestionIrtClassification | null>(null),
     });
 
     readonly selectableQuestionCounts: { text: string, value: number }[] = [
@@ -77,6 +83,7 @@ export class MyExercisesComponent implements OnInit, OnDestroy {
             idCourse: formValue.selectedCourse.id,
             idExerciseDefinition: formValue.selectedExerciseDefinition.id,
             questionsCount: formValue.questionsCount,
+            startDifficulty: formValue.considerPreviousExercises ? null : formValue.selectedStartDifficulty,
             considerPreviousExercises: formValue.considerPreviousExercises ?? false,
         }).subscribe(_ => {
             window.alert(
