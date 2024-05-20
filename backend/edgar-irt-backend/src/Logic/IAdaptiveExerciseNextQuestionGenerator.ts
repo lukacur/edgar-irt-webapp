@@ -1,12 +1,12 @@
 import { TransactionContext } from "../Database/TransactionContext.js";
 import { IExerciseInstance } from "../Models/Database/AdaptiveExercise/IExerciseInstance.js";
 import { IExerciseInstanceQuestion } from "../Models/Database/AdaptiveExercise/IExerciseInstanceQuestion.js";
-import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
+import { IQuestionPoolQuestion } from "../Services/AdaptiveExerciseService.js";
 
 export interface IAdaptiveExerciseNextQuestionGenerator {
     provideQuestion(
         exercise: IExerciseInstance,
-        questionPool: IQuestion[],
+        questionPool: IQuestionPoolQuestion[],
         transactionCtx: TransactionContext | null,
         initial: true,
     ): Promise<
@@ -18,7 +18,7 @@ export interface IAdaptiveExerciseNextQuestionGenerator {
 
     provideQuestion(
         exercise: IExerciseInstance,
-        questionPool: IQuestion[],
+        questionPool: IQuestionPoolQuestion[],
         transactionCtx: TransactionContext | null,
         initial: false,
         lastQuestionInfo: { skipped: boolean, correct: boolean },

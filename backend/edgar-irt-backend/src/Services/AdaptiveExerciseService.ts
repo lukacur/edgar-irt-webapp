@@ -1,6 +1,16 @@
 import { DatabaseConnection } from "../Database/DatabaseConnection.js";
 import { TransactionContext } from "../Database/TransactionContext.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
+import { QuestionIrtClassification } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
+
+export interface IQuestionPoolQuestion extends IQuestion {
+    default_item_offset_parameter: number;
+    level_of_item_knowledge: number;
+    item_difficulty: number;
+    item_guess_probability: number;
+    item_mistake_probability: number;
+    question_irt_classification: QuestionIrtClassification;
+}
 
 export class AdaptiveExerciseService {
     constructor(
@@ -11,14 +21,21 @@ export class AdaptiveExerciseService {
         idCourse: number,
         idExercise: number,
         transaction: TransactionContext,
-    ): Promise<IQuestion[]> {
-        console.log({ idCourse, idExercise });
+    ): Promise<IQuestionPoolQuestion[]> {
         return (
-            await transaction.doQuery<IQuestion>(
-                `SELECT question.*
+            await transaction.doQuery<IQuestionPoolQuestion>(
+                `SELECT question.*,
+                    question_param_course_level_calculation.default_item_offset_parameter,
+                    question_param_course_level_calculation.level_of_item_knowledge,
+                    question_param_course_level_calculation.item_difficulty,
+                    question_param_course_level_calculation.item_guess_probability,
+                    question_param_course_level_calculation.item_mistake_probability,
+                    question_param_course_level_calculation.question_irt_classification
                 FROM public.question
                     JOIN statistics_schema.question_param_calculation
                         ON question.id = question_param_calculation.id_question
+                    JOIN statistics_schema.question_param_course_level_calculation
+                        ON question_param_calculation.id = question_param_course_level_calculation.id_question_param_calculation
                     JOIN adaptive_exercise.exercise_allowed_question_type
                         ON question.id_question_type = exercise_allowed_question_type.id_question_type
                     JOIN public.question_node
