@@ -9,6 +9,7 @@ import { MatButtonModule, MatCheckboxModule, MatSlideToggleModule } from '@angul
 import { AppCommonModule } from '../common/app-common.module';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ExerciseComponent } from './exercise/exercise.component';
+import { AppDirectivesModule } from 'src/app/app-directives/app-directives.module';
 
 const routes: Route[] = [
   {
@@ -55,6 +56,7 @@ const routes: Route[] = [
     FormsModule,
     MatCheckboxModule,
     MatSlideToggleModule,
+    AppDirectivesModule,
   ]
 })
 export class AdaptiveExercisesModule { }

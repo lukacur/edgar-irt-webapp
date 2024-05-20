@@ -5,12 +5,15 @@ import { ICurrentExercise } from 'src/app/models/adaptive-exercises/current-exer
 import { IEdgarCourse } from 'src/app/models/edgar/course.model';
 import { AdaptiveExerciseProgressionService } from 'src/app/services/adaptive-exercise-progression.service';
 import { EdgarService } from 'src/app/services/edgar.service';
+import { QuestionUtil } from 'src/app/util/question.util';
 
 @Component({
     selector: 'app-exercise',
     templateUrl: './exercise.component.html',
 })
 export class ExerciseComponent implements OnInit, OnDestroy {
+    readonly QUtil = QuestionUtil;
+
     currentExercise: ICurrentExercise | null = null;
     currentExerciseCourse: IEdgarCourse | null = null;
 

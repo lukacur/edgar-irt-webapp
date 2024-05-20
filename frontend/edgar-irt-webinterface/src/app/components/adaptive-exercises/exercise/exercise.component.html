@@ -4,9 +4,26 @@
     </h2>
     <hr class="my-3">
     <div>
-        <h3 class="text-purple-600">
-            Question {{ currentExercise?.questionInfo?.question_ordinal }}/{{ currentExercise?.exerciseInstance?.questions_count ?? "" }}
-        </h3>
+        <div>
+            <h3 class="text-purple-600">
+                Question {{ currentExercise?.questionInfo?.question_ordinal }}/{{ currentExercise?.exerciseInstance?.questions_count ?? "" }}
+            </h3>
+
+            <div>
+                This is a(n) 
+                <div
+                    class="inline-block w-fit"
+                    appBadge
+                    [backgroundColorClass]="QUtil.getColorClassForClassification(
+                        'bg',
+                        currentExercise?.questionInfo?.question_irt_classification!
+                    )"
+                >
+                    {{ QUtil.getQuestionClassificationText(currentExercise?.questionInfo?.question_irt_classification!) }}
+                </div>
+                question
+            </div>
+        </div>
         <hr class="my-3">
         <div>
             {{ currentExercise?.questionInfo?.question_text ?? "" }}
