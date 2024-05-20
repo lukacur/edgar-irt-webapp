@@ -52,9 +52,15 @@
 
                         <td>
                             <div
-                                #badge
-                                class="rounded-lg w-full p-3"
-                            >{{ setClassificationBadge(badge, questionIrtParams) }}</div>
+                                appBadge
+
+                                [backgroundColorClass]="
+                                    QUtil.getColorClassForClassification(
+                                        'bg',
+                                        QUtil.classifyQuestion(questionIrtParams)!
+                                    )
+                                "
+                            >{{ QUtil.getQuestionClassificationText(QUtil.classifyQuestion(questionIrtParams)!) }}</div>
                         </td>
                     </tr>
                 </tbody>

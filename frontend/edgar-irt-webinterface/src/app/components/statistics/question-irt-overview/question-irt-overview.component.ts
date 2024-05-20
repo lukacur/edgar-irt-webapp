@@ -10,6 +10,8 @@ import { QuestionUtil } from 'src/app/util/question.util';
     templateUrl: './question-irt-overview.component.html',
 })
 export class QuestionIrtOverviewComponent implements OnInit {
+    readonly QUtil = QuestionUtil;
+
     idQuestion: number = null!;
     dataLoaded: boolean = false;
     questionInfo: IQuestionIrtParameters[] | null = null;
@@ -52,12 +54,5 @@ export class QuestionIrtOverviewComponent implements OnInit {
         );
 
         return (theta: number) => logFn.fourParamLogisticFn(theta);
-    }
-
-    setClassificationBadge(badgeDiv: HTMLDivElement, irtParams: IQuestionIrtParameters): string {
-        const classification = QuestionUtil.classifyQuestion(irtParams);
-
-        badgeDiv.classList.add(QuestionUtil.getColorClassForClassification("bg", classification!));
-        return QuestionUtil.getQuestionClassificationText(classification!);
     }
 }
