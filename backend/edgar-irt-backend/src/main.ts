@@ -10,13 +10,14 @@ import { DbConnProvider } from "./DbConnProvider.js";
 import { ExpressServer } from "./ExpressServer.js";
 import { IExerciseInstance } from "./Models/Database/AdaptiveExercise/IExerciseInstance.js";
 import { IExerciseInstanceQuestion } from "./Models/Database/AdaptiveExercise/IExerciseInstanceQuestion.js";
-import { IQuestion } from "./Models/Database/Edgar/IQuestion.js";
 import { IQuestionAnswer } from "./Models/Database/Edgar/IQuestionAnswer.js";
 import { IEdgarStatProcessingQuestionIRTInfo } from "./Models/Database/Statistics/IEdgarStatProcessingQuestionIRTInfo.js";
+import { LogisticFunction } from "./Models/Irt/LogisticFunction.js";
 import { PgBossProvider } from "./PgBossProvider.js";
-import { AdaptiveExerciseService } from "./Services/AdaptiveExerciseService.js";
+import { AdaptiveExerciseService, IQuestionPoolQuestion } from "./Services/AdaptiveExerciseService.js";
 import { CourseService } from "./Services/CourseService.js";
 import { EdgarService } from "./Services/EdgarService.js";
+import { QuestionClassificationUtil } from "./Util/QuestionClassificationUtil.js";
 
 const EDGAR_STATPROC_QUEUE_NAME = "edgar-irt-work-request-queue";
 
@@ -27,9 +28,10 @@ export class Main {
 
     private static async provideAQuestion(
         exercise: IExerciseInstance,
-        questionPool: IQuestion[],
+        questionPool: IQuestionPoolQuestion[],
         transactionCtx: TransactionContext | null,
         initial: boolean,
+        lastQuestionInfo?: { correct: boolean, skipped: boolean },
     ): Promise<
         Pick<
             IExerciseInstanceQuestion,
@@ -38,7 +40,46 @@ export class Main {
     > {
         const dbConn = DbConnProvider.getDbConn();
 
-        const q = questionPool[Math.round(Math.random() * (questionPool.length - 1))];
+        const filteredQuestionPool = questionPool.filter(q => {
+            const logFn = LogisticFunction.withParams({
+                itemDifficulty: q.item_difficulty,
+                levelOfItemKnowledge: q.level_of_item_knowledge,
+                itemGuessProbability: q.item_guess_probability,
+                itemMistakeProbability: q.item_mistake_probability,
+            }, q.default_item_offset_parameter);
+
+            const correctAnswerProbability = logFn.fourParamLogisticFn(exercise.current_irt_theta);
+
+            if (initial && (exercise.start_difficulty ?? null) !== null) {
+                return q.question_irt_classification === exercise.start_difficulty;
+            } else if (initial) {
+                return correctAnswerProbability >= 0.2;
+            } else {
+                const goodQuestion = QuestionClassificationUtil.instance.compareQuestionClasses(
+                    q.question_irt_classification,
+                    exercise.current_difficulty,
+                );
+
+                const classJump = QuestionClassificationUtil.instance.getClassDifference(
+                    q.question_irt_classification,
+                    exercise.current_difficulty,
+                );
+
+                // Next question has to be harder or equally as hard as the previous question if the answer to the
+                // previous question was correct
+                return ((lastQuestionInfo?.correct && goodQuestion >= 0 && correctAnswerProbability <= 0.5) ||
+
+                    // Next question has to be easier or equally as hard as the previous question if the answer to the
+                    // previous question was incorrect or the question was skipped 
+                    (
+                        (!lastQuestionInfo?.correct || lastQuestionInfo.skipped) &&
+                        goodQuestion <= 0 &&
+                        correctAnswerProbability >= 0.6
+                    )) && classJump <= 2;
+            }
+        });
+
+        const q = filteredQuestionPool[Math.round(Math.random() * (filteredQuestionPool.length - 1))];
         const answers = (await Main.edgarService.getQuestionAnswers(q.id, true)) as (IQuestionAnswer & { is_correct: boolean })[] | null;
 
         const sql =
@@ -149,7 +190,15 @@ export class Main {
                 edgarService,
                 adaptiveExerciseService,
                 { provideQuestion: Main.provideAQuestion },
-                { generateTheta: async () => (1.0) },
+                {
+                    generateTheta: async (_0, _1, previousExercises) =>
+                        (previousExercises.length === 0) ?
+                            (1.0) :
+                            (previousExercises.reduce(
+                                (acc, el) => acc + el.final_irt_theta,
+                                0
+                            ) / previousExercises.length)
+                },
                 {
                     generateThetaDelta: async (currentQuestionStatus) => ({
                         type: "percentage",
