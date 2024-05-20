@@ -124,6 +124,42 @@
             </div>
     
             <hr class="my-3">
+
+            <div #barChartCont class="mt-3">
+                <h3 class="text-purple-600">Question classification information</h3>
+                <hr class="my-3">
+                <div>
+                    Total questions: {{ getExerciseTotalQuestionCount() }}
+                </div>
+                <app-bar-chart
+                    [classes]="questionClasses"
+                    [classColors]="questionClassColors"
+
+                    [data]="courseQuestionClasses"
+
+                    dataClassKey="qClass"
+                    dataValueKey="qClassCount"
+
+                    [chartWidth]="400"
+
+                    *ngIf="
+                        courseQuestionClasses !== null && courseQuestionClasses.length !== 0; else noExerciseQuestions
+                    "
+                ></app-bar-chart>
+                <ng-template #noExerciseQuestions>
+                    <div>
+                        This exercise does not have any nodes that contain questions with statistics information yet.
+
+                        <br><br>If statistics and IRT calculation exists for this course, add nodes to this exercise
+                        definition in order to display question difficulty information.<br><br>
+
+                        If no statistics and IRT calculation is present for this course, start one, wait for it to
+                        finish and then come back to overview the exam definition question difficulties.
+                    </div>
+                </ng-template>
+            </div>
+
+            <hr class="my-3">
     
             <div class="mt-3">
                 <h3 class="text-purple-600">Course whitelisted nodes</h3>
@@ -143,6 +179,12 @@
                                 </th>
                                 <th class="text-center">ID</th>
                                 <th class="text-center">(Node type) - Name</th>
+                                <th class="text-center">Node total questions</th>
+                                <th class="text-center">Very easy questions</th>
+                                <th class="text-center">Easy questions</th>
+                                <th class="text-center">Normal questions</th>
+                                <th class="text-center">Hard questions</th>
+                                <th class="text-center">Very hard questions</th>
                                 <th class="text-center">Whitelisted on</th>
                             </tr>
                         </thead>
@@ -159,6 +201,24 @@
                                 </td>
                                 <td class="text-center">{{ node.id }}</td>
                                 <td class="text-center">({{ node.node_type_name }}) - {{ node.node_name }}</td>
+                                <td class="text-center">{{ getNodeTotalQuestions(node.id) }}</td>
+
+                                <td class="text-center">
+                                    {{ getNodeQuestionClassCount(node.id, "very_easy") }}
+                                </td>
+                                <td class="text-center">
+                                    {{ getNodeQuestionClassCount(node.id, "easy") }}
+                                </td>
+                                <td class="text-center">
+                                    {{ getNodeQuestionClassCount(node.id, "normal") }}
+                                </td>
+                                <td class="text-center">
+                                    {{ getNodeQuestionClassCount(node.id, "hard") }}
+                                </td>
+                                <td class="text-center">
+                                    {{ getNodeQuestionClassCount(node.id, "very_hard") }}
+                                </td>
+
                                 <td class="text-center">{{ node.whitelisted_on| date:"dd. MM. yyyy. HH:mm:ss" }}</td>
                             </tr>
                             <tr *ngIf="numberOfWhitelistedNodes === 0">
