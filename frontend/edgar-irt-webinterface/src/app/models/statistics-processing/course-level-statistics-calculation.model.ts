@@ -1,3 +1,5 @@
+import { QuestionIrtClassification } from "src/app/util/question.util";
+
 export interface ICourseLevelStatisticsCalculation {
     id_question: number;
 
@@ -18,5 +20,5 @@ export interface ICourseLevelStatisticsCalculation {
     item_difficulty: number;
     item_guess_probability: number;
     item_mistake_probability: number;
-    question_irt_classification: "easy" | "very_easy" | "normal" | "hard" | "very_hard";
+    question_irt_classification: QuestionIrtClassification;
 }

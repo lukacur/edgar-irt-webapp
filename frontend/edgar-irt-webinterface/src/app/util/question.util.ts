@@ -1,9 +1,9 @@
 import { IBaseIrtParameters } from "../models/irt/question-irt-parameters.model.js";
 
-type QuestionClassification = "very_easy" | "easy" | "normal" | "hard" | "very_hard"
+export type QuestionIrtClassification = "very_easy" | "easy" | "normal" | "hard" | "very_hard"
 
 export interface IQuestionClassifier {
-    classifyQuestion(question: IBaseIrtParameters): QuestionClassification;
+    classifyQuestion(question: IBaseIrtParameters): QuestionIrtClassification;
 }
 
 export class QuestionUtil {
@@ -47,7 +47,7 @@ export class QuestionUtil {
         return QuestionUtil.classifier?.classifyQuestion(question);
     }
 
-    public static getQuestionClassificationText(classification: QuestionClassification) {
+    public static getQuestionClassificationText(classification: QuestionIrtClassification) {
         switch (classification) {
             case "very_easy": return "Very easy";
             case "easy": return "Easy";
@@ -60,7 +60,7 @@ export class QuestionUtil {
 
     public static getColorClassForClassification(
         type: "bg" | "text",
-        classification: QuestionClassification,
+        classification: QuestionIrtClassification,
     ) {
         if (type === "bg") {
             switch (classification) {
@@ -83,7 +83,7 @@ export class QuestionUtil {
         return "bg-slate-500";
     }
 
-    public static getAvailableClasses(): QuestionClassification[] {
+    public static getAvailableClasses(): QuestionIrtClassification[] {
         return [ 'very_easy', 'easy', 'normal', 'hard', 'very_hard' ];
     }
 
