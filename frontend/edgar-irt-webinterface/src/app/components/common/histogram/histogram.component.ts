@@ -172,7 +172,6 @@ export class HistogramComponent<TData extends { [ky: string]: any }> implements 
             }
 
             if (this !== highlightedEl) {
-                console.log("Not highlighted, adding...");
                 d3.select(this).style("fill", "#F97316");
                 highlightedEl = this;
 

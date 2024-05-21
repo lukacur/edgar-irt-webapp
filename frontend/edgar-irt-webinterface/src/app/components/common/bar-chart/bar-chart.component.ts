@@ -1,24 +1,25 @@
-import { AfterViewInit, Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Input, OnDestroy, Output, ViewChild } from '@angular/core';
 import * as d3 from 'd3';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-bar-chart',
     templateUrl: './bar-chart.component.html',
 })
-export class BarChartComponent implements AfterViewInit {
+export class BarChartComponent<TData extends { [ky: string]: any }> implements AfterViewInit, OnDestroy {
     @Input('classes')
     classes: string[] = [];
 
     @Input('classColors')
     classColors: string[] = [];
 
-    private dataValue: any[] = [];
+    private dataValue: TData[] = [];
 
     @Input('data')
-    set data(val: any[]) {
+    set data(val: TData[]) {
         this.dataValue = val;
         if ((this.barChartBase ?? null) !== null) {
-            this.barChartBase!.nativeElement.innerHTML = "";
+            this.barChartBase!.nativeElement.childNodes.forEach(cn => cn.remove());
             this.displayChart();
         }
     }
@@ -26,6 +27,22 @@ export class BarChartComponent implements AfterViewInit {
     get data() {
         return this.dataValue;
     }
+
+
+    //#region Selection
+    @Input('selectable')
+    selectable: boolean = false;
+    
+    @Output('dataSelected')
+    dataSelected$ = new BehaviorSubject<TData | null>(null);
+
+    @Input('selectionChannel')
+    selectionChannel: string = "default-channel";
+
+    @Input('clearSelection')
+    clearSelection$: Observable<"ALL" | string> | null = null;
+    //#endregion
+
 
     @Input('dataClassKey')
     dataClassKey: string = "";
@@ -47,14 +64,16 @@ export class BarChartComponent implements AfterViewInit {
     @ViewChild("tooltip")
     private readonly tooltip?: ElementRef<HTMLDivElement> = null!;
 
+    private readonly subscriptions: Subscription[] = [];
+
     constructor() { }
 
-    private extractValueFromObj(obj: any, keyMap: string[]) {
+    private extractValueFromObj<TReturn>(obj: TData, keyMap: string[]): TReturn | null {
         if (obj === undefined || obj === null) {
             return null;
         }
 
-        let ret = obj;
+        let ret: any = obj;
 
         for (const key of keyMap) {
             ret = ret[key];
@@ -66,21 +85,26 @@ export class BarChartComponent implements AfterViewInit {
     private displayChart() {
         const classMapArray = this.dataClassKey?.split('.') ?? [];
         const valueMapArray = this.dataValueKey?.split('.') ?? [];
-        const maxValue = this.extractValueFromObj(
-            this.data.reduce(
+        const maxValue = this.extractValueFromObj<number>(
+            this.dataValue.reduce(
                 (acc, vl) =>
-                    (this.extractValueFromObj(vl, valueMapArray) > this.extractValueFromObj(acc, valueMapArray)) ?
-                        vl :
-                        acc,
-                this.data[0]
+                    (
+                        this.extractValueFromObj<number>(
+                            vl,
+                            valueMapArray
+                        )! > this.extractValueFromObj<number>(acc, valueMapArray)!
+                    ) ? vl : acc,
+                this.dataValue[0]
             ),
             valueMapArray
-        );
+        )!;
 
         const margin = { top: 30, right: 30, bottom: 70, left: 60 };
 
         const width = this.chartWidth - margin.left - margin.right;
         const height = this.chartHeight - margin.top - margin.bottom;
+
+        const graphData = this.dataValue ?? [];
 
         const color =
             (this.classColors.length !== 0) ?
@@ -139,19 +163,75 @@ export class BarChartComponent implements AfterViewInit {
             }
         };
 
-        svg.selectAll("mybar")
-            .data(this.data ?? [])
+        
+        let highlightedEl: d3.BaseType | null = null;
+        if (this.clearSelection$ !== null) {
+            this.subscriptions.push(
+                this.clearSelection$.subscribe(clearChannel => {
+                    if (highlightedEl !== null && (clearChannel === this.selectionChannel || clearChannel === "ALL")) {
+                        const highlighted = d3.select<d3.BaseType, TData>(highlightedEl);
+                        const classVal = outerThis.extractValueFromObj<string>(highlighted.data()[0], classMapArray);
+
+                        highlighted
+                            .attr(
+                                "fill",
+                                (color !== null && classVal !== null) ? color(classVal) : "#69b3a2"
+                            );
+
+                        highlightedEl = null;
+                    }
+                })
+            );
+        }
+
+        const click = function (this: d3.BaseType, ev: MouseEvent, d: any) {
+            const data: any = d3.select<d3.BaseType, any[]>(this).data()[0];
+
+            if (highlightedEl !== null) {
+                const highlighted = d3.select<d3.BaseType, TData>(highlightedEl);
+                const classVal = outerThis.extractValueFromObj<string>(highlighted.data()[0], classMapArray);
+
+                highlighted.attr(
+                    "fill",
+                    (color !== null && classVal !== null) ? color(classVal) : "#69b3a2"
+                );
+            }
+
+            if (this !== highlightedEl) {
+                d3.select(this).attr("fill", "#F97316B3");
+                highlightedEl = this;
+
+                outerThis.dataSelected$.next(data);
+            } else {
+                highlightedEl = null;
+                outerThis.dataSelected$.next(null);
+            }
+        };
+
+        const join = svg.selectAll("rect")
+            .data(graphData)
             .join("rect")
-            .attr("x", d => x(this.extractValueFromObj(d, classMapArray))!)
-            .attr("y", d => y(this.extractValueFromObj(d, valueMapArray))!)
-            .attr("width", x.bandwidth())
-            .attr("height", d => height - y(this.extractValueFromObj(d, valueMapArray))!)
-            .attr("fill", d => (color !== null) ? color(this.extractValueFromObj(d, classMapArray)) : "#69b3a2")
-            .on("mousemove", mousemove)
-            .on("mouseleave", mouseleave);
+                .attr("x", d => x(this.extractValueFromObj<string>(d, classMapArray)!)!)
+                .attr("y", d => y(this.extractValueFromObj<number>(d, valueMapArray)!)!)
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(this.extractValueFromObj<number>(d, valueMapArray)!)!)
+                .attr(
+                    "fill",
+                    d => (color !== null) ? color(this.extractValueFromObj<string>(d, classMapArray)!) : "#69b3a2"
+                )
+                .on("mousemove", mousemove)
+                .on("mouseleave", mouseleave);
+
+        if (this.selectable) {
+            join.on("click", click);
+        }
     }
 
     ngAfterViewInit(): void {
         this.displayChart();
+    }
+
+    ngOnDestroy(): void {
+        this.subscriptions.forEach(sub => sub.unsubscribe());
     }
 }
