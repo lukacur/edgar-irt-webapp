@@ -1,5 +1,6 @@
-import { Component, ViewChild, ElementRef, Input, AfterViewInit } from '@angular/core';
+import { Component, ViewChild, ElementRef, Input, AfterViewInit, Output, OnDestroy } from '@angular/core';
 import * as d3 from 'd3';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 
 type BinInfo = (any[]) & { x0: number, x1: number };
 
@@ -7,9 +8,25 @@ type BinInfo = (any[]) & { x0: number, x1: number };
     selector: 'app-histogram',
     templateUrl: './histogram.component.html',
 })
-export class HistogramComponent implements AfterViewInit {
+export class HistogramComponent<TData extends { [ky: string]: any }> implements AfterViewInit, OnDestroy {
     @Input('data')
-    data: any[] = [];
+    data: TData[] = [];
+
+
+    //#region Selection
+    @Input('selectable')
+    selectable: boolean = false;
+
+    @Output('dataSelected')
+    dataSelected$ = new BehaviorSubject<TData[]>([]);
+
+    @Input('selectionChannel')
+    selectionChannel: string = "default-channel";
+
+    @Input('clearSelection')
+    clearSelection$: Observable<"ALL" | string> | null = null;
+    //#endregion
+
 
     /**
      * A dot-separated accessor for all data in the input data array
@@ -23,8 +40,8 @@ export class HistogramComponent implements AfterViewInit {
     @Input('domainEnd')
     domainEnd: number = 10;
 
-    @Input('thresholdCount')
-    thresholdCount: number = 10;
+    @Input('binCount')
+    binCount: number = 10;
 
 
     @Input('chartWidth')
@@ -40,26 +57,41 @@ export class HistogramComponent implements AfterViewInit {
     @ViewChild("tooltip")
     private readonly tooltip?: ElementRef<HTMLDivElement> = null!;
 
+    private readonly subscriptions: Subscription[] = [];
+
     constructor() { }
 
-    ngAfterViewInit(): void {
+    private mapDataWithKey(data: TData) {
         const mapArray = this.mappingKey?.split('.') ?? [];
 
-        const mappedData =
-            (mapArray.length === 0) ?
-                this.data :
-                this.data.map(el => {
-                    let ret: any = el;
+        if (mapArray.length === 0) {
+            return data;
+        }
 
-                    for (const mapKey of mapArray) {
-                        ret = ret[mapKey];
-                    }
+        let ret: any = data;
 
-                    return ret;
-                });
+        for (const mapKey of mapArray) {
+            ret = ret[mapKey];
+        }
 
-        if (mappedData.some(el => typeof(el) !== "number")) {
-            throw new Error("Histogram can only be built for number values!");
+        return ret;
+    }
+
+    ngAfterViewInit(): void {
+        const outerThis = this;
+
+        // Data validity check 
+        {
+            const mappedData =
+                (this.mappingKey === null || this.mappingKey.trim() === "") ?
+                    this.data :
+                    this.data.map(el => {
+                        return this.mapDataWithKey(el);
+                    });
+
+            if (mappedData.some(el => typeof(el) !== "number")) {
+                throw new Error("Histogram can only be built for number values!");
+            }
         }
 
         const margin = { top: 10, right: 30, bottom: 30, left: 40 };
@@ -81,26 +113,27 @@ export class HistogramComponent implements AfterViewInit {
             .attr("transform", `translate(0, ${height})`)
             .call(d3.axisBottom(x));
 
-        const histogram = d3.bin()
-            .value(function (d) { return d; })
-            .thresholds(this.thresholdCount);
+        const histogram = d3.bin<TData, number>()
+            .value(function (d) { return outerThis.mapDataWithKey(d); })
+            .thresholds(d3.range(this.domainStart, x.domain()[1], (x.domain()[1] - this.domainStart) / this.binCount));
 
-        const bins = histogram(mappedData);
+        const bins = histogram(this.data);
+        const [min, max] = d3.extent(bins.map(b => b.x1!));
 
         const y = d3.scaleLinear()
             .range([height, 0]);
         y.domain([0, d3.max(bins, function (d) { return d.length; })!]);
-
-        const outerThis = this;
     
-        const mousemove = function (this: any, d: any) {
+        const mousemove = function (this: d3.BaseType, d: any) {
             if (outerThis.tooltip) {
                 const binInfo: BinInfo = (d3.select(this).data()[0] as BinInfo);
                 const pointerData = d3.pointer(d, d3.select(outerThis.histogramBase!.nativeElement));
 
                 d3.select(outerThis.tooltip?.nativeElement)
                     .html(
-                        "Count: " + binInfo.length + "<br/>" + "Bin: [" + [binInfo.x0, binInfo.x1].join(", ") + ">"
+                        "Count: " + binInfo.length + "<br/>" +
+                        "Bin: [" + [binInfo.x0.toFixed(2), binInfo.x1.toFixed(2)].join(", ") +
+                        ((binInfo.x1 === max) ? "]" : ">")
                     )
                     .style("left", (pointerData[0] + 10) + "px")
                     .style("top", (pointerData[1] - 80) + "px")
@@ -116,16 +149,54 @@ export class HistogramComponent implements AfterViewInit {
             }
         };
 
-        svg.selectAll("rect")
+        let highlightedEl: d3.BaseType | null = null;
+        if (this.clearSelection$ !== null) {
+            this.subscriptions.push(
+                this.clearSelection$.subscribe(clearChannel => {
+                    if (highlightedEl !== null && (clearChannel === this.selectionChannel || clearChannel === "ALL")) {
+                        d3.select(highlightedEl)
+                            .style("fill", "#3125EF");
+
+                        highlightedEl = null;
+                    }
+                })
+            );
+        }
+
+        const click = function (this: d3.BaseType, ev: MouseEvent, d: d3.Bin<TData, number>) {
+            const data: any[] = d3.select<d3.BaseType, any[]>(this).data()[0] ?? [];
+
+            if (highlightedEl !== null) {
+                const highlighted = d3.select(highlightedEl);
+                highlighted.style("fill", "#3125EF");
+            }
+
+            if (this !== highlightedEl) {
+                console.log("Not highlighted, adding...");
+                d3.select(this).style("fill", "#F97316");
+                highlightedEl = this;
+
+                outerThis.dataSelected$.next(data);
+            } else {
+                highlightedEl = null;
+                outerThis.dataSelected$.next([]);
+            }
+        };
+
+        const join = svg.selectAll("rect")
             .data(bins)
             .join("rect")
                 .attr("x", 1)
                 .attr("transform", function (d) { return `translate(${x(d.x0!)} , ${y(d.length)})` })
                 .attr("width", function (d) { return x(d.x1!) - x(d.x0!) - 1 })
                 .attr("height", function (d) { return height - y(d.length); })
-                .style("fill", "#3125ef")
+                .style("fill", "#3125EF")
                 .on("mousemove", mousemove)
                 .on("mouseleave", mouseleave);
+
+        if (this.selectable) {
+            join.on("click", click);
+        }
 
         const yAxisTranslation =
             (this.domainStart < 0) ? ((-this.domainStart / (this.domainEnd - this.domainStart)) * width) : "0";
@@ -133,5 +204,9 @@ export class HistogramComponent implements AfterViewInit {
         svg.append("g")
             .attr("transform", `translate(${yAxisTranslation},0)`)
             .call(d3.axisLeft(y));
+    }
+
+    ngOnDestroy(): void {
+        this.subscriptions.forEach(sub => sub.unsubscribe());
     }
 }
