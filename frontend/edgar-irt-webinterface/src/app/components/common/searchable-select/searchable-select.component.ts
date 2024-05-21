@@ -1,14 +1,17 @@
-import { Component, ElementRef, HostListener, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { AbstractControl } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { BehaviorSubject, Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-searchable-select',
     templateUrl: './searchable-select.component.html',
 })
-export class SearchableSelectComponent implements OnInit, OnDestroy {
+export class SearchableSelectComponent<TItem extends { [k: string]: any }> implements OnInit, OnDestroy {
     @Input("selectableItems")
-    selectableItems: any[] = null!;
+    selectableItems: TItem[] = null!;
+
+    @Output("selectionUpdated")
+    selectionUpdated = new BehaviorSubject<TItem[] | null>(null);
 
     @Input("valueKey")
     valueKey: string = null!;
@@ -17,7 +20,10 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
     useObjectAsValue: boolean = false;
 
     @Input("textKey")
-    textKey: string = null!;
+    textKey: string | null = null;
+
+    @Input("textCallback")
+    textCallback: ((item: TItem) => string) | null = null;
 
     @Input("labelText")
     labelText: string = null!;
@@ -61,9 +67,7 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
 
     searchTerm: string | null = null;
 
-    selectedItems: any[] = [];
-
-    selectText: any = null;
+    selectedItems: TItem[] = [];
 
     optionsExpanded: boolean = false;
 
@@ -90,7 +94,7 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
         this.subscriptions.unsubscribe();
     }
 
-    select(value: any): void {
+    select(value: TItem): void {
         if (this.selectedItems.includes(value)) {
             return;
         }
@@ -100,6 +104,8 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
         }
 
         this.selectedItems.push(value);
+
+        this.selectionUpdated.next(this.selectedItems);
     }
 
     remove(value: any): void {
@@ -110,6 +116,22 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
         }
 
         this.selectedItems.splice(idx, 1);
+    }
+
+    getItemText(item: TItem | undefined | null): string {
+        if ((item ?? null) === null) {
+            return "";
+        }
+
+        if (this.textCallback !== null) {
+            return this.textCallback(item!);
+        }
+
+        if (this.textKey === null) {
+            throw new Error("Either a text key or a text callback must be defined");
+        }
+
+        return item![this.textKey];
     }
 
     getSelectedItemValues() {
@@ -125,7 +147,7 @@ export class SearchableSelectComponent implements OnInit, OnDestroy {
     getFilteredItems(): any[] {
         return this.selectableItems
             .filter(
-                it => it[this.textKey].toLocaleLowerCase().includes(this.searchTerm?.toLocaleLowerCase() ?? "")
+                it => this.getItemText(it).toLocaleLowerCase().includes(this.searchTerm?.toLocaleLowerCase() ?? "")
             )
             .filter(it => !this.multi || !this.selectedItems.includes(it));
     }
