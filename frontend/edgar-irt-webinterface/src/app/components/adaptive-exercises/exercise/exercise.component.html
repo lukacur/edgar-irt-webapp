@@ -16,10 +16,10 @@
                     appBadge
                     [backgroundColorClass]="QUtil.getColorClassForClassification(
                         'bg',
-                        currentExercise?.questionInfo?.question_irt_classification!
+                        currentExercise?.questionInfo?.question_difficulty!
                     )"
                 >
-                    {{ QUtil.getQuestionClassificationText(currentExercise?.questionInfo?.question_irt_classification!) }}
+                    {{ QUtil.getQuestionClassificationText(currentExercise?.questionInfo?.question_difficulty!) }}
                 </div>
                 question
             </div>
