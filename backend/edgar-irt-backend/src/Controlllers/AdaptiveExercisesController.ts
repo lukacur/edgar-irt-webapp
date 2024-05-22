@@ -128,7 +128,7 @@ export class AdaptiveExercisesController extends AbstractController {
         const lastExerciseInstanceQuestion: IExerciseInstanceQuestion | null = (
             await this.dbConn.doQuery<IExerciseInstanceQuestion>(
                 `SELECT exercise_instance_question.*,
-                        question_param_course_level_calculation.question_irt_classification
+                        question_param_course_level_calculation.question_irt_classification AS question_difficulty
                 FROM adaptive_exercise.exercise_instance_question
                     JOIN statistics_schema.question_param_course_level_calculation
                         ON exercise_instance_question.id_question_param_course_level_calculation =
@@ -505,11 +505,11 @@ export class AdaptiveExercisesController extends AbstractController {
         idExercise: number,
         offset: number = 0,
         transaction: TransactionContext,
-    ): Promise<IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification } | null> {
+    ): Promise<IExerciseInstanceQuestion | null> {
         return (
-            await transaction.doQuery<IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification }>(
+            await transaction.doQuery<IExerciseInstanceQuestion>(
                 `SELECT exercise_instance_question.*,
-                    question_param_course_level_calculation.question_irt_classification
+                    question_param_course_level_calculation.question_irt_classification AS question_difficulty
                 FROM exercise_instance_question
                     JOIN statistics_schema.question_param_course_level_calculation
                         ON exercise_instance_question.id_question_param_course_level_calculation =
@@ -527,11 +527,11 @@ export class AdaptiveExercisesController extends AbstractController {
         transaction: TransactionContext,
         idExercise: number,
         skip: number,
-    ): Promise<(IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification })[]> {
+    ): Promise<IExerciseInstanceQuestion[]> {
         return (
-            await transaction.doQuery<IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification }>(
+            await transaction.doQuery<IExerciseInstanceQuestion>(
                 `SELECT exercise_instance_question.*,
-                    question_param_course_level_calculation.question_irt_classification
+                    question_param_course_level_calculation.question_irt_classification AS question_difficulty
                 FROM adaptive_exercise.exercise_instance_question
                     JOIN statistics_schema.question_param_course_level_calculation
                         ON exercise_instance_question.id_question_param_course_level_calculation =
@@ -551,7 +551,7 @@ export class AdaptiveExercisesController extends AbstractController {
         exerId: number,
         nextQuestionInfo: Pick<IExerciseInstanceQuestion, "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers">,
         transactionCtx: TransactionContext
-    ): Promise<IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification } | null> {
+    ): Promise<IExerciseInstanceQuestion | null> {
         const answersNull = nextQuestionInfo.correct_answers === null || nextQuestionInfo.correct_answers.length === 0;
 
         await transactionCtx.doQuery<{ id: number }>(

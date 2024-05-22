@@ -20,6 +20,10 @@ export class DefaultAdaptiveExerciseInfoProvider implements
     IAdaptiveExerciseNextQuestionGenerator, 
     IAdaptiveExerciseThetaDeltaGenerator
 {
+    private static readonly CORRECT_STREAK_TO_UPGRADE = 3;
+    private static readonly SKIP_STREAK_TO_DOWNGRADE = 5;
+    private static readonly INCORRECT_STREAK_TO_DOWNGRADE = 2;
+
     constructor(
         private readonly edgarService: EdgarService,
     ) {}
@@ -43,19 +47,14 @@ export class DefaultAdaptiveExerciseInfoProvider implements
             );
     }
 
-    async provideQuestion(
+    private filterQuestionPool(
         exercise: IExerciseInstance,
-        questionPool: IQuestionPoolQuestion[],
-        transactionCtx: TransactionContext | null,
+        qPool: IQuestionPoolQuestion[],
         initial: boolean,
-        previousQuestions?: IExerciseInstanceQuestion[]
-    ): Promise<
-        Pick<
-            IExerciseInstanceQuestion,
-            "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers"
-        >
-    > {
-        const dbConn = DbConnProvider.getDbConn();
+        previousQuestions?: IExerciseInstanceQuestion[],
+    ): IQuestionPoolQuestion[] {
+        const useOldLogic: boolean = false;
+
         let streakType: QuestionAnswerStreak | null = null;
         let streak = 0;
 
@@ -87,45 +86,119 @@ export class DefaultAdaptiveExerciseInfoProvider implements
                 streak++;
             }
         }
+        
+        if (useOldLogic) {
+            return qPool.filter(q => {
+                const logFn = LogisticFunction.withParams({
+                    itemDifficulty: q.item_difficulty,
+                    levelOfItemKnowledge: q.level_of_item_knowledge,
+                    itemGuessProbability: q.item_guess_probability,
+                    itemMistakeProbability: q.item_mistake_probability,
+                }, q.default_item_offset_parameter);
+    
+                const correctAnswerProbability = logFn.fourParamLogisticFn(exercise.current_irt_theta);
+    
+                if (initial && (exercise.start_difficulty ?? null) !== null) {
+                    return q.question_irt_classification === exercise.start_difficulty;
+                } else if (initial) {
+                    return correctAnswerProbability >= 0.2;
+                } else {
+                    const goodQuestion = QuestionClassificationUtil.instance.compareQuestionClasses(
+                        q.question_irt_classification,
+                        exercise.current_difficulty,
+                    );
+    
+                    const classJump = Math.abs(QuestionClassificationUtil.instance.getClassJump(
+                        q.question_irt_classification,
+                        exercise.current_difficulty,
+                    ));
+    
+                    // Next question has to be harder or equally as hard as the previous question if the answer to the
+                    // previous question was correct
+                    return ((lastQuestionInfo!.correct && goodQuestion >= 0 && correctAnswerProbability <= 0.5) ||
+    
+                        // Next question has to be easier or equally as hard as the previous question if the answer to the
+                        // previous question was incorrect or the question was skipped 
+                        (
+                            (!lastQuestionInfo!.correct || lastQuestionInfo!.skipped) &&
+                            goodQuestion <= 0 &&
+                            correctAnswerProbability >= 0.6
+                        )) && classJump <= 2;
+                }
+            });
+        } else {
+            return qPool.filter(q => {
+                if (initial && (exercise.start_difficulty ?? null) !== null) {
+                    return q.question_irt_classification === exercise.start_difficulty;
+                } else if (initial) {
+                    const logFn = LogisticFunction.withParams({
+                        itemDifficulty: q.item_difficulty,
+                        levelOfItemKnowledge: q.level_of_item_knowledge,
+                        itemGuessProbability: q.item_guess_probability,
+                        itemMistakeProbability: q.item_mistake_probability,
+                    }, q.default_item_offset_parameter);
+        
+                    const correctAnswerProbability = logFn.fourParamLogisticFn(exercise.current_irt_theta);
+                    return correctAnswerProbability >= 0.2;
+                }
 
-        const filteredQuestionPool = questionPool.filter(q => {
-            const logFn = LogisticFunction.withParams({
-                itemDifficulty: q.item_difficulty,
-                levelOfItemKnowledge: q.level_of_item_knowledge,
-                itemGuessProbability: q.item_guess_probability,
-                itemMistakeProbability: q.item_mistake_probability,
-            }, q.default_item_offset_parameter);
-
-            const correctAnswerProbability = logFn.fourParamLogisticFn(exercise.current_irt_theta);
-
-            if (initial && (exercise.start_difficulty ?? null) !== null) {
-                return q.question_irt_classification === exercise.start_difficulty;
-            } else if (initial) {
-                return correctAnswerProbability >= 0.2;
-            } else {
-                const goodQuestion = QuestionClassificationUtil.instance.compareQuestionClasses(
+                const classJump = QuestionClassificationUtil.instance.getClassJump(
+                    difficultyClass!,
                     q.question_irt_classification,
-                    exercise.current_difficulty,
                 );
 
-                const classJump = QuestionClassificationUtil.instance.getClassDifference(
-                    q.question_irt_classification,
-                    exercise.current_difficulty,
-                );
+                let testStreak: number;
 
-                // Next question has to be harder or equally as hard as the previous question if the answer to the
-                // previous question was correct
-                return ((lastQuestionInfo!.correct && goodQuestion >= 0 && correctAnswerProbability <= 0.5) ||
+                switch (streakType) {
+                    case "correct": {
+                        testStreak = (streak - 1) % DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE;
+                        testStreak++;
 
-                    // Next question has to be easier or equally as hard as the previous question if the answer to the
-                    // previous question was incorrect or the question was skipped 
-                    (
-                        (!lastQuestionInfo!.correct || lastQuestionInfo!.skipped) &&
-                        goodQuestion <= 0 &&
-                        correctAnswerProbability >= 0.6
-                    )) && classJump <= 2;
-            }
-        });
+                        return classJump === 0 &&
+                            testStreak < DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE
+                        || (QuestionClassificationUtil.instance.isHighestClass(difficultyClass!) && classJump === 0 || classJump === 1) &&
+                            testStreak >= DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE;
+                    }
+
+                    case "skip": {
+                        testStreak = (streak - 1) % DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE;
+                        testStreak++;
+
+                        return classJump === 0 &&
+                            testStreak < DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE
+                        || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
+                            testStreak >= DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE;
+                    }
+
+                    case "incorrect": {
+                        testStreak = (streak - 1) % DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE;
+                        testStreak++;
+
+                        return classJump === 0 &&
+                                testStreak < DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE
+                        || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
+                                testStreak >= DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE;
+                    }
+                }
+            });
+        }
+    }
+
+    async provideQuestion(
+        exercise: IExerciseInstance,
+        questionPool: IQuestionPoolQuestion[],
+        transactionCtx: TransactionContext | null,
+        initial: boolean,
+        previousQuestions?: IExerciseInstanceQuestion[]
+    ): Promise<
+        Pick<
+            IExerciseInstanceQuestion,
+            "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers"
+        >
+    > {
+        const dbConn = DbConnProvider.getDbConn();
+        
+        const filteredQuestionPool = this.filterQuestionPool(exercise, questionPool, initial, previousQuestions);
 
         const q = filteredQuestionPool[Math.round(Math.random() * (filteredQuestionPool.length - 1))];
         const answers = (
