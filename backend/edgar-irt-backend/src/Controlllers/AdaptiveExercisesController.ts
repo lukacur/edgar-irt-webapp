@@ -523,9 +523,10 @@ export class AdaptiveExercisesController extends AbstractController {
         )?.rows[0] ?? null;
     }
 
-    private async getAllButLastExerciseQuestion(
+    private async getPreviousExerciseQuestions(
         transaction: TransactionContext,
-        idExercise: number
+        idExercise: number,
+        skip: number,
     ): Promise<(IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification })[]> {
         return (
             await transaction.doQuery<IExerciseInstanceQuestion & { question_irt_classification: QuestionIrtClassification }>(
@@ -537,8 +538,11 @@ export class AdaptiveExercisesController extends AbstractController {
                             question_param_course_level_calculation.id_question_param_calculation
                 WHERE id_exercise = $1
                 ORDER BY question_ordinal DESC
-                OFFSET 1`,
-                [idExercise]
+                OFFSET $2`,
+                [
+                    /* $1 */ idExercise,
+                    /* $2 */ skip,
+                ]
             )
         )?.rows ?? [];
     }
@@ -870,7 +874,7 @@ export class AdaptiveExercisesController extends AbstractController {
                     correct: (questionSkipped) ? false : (questionCorrect ?? answerSetActionResult.answerCorrect),
                     skipped: questionSkipped ?? false,
                 },
-                await this.getAllButLastExerciseQuestion(transaction, idExercise)
+                await this.getPreviousExerciseQuestions(transaction, idExercise, 1)
             );
 
             const thetaDeltaApplied = await this.applyThetaDeltaInfo(
@@ -940,10 +944,7 @@ export class AdaptiveExercisesController extends AbstractController {
                 await this.adaptiveExerciseService.getQuestionPool(exercise.id_course, exercise.id, transaction),
                 transaction,
                 false,
-                {
-                    correct: (questionSkipped) ? false : (questionCorrect ?? answerSetActionResult.answerCorrect),
-                    skipped: questionSkipped ?? false,
-                },
+                await this.getPreviousExerciseQuestions(transaction, idExercise, 0),
             );
     
             const insertedQuestionInfo = await this.insertNextQuestionInfo(exercise.id, nextQuestionInfo, transaction);

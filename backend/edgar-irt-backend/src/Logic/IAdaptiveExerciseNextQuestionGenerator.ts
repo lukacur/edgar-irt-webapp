@@ -21,7 +21,7 @@ export interface IAdaptiveExerciseNextQuestionGenerator {
         questionPool: IQuestionPoolQuestion[],
         transactionCtx: TransactionContext | null,
         initial: false,
-        lastQuestionInfo: { skipped: boolean, correct: boolean },
+        previousQuestions: IExerciseInstanceQuestion[],
     ): Promise<
         Pick<
             IExerciseInstanceQuestion,

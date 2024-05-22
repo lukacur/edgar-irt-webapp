@@ -1,3 +1,5 @@
+import { QuestionIrtClassification } from "../Statistics/IEdgarStatProcessingCourseLevelCalc.js";
+
 export interface IExerciseInstanceQuestion {
     id: number;
     id_exercise: number;
@@ -5,6 +7,8 @@ export interface IExerciseInstanceQuestion {
 	id_question: number;
 
     id_question_irt_cb_info: number;
+    question_difficulty: QuestionIrtClassification;
+
     id_question_irt_tb_info: number[];
 
     question_ordinal: number;
