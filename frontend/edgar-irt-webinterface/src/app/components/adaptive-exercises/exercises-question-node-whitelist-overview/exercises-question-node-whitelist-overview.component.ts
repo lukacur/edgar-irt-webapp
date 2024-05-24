@@ -269,55 +269,6 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
     }
 
 
-    @ViewChild("newExerNameInput")
-    newExerNameInput?: ElementRef<HTMLInputElement> | null = null;
-
-    async defineNewExercise(newExerciseDefinitionName: string | null) {
-        if (newExerciseDefinitionName === null || newExerciseDefinitionName.length < 5) {
-            window.alert("Exercise definition must have a name set and the name must contain at least 5 characters");
-            return;
-        }
-
-        if (
-            (await firstValueFrom(this.exerciseDefinitions$))
-                .some(el => el.exDefinition.exercise_name === newExerciseDefinitionName)
-        ) {
-            window.alert("New exercise name must be unique");
-            return;
-        }
-
-        const course = this.nodeSelectionForm.get('selectedCourse')?.value;
-        if ((course ?? null) === null) {
-            window.alert("A course must be selected before defining a new exercise");
-            return;
-        }
-        
-        this.adaptiveExercisesService.createExerciseDefinition(course!.id, newExerciseDefinitionName)
-            .subscribe(() => {
-                window.alert("New exercise definition successfully created");
-                if ((this.newExerNameInput ?? null) !== null) {
-                    this.newExerNameInput!.nativeElement.value = "";
-                }
-
-                this.reloadComponentData(true, false);
-                /*this.exerciseDefinitions$
-                    .pipe(
-                        tap(exDefs => {
-                            const exDef = exDefs
-                                .map(def => def.exDefinition)
-                                .find(def => def.exercise_name === newExerciseDefinitionName);
-    
-                            if ((exDef ?? null) !== null) {
-                                this.nodeSelectionForm.get("selectedExerciseDefinition")?.setValue(exDef ?? null);
-                            }
-    
-                            console.log(this.nodeSelectionForm.get("selectedExerciseDefinition"));
-                        })
-                    );*/
-            });
-    }
-
-
     whitelistSelectedNodes() {
         const formValue = this.nodeSelectionForm.getRawValue();
 

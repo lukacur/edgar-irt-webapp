@@ -10,6 +10,7 @@ import { AppCommonModule } from '../common/app-common.module';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ExerciseComponent } from './exercise/exercise.component';
 import { AppDirectivesModule } from 'src/app/app-directives/app-directives.module';
+import { ExerciseDefinitionComponent } from './exercise-definition/exercise-definition.component';
 
 const routes: Route[] = [
   {
@@ -37,6 +38,11 @@ const routes: Route[] = [
     pathMatch: "full",
     component: ExercisesQuestionNodeWhitelistOverviewComponent,
   },
+  {
+    path: "exercise-definition",
+    pathMatch: "full",
+    component: ExerciseDefinitionComponent,
+  },
 ];
 
 @NgModule({
@@ -45,7 +51,8 @@ const routes: Route[] = [
     MyExercisesComponent,
     ExercisesQuestionTypesOverviewComponent,
     ExercisesQuestionNodeWhitelistOverviewComponent,
-    ExerciseComponent
+    ExerciseComponent,
+    ExerciseDefinitionComponent
   ],
   imports: [
     RouterModule.forChild(routes),

@@ -64,11 +64,23 @@ export class AdaptiveExercisesService {
             );
     }
 
-    public createExerciseDefinition(idCourse: number, exerciseName: string): Observable<void> {
+    public createExerciseDefinition(
+        idCourse: number,
+        exerciseName: string,
+        correctAnswersToUpgrade: number | null,
+        incorrectAnswersToDowngrade: number | null,
+        skippedQuestionsToDowngrade: number | null,
+    ): Observable<void> {
         return this.http
             .post(
                 `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/define-exercise`,
-                { idCourse, exerciseName },
+                {
+                    idCourse,
+                    exerciseName,
+                    correctAnswersToUpgrade,
+                    incorrectAnswersToDowngrade,
+                    skippedQuestionsToDowngrade,
+                },
                 {
                     responseType: "text"
                 }
