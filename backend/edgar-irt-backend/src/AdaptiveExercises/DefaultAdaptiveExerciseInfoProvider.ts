@@ -11,7 +11,6 @@ import { IEdgarStatProcessingQuestionIRTInfo } from "../Models/Database/Statisti
 import { LogisticFunction } from "../Models/Irt/LogisticFunction.js";
 import { AdaptiveExerciseService, IQuestionPoolQuestion } from "../Services/AdaptiveExerciseService.js";
 import { EdgarService } from "../Services/EdgarService.js";
-import { ExerciseDefinitionService } from "../Services/ExerciseDefinitionService.js";
 import { QuestionClassificationUtil } from "../Util/QuestionClassificationUtil.js";
 
 type QuestionAnswerStreak = "correct" | "skip" | "incorrect";
@@ -131,66 +130,78 @@ export class DefaultAdaptiveExerciseInfoProvider implements
                 }
             });
         } else {
-            return qPool.filter(q => {
-                if (initial && (exercise.start_difficulty ?? null) !== null) {
-                    return q.question_irt_classification === exercise.start_difficulty;
-                } else if (initial) {
-                    const logFn = LogisticFunction.withParams({
-                        itemDifficulty: q.item_difficulty,
-                        levelOfItemKnowledge: q.level_of_item_knowledge,
-                        itemGuessProbability: q.item_guess_probability,
-                        itemMistakeProbability: q.item_mistake_probability,
-                    }, q.default_item_offset_parameter);
-        
-                    const correctAnswerProbability = logFn.fourParamLogisticFn(exercise.current_irt_theta);
-                    return correctAnswerProbability >= 0.2;
-                }
+            return await Promise.all(
+                qPool.filter(async q => {
+                    if (initial && (exercise.start_difficulty ?? null) !== null) {
+                        return q.question_irt_classification === exercise.start_difficulty;
+                    } else if (initial) {
+                        if (exerciseDefinition === null) {
+                            const logFn = LogisticFunction.withParams({
+                                itemDifficulty: q.item_difficulty,
+                                levelOfItemKnowledge: q.level_of_item_knowledge,
+                                itemGuessProbability: q.item_guess_probability,
+                                itemMistakeProbability: q.item_mistake_probability,
+                            }, q.default_item_offset_parameter);
+                
+                            const correctAnswerProbability = logFn.fourParamLogisticFn(exercise.current_irt_theta);
+                            return correctAnswerProbability >= 0.2;
+                        }
 
-                const classJump = QuestionClassificationUtil.instance.getClassJump(
-                    difficultyClass!,
-                    q.question_irt_classification,
-                );
+                        const studentAvgStartDifficulty =
+                            await this.adaptiveExerciseService.getStudentStartingDifficulty(
+                                exercise.id_student_started,
+                                exerciseDefinition.id,
+                            );
 
-                let testStreak: number;
-
-                switch (streakType) {
-                    case "correct": {
-                        const streakToUpgrade = exerciseDefinition?.correct_answers_to_upgrade ??
-                            DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE;
-
-                        testStreak = (streak - 1) % streakToUpgrade;
-                        testStreak++;
-
-                        return classJump === 0 && testStreak < streakToUpgrade
-                        || (QuestionClassificationUtil.instance.isHighestClass(difficultyClass!) && classJump === 0 || classJump === 1) &&
-                            testStreak >= streakToUpgrade;
+                        return studentAvgStartDifficulty === q.question_irt_classification;
                     }
 
-                    case "skip": {
-                        const streakToDowngrade = exerciseDefinition?.incorrect_answers_to_downgrade ??
-                            DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE;
+                    const classJump = QuestionClassificationUtil.instance.getClassJump(
+                        difficultyClass!,
+                        q.question_irt_classification,
+                    );
 
-                        testStreak = (streak - 1) % streakToDowngrade;
-                        testStreak++;
+                    let testStreak: number;
 
-                        return classJump === 0 && testStreak < streakToDowngrade
-                        || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
-                            testStreak >= streakToDowngrade;
-                    }
+                    switch (streakType) {
+                        case "correct": {
+                            const streakToUpgrade = exerciseDefinition?.correct_answers_to_upgrade ??
+                                DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE;
 
-                    case "incorrect": {
-                        const streakToDowngrade = exerciseDefinition?.skipped_questions_to_downgrade ??
-                            DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE;
+                            testStreak = (streak - 1) % streakToUpgrade;
+                            testStreak++;
 
-                        testStreak = (streak - 1) % streakToDowngrade;
-                        testStreak++;
+                            return classJump === 0 && testStreak < streakToUpgrade
+                            || (QuestionClassificationUtil.instance.isHighestClass(difficultyClass!) && classJump === 0 || classJump === 1) &&
+                                testStreak >= streakToUpgrade;
+                        }
 
-                        return classJump === 0 && testStreak < streakToDowngrade
-                        || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
+                        case "skip": {
+                            const streakToDowngrade = exerciseDefinition?.incorrect_answers_to_downgrade ??
+                                DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE;
+
+                            testStreak = (streak - 1) % streakToDowngrade;
+                            testStreak++;
+
+                            return classJump === 0 && testStreak < streakToDowngrade
+                            || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
                                 testStreak >= streakToDowngrade;
+                        }
+
+                        case "incorrect": {
+                            const streakToDowngrade = exerciseDefinition?.skipped_questions_to_downgrade ??
+                                DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE;
+
+                            testStreak = (streak - 1) % streakToDowngrade;
+                            testStreak++;
+
+                            return classJump === 0 && testStreak < streakToDowngrade
+                            || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
+                                    testStreak >= streakToDowngrade;
+                        }
                     }
-                }
-            });
+                })
+            );
         }
     }
 
@@ -203,7 +214,8 @@ export class DefaultAdaptiveExerciseInfoProvider implements
     ): Promise<
         Pick<
             IExerciseInstanceQuestion,
-            "id_question" | "id_question_irt_cb_info" | "id_question_irt_tb_info" | "correct_answers"
+            "id_question" | "id_question_irt_cb_info" | "question_difficulty" | "id_question_irt_tb_info"
+                | "correct_answers"
         >
     > {
         const dbConn = DbConnProvider.getDbConn();
@@ -222,7 +234,7 @@ export class DefaultAdaptiveExerciseInfoProvider implements
                 item_difficulty,
                 item_guess_probability,
                 item_mistake_probability,
-                question_irt_classification,
+                question_irt_classification, -- TODO: When overriding implemented, change this to a switch-case
                 id_based_on_course AS id_course,
                 calculation_group,
                 id_question
@@ -238,9 +250,7 @@ export class DefaultAdaptiveExerciseInfoProvider implements
             ];
 
         const irtInfoArr: IEdgarStatProcessingQuestionIRTInfo[] = (
-            (transactionCtx === null) ?
-                await dbConn.doQuery<IEdgarStatProcessingQuestionIRTInfo>(sql, params) :
-                await transactionCtx.doQuery<IEdgarStatProcessingQuestionIRTInfo>(sql, params)
+            await (transactionCtx ?? dbConn).doQuery<IEdgarStatProcessingQuestionIRTInfo>(sql, params)
         )?.rows ?? [];
 
         const sqlYears =
@@ -294,6 +304,7 @@ export class DefaultAdaptiveExerciseInfoProvider implements
             id_question: q.id,
             correct_answers: answers?.filter(a => a.is_correct).map(a => a.ordinal) ?? null,
             id_question_irt_cb_info: irtInfo.id_course_based_info,
+            question_difficulty: irtInfo.question_irt_classification,
             id_question_irt_tb_info: irtInfo.testBasedInfo.map(tbi => tbi.id_test_based_info),
         };
     }

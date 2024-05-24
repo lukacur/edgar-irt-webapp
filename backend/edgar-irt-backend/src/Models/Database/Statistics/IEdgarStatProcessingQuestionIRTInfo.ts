@@ -1,5 +1,8 @@
+import { QuestionIrtClassification } from "./IEdgarStatProcessingCourseLevelCalc.js";
+
 export interface IEdgarStatProcessingQuestionIRTInfo {
     id_course_based_info: number;
+    question_irt_classification: QuestionIrtClassification;
 
     /**
      * Not included when using default SELECT * query (have to do JOIN)

@@ -3,6 +3,7 @@ import { TransactionContext } from "../Database/TransactionContext.js";
 import { IExerciseDefinition } from "../Models/Database/AdaptiveExercise/IExerciseDefinition.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 import { QuestionIrtClassification } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
+import { QuestionClassificationUtil } from "../Util/QuestionClassificationUtil.js";
 
 export interface IQuestionPoolQuestion extends IQuestion {
     default_item_offset_parameter: number;
@@ -72,5 +73,33 @@ export class AdaptiveExerciseService {
                 [ idExerciseInstance ]
             )
         )?.rows[0] ?? null;
+    }
+
+    public async getStudentStartingDifficulty(
+        idStudent: number,
+        idExerciseDefinition: number,
+    ): Promise<QuestionIrtClassification> {
+        const previousExerciseDifficulties: { final_difficulty: QuestionIrtClassification }[] = (
+            await this.dbConn.doQuery<{ final_difficulty: QuestionIrtClassification }>(
+                `SELECT exercise_instance_question.question_difficulty AS final_difficulty
+                FROM adaptive_exercise.exercise_instance
+                    JOIN adaptive_exercise.exercise_instance_question
+                        ON exercise_instance.id = exercise_instance_question.id_exercise
+                    JOIN adaptive_exercise.exercise_definition
+                        ON exercise_instance.id_exercise_definition = exercise_definition.id
+                WHERE id_student_started = $1 AND
+                    id_exercise_definition = $2 AND
+                    exercise_instance.finished_on IS NOT NULL AND
+                    user_answer_correct`,
+                [
+                    /* $1 */ idStudent,
+                    /* $2 */ idExerciseDefinition,
+                ]
+            )
+        )?.rows ?? [];
+
+        return QuestionClassificationUtil.instance.getAverageDifficulty(
+            previousExerciseDifficulties.map(ed => ed.final_difficulty)
+        );
     }
 }
