@@ -22,7 +22,8 @@ import { TransactionContext } from "../Database/TransactionContext.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 import { IEdgarCourse } from "../Models/Database/Edgar/IEdgarCourse.js";
 import { IExerciseDefinition } from "../Models/Database/AdaptiveExercise/IExerciseDefinition.js";
-import { IEdgarStatProcessingCourseLevelCalc, QuestionIrtClassification } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
+import { IEdgarStatProcessingCourseLevelCalc } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
+import { ExerciseDefinitionProgressionDescriptor, ExerciseDefinitionService } from "../Services/ExerciseDefinitionService.js";
 
 type NextExerciseQuestionRequest = {
     readonly idExercise: number,
@@ -37,6 +38,7 @@ export class AdaptiveExercisesController extends AbstractController {
         private readonly dbConn: DatabaseConnection,
         private readonly courseService: CourseService,
         private readonly edgarService: EdgarService,
+        private readonly exerciseDefinitionService: ExerciseDefinitionService,
         private readonly adaptiveExerciseService: AdaptiveExerciseService,
 
         private readonly nextQuestionGenerator: IAdaptiveExerciseNextQuestionGenerator,
@@ -279,37 +281,46 @@ export class AdaptiveExercisesController extends AbstractController {
             return;
         }
 
-        const definitions: IExerciseDefinition[] = (
-            await this.dbConn.doQuery<IExerciseDefinition>(
-                `SELECT *
-                FROM adaptive_exercise.exercise_definition
-                WHERE id_course = $1`,
-                [ idCourse ]
-            )
-        )?.rows ?? [];
+        const definitions: IExerciseDefinition[] =
+            await this.exerciseDefinitionService.getDefinitionsForCourse(idCourse);
 
         res.send(definitions);
     }
 
     @Post("define-exercise")
     public async createExerciseDefinition(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const { idCourse, exerciseName } = req.body;
+        const {
+            idCourse,
+            exerciseName,
+            correctAnswersToUpgrade,
+            incorrectAnswersToDowngrade,
+            skippedQuestionsToDowngrade,
+        } = req.body;
         if ((idCourse ?? null) === null || (exerciseName ?? null) === null) {
             res.sendStatus(400);
             return;
         }
 
-        const success = (
-            await this.dbConn.doQuery(
-                `INSERT INTO adaptive_exercise.exercise_definition (id_course, exercise_name) VALUES ($1, $2)`,
-                [
-                    /* $1 */ idCourse,
-                    /* $2 */ exerciseName
-                ]
-            )
-        ) !== null;
+        const progressionDescriptor: ExerciseDefinitionProgressionDescriptor | null =
+            (
+                (correctAnswersToUpgrade ?? 0) <= 0 ||
+                (incorrectAnswersToDowngrade ?? 0) <= 0 ||
+                (skippedQuestionsToDowngrade ?? 0) <= 0
+            ) ?
+                null :
+                {
+                    correctAnswersToUpgrade,
+                    incorrectAnswersToDowngrade,
+                    skippedQuestionsToDowngrade,
+                };
 
-        if (!success) {
+        const insertedId = await this.exerciseDefinitionService.createExerciseDefinition(
+            idCourse,
+            exerciseName,
+            progressionDescriptor,
+        );
+
+        if (insertedId === null) {
             res.sendStatus(400);
             return;
         }
@@ -325,28 +336,9 @@ export class AdaptiveExercisesController extends AbstractController {
             return;
         }
 
-        console.log(definitionIds);
+        const deleted = await this.exerciseDefinitionService.removeExerciseDefinitions(definitionIds);
 
-        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
-
-        try {
-            for (const defId of definitionIds) {
-                await transaction.doQuery(
-                    `DELETE FROM exercise_definition WHERE id = $1`,
-                    [ defId ]
-                );
-            }
-
-            await transaction.commit();
-
-            res.sendStatus(200);
-        } catch {
-            res.sendStatus(400);
-        } finally {
-            if (!transaction.isFinished()) {
-                await transaction.rollback();
-            }
-        }
+        res.sendStatus((deleted) ? 200 : 400);
     }
 
     @Get("exercise-definition/:idExerciseDefinition/question-node-whitelist")
@@ -356,30 +348,13 @@ export class AdaptiveExercisesController extends AbstractController {
         next: NextFunction
     ): Promise<void> {
         const idExerciseDefinition = req.params.idExerciseDefinition;
-        if ((idExerciseDefinition ?? null) === null) {
+        if ((idExerciseDefinition ?? null) === null || Number.isNaN(parseInt(idExerciseDefinition))) {
             res.sendStatus(400);
             return;
         }
 
-        const nodeWhitelist: (IEdgarNode & { whitelisted_on: string })[] = (
-            await this.dbConn.doQuery<(IEdgarNode & { whitelisted_on: string })>(
-                `SELECT node.id,
-                        node.id_node_type,
-                        node.node_name,
-                        node.description,
-
-                        node_type.type_name AS node_type_name,
-
-                        exercise_node_whitelist.whitelisted_on
-                FROM adaptive_exercise.exercise_node_whitelist
-                    JOIN public.node
-                        ON exercise_node_whitelist.id_node = node.id
-                    JOIN public.node_type
-                        ON node.id_node_type = node_type.id
-                WHERE id_exercise_definition = $1`,
-                [idExerciseDefinition]
-            )
-        )?.rows ?? [];
+        const nodeWhitelist: (IEdgarNode & { whitelisted_on: string })[] =
+            await this.exerciseDefinitionService.getWhitelistedNodes(parseInt(idExerciseDefinition));
 
         res
             .status(200)
@@ -389,41 +364,20 @@ export class AdaptiveExercisesController extends AbstractController {
     @Get("exercise-definition/:idExerciseDefinition/whitelistable-nodes")
     public async getCourseWhitelistableQuestionNodes(req: Request, res: Response, next: NextFunction): Promise<void> {
         const idExerciseDefinition = req.params['idExerciseDefinition'];
-        if ((idExerciseDefinition ?? null) === null) {
+        if ((idExerciseDefinition ?? null) === null || Number.isNaN(parseInt(idExerciseDefinition))) {
             res.sendStatus(400);
             return;
         }
 
-        const whitelistedNodeIds: IQuestionNodeWhitelistEntry[] = (
-            await this.dbConn.doQuery<IQuestionNodeWhitelistEntry>(
-                `SELECT id_node
-                FROM adaptive_exercise.exercise_node_whitelist
-                WHERE id_exercise_definition = $1`,
-                [idExerciseDefinition]
-            )
-        )?.rows ?? [];
-
-        const courseId: number | null = (
-            await this.dbConn.doQuery<{ id_course: number }>(
-                `SELECT id_course
-                FROM adaptive_exercise.exercise_definition
-                WHERE id = $1`,
-                [ idExerciseDefinition ]
-            )
-        )?.rows[0]?.id_course ?? null;
-
-        if (courseId === null) {
+        const nodes = await this.exerciseDefinitionService.getWhitelistableNodes(parseInt(idExerciseDefinition));
+        if (nodes === null) {
             res.sendStatus(400);
             return;
         }
-
-        const allCourseNodes = await this.courseService.getCourseNodes(
-            (typeof(courseId) === "string") ? parseInt(courseId) : courseId
-        );
 
         res
             .status(200)
-            .send(allCourseNodes.filter(cn => (whitelistedNodeIds.find(wn => wn.id_node === cn.id) ?? null) === null));
+            .send(nodes);
     }
 
     @Put("question-node-whitelist/add")
@@ -436,34 +390,9 @@ export class AdaptiveExercisesController extends AbstractController {
             return;
         }
 
-        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
+        const whitelisted = await this.exerciseDefinitionService.whitelistNodes(nodeWhitelistEntries);
 
-        try {
-            for (const nodeWhitelistEntry of nodeWhitelistEntries) {
-                if (nodeWhitelistEntry.id_exercise_definiton === null || nodeWhitelistEntry.id_node === null) {
-                    throw new Error("Invalid entry detected, aborting");
-                }
-
-                await transaction.doQuery(
-                    `INSERT INTO adaptive_exercise.exercise_node_whitelist (id_exercise_definition, id_node)
-                        VALUES ($1, $2)`,
-                    [
-                        nodeWhitelistEntry.id_exercise_definiton,
-                        nodeWhitelistEntry.id_node,
-                    ]
-                );
-            }
-
-            await transaction.commit();
-
-            res.sendStatus(200);
-        } catch {
-            res.sendStatus(400);
-        } finally {
-            if (!transaction.isFinished()) {
-                await transaction.rollback();
-            }
-        }
+        res.sendStatus((whitelisted) ? 200 : 400);
     }
 
     @Delete("question-node-whitelist/remove")
@@ -474,31 +403,9 @@ export class AdaptiveExercisesController extends AbstractController {
             return;
         }
 
-        const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
+        const deWhitelisted = await this.exerciseDefinitionService.deWhitelistNodes(nodes);
 
-        try {
-            for (const node of nodes) {
-                await transaction.doQuery(
-                    `DELETE FROM adaptive_exercise.exercise_node_whitelist
-                    WHERE id_exercise_definition = $1 AND
-                        id_node = $2`,
-                    [
-                        /* $1 */ node.id_exercise_definiton,
-                        /* $2 */ node.id_node,
-                    ]
-                );
-            }
-
-            await transaction.commit();
-
-            res.sendStatus(200);
-        } catch {
-            res.sendStatus(400);
-        } finally {
-            if (!transaction.isFinished()) {
-                await transaction.rollback();
-            }
-        }
+        res.sendStatus((deWhitelisted) ? 200 : 400);
     }
 
     private async getNthLastExerciseQuestion(
