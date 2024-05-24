@@ -2,12 +2,16 @@ import { NextFunction, Request, Response } from "express";
 import { DatabaseConnection } from "../Database/DatabaseConnection.js";
 import { Get } from "../Decorators/Get.decorator.js";
 import { AbstractController } from "./AbstractController.js";
+import { Post } from "../Decorators/Post.decorator.js";
+import { ExerciseDefinitionService } from "../Services/ExerciseDefinitionService.js";
 
 type NodeQuestionClass = { id_node: number, class_name: string, number_of_questions: number };
 
 export class ExerciseDefinitionController extends AbstractController {
     constructor(
         private readonly dbConn: DatabaseConnection,
+
+        private readonly exerciseDefinitionService: ExerciseDefinitionService,
 
         basePath: string = "exercise-definition"
     ) {
@@ -55,5 +59,27 @@ export class ExerciseDefinitionController extends AbstractController {
                 })
             )
         );
+    }
+
+    @Post("update-progression")
+    public async updateExerciseProgressionInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const {
+            idExerciseDefinition,
+            correctAnswersToUpgrade,
+            incorrectAnswersToDowngrade,
+            skippedQuestionsToDowngrade,
+        } = req.body;
+
+        if ((idExerciseDefinition ?? null) === null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const success = await this.exerciseDefinitionService.updateExerciseDefinition(
+            idExerciseDefinition,
+            { correctAnswersToUpgrade, incorrectAnswersToDowngrade, skippedQuestionsToDowngrade }
+        );
+
+        res.sendStatus((success) ? 200 : 400);
     }
 }

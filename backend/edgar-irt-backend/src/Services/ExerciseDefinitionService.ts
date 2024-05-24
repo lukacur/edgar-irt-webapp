@@ -68,6 +68,42 @@ export class ExerciseDefinitionService {
         return insertedExDef;
     }
 
+    public async updateExerciseDefinition(
+        idExerciseDefinition: number,
+        progressionDescriptor: ExerciseDefinitionProgressionDescriptor
+    ): Promise<boolean> {
+        const oldValues = (
+            await this.dbConn.doQuery<IExerciseDefinition>(
+                `SELECT *
+                FROM adaptive_exercise.exercise_definition
+                WHERE id = $1`,
+                [ idExerciseDefinition ]
+            )
+        )?.rows[0] ?? null;
+
+        if (oldValues === null) {
+            return false;
+        }
+
+        return (
+            await this.dbConn.doQuery(
+                `UPDATE adaptive_exercise.exercise_definition
+                    SET (
+                        correct_answers_to_upgrade,
+                        incorrect_answers_to_downgrade,
+                        skipped_questions_to_downgrade
+                    ) = ($1, $2, $3)
+                WHERE id = $4`,
+                [
+                    /* $1 */ progressionDescriptor.correctAnswersToUpgrade ?? oldValues.correctAnswersToUpgrade,
+                    /* $2 */ progressionDescriptor.incorrectAnswersToDowngrade ?? oldValues.incorrectAnswersToDowngrade,
+                    /* $3 */ progressionDescriptor.skippedQuestionsToDowngrade ?? oldValues.skippedQuestionsToDowngrade,
+                    /* $4 */ idExerciseDefinition,
+                ]
+            )
+        ) !== null;
+    }
+
     public async removeExerciseDefinitions(idDefinitions: number[]): Promise<boolean> {
         const transaction = await this.dbConn.beginTransaction("adaptive_exercise");
 

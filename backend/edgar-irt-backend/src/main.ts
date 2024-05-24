@@ -49,7 +49,10 @@ export class Main {
                 defaultAdaptiveExerciseInfoProvider,
             );
 
-        const exerDefController: AbstractController = new ExerciseDefinitionController(DbConnProvider.getDbConn());
+        const exerDefController: AbstractController = new ExerciseDefinitionController(
+            DbConnProvider.getDbConn(),
+            exerciseDefinitionService
+        );
 
         jobController.applyController(Main.server);
         statisticsController.applyController(Main.server);
