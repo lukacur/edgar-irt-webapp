@@ -58,4 +58,20 @@ export class QuestionClassificationUtil {
 
         return index === (this.classificationOrder.length - 1);
     }
+
+    public getAverageDifficulty(difficulties: QuestionIrtClassification[]): QuestionIrtClassification {
+        const idxArr = difficulties
+            .map(diff => this.classificationOrder.indexOf(diff))
+            .filter(diffIdx => diffIdx !== -1);
+
+        const finalIdx = Math.floor(
+            idxArr.reduce((acc, el) => acc + el, 0) / idxArr.length
+        );
+
+        if (finalIdx < 0 || finalIdx > this.classificationOrder.length) {
+            throw new Error("Unable to calculate average difficulty for given difficulties array");
+        }
+
+        return this.classificationOrder[finalIdx];
+    }
 }
