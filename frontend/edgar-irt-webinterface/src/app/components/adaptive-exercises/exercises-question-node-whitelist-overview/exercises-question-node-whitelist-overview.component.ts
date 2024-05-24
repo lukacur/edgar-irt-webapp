@@ -1,6 +1,6 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { BehaviorSubject, firstValueFrom, map, Observable, Subscription, take, tap } from 'rxjs';
+import { BehaviorSubject, map, Observable, Subscription, take, tap } from 'rxjs';
 import { IExerciseDefinition } from 'src/app/models/adaptive-exercises/exercise-definition.model';
 import { IEdgarCourse } from 'src/app/models/edgar/course.model';
 import { IEdgarNode } from 'src/app/models/edgar/node.model';
@@ -41,6 +41,12 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
 
         selectedNodes: new FormControl<IEdgarNode[]>([]),
         toRemoveNodeIds: new FormControl<number[]>([]),
+
+        progressionCustomization: new FormGroup({
+            correctAnswersToUpgrade: new FormControl<number>(3, [Validators.min(1)]),
+            incorrectAnswersToDowngrade: new FormControl<number>(2, [Validators.min(1)]),
+            skippedQuestionsToDowngrade: new FormControl<number>(5, [Validators.min(1)]),
+        }),
     });
 
     readonly subscriptions: Subscription[] = [];
@@ -90,6 +96,14 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
 
                 selectedExerciseDefinitionControl?.setValue(null);
             } else if ((selectedExerciseDefinitionControl?.value ?? null) !== null) {
+                this.adaptiveExercisesService.getCourseExerciseDefinitions(courseControl!.value!.id)
+                    .pipe(take(1))
+                    .subscribe(defs => {
+                        selectedExerciseDefinitionControl?.setValue(
+                            defs.find(el => el.id === selectedExerciseDefinitionControl.value?.id) ?? null
+                        );
+                    });
+
                 this.exerciseDefinitionWhitelistedNodes$ =
                     this.adaptiveExercisesService.getExerciseDefinitionNodeWhitelist(
                         selectedExerciseDefinitionControl!.value!.id
@@ -216,6 +230,12 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
                                         }),
                                     );
 
+                            this.nodeSelectionForm.get('progressionCustomization')?.patchValue({
+                                correctAnswersToUpgrade: exDef.correct_answers_to_upgrade,
+                                incorrectAnswersToDowngrade: exDef.incorrect_answers_to_downgrade,
+                                skippedQuestionsToDowngrade: exDef.skipped_questions_to_downgrade,
+                            });
+
                             this.subscriptions.push(this.byNodeQuestionClasses$.subscribe());
                         }
                     })
@@ -266,6 +286,24 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
     getNodeQuestionClassCount(idNode: number, questionClass: string): number {
         return this.nodeQuestionClasses
             .filter(nqc => nqc.id_node === idNode && nqc.class_name === questionClass)[0]?.number_of_questions ?? 0;
+    }
+
+
+    updateProgressionInformation() {
+        const formData = this.nodeSelectionForm.getRawValue();
+        if ((formData.selectedExerciseDefinition ?? null) === null) {
+            window.alert("You have to select an exercise definition before updateing progression information");
+            return;
+        }
+
+        this.exerciseDefinitionService.updateProgressionInformation(
+            formData.selectedExerciseDefinition!.id,
+            formData.progressionCustomization,
+        ).subscribe(() => {
+            window.alert("Successfully updated exercise progression information");
+
+            this.reloadComponentData(true, true);
+        });
     }
 
 

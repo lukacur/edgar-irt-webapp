@@ -75,6 +75,99 @@
         <div *ngIf="(nodeSelectionForm.get('selectedExerciseDefinition')?.value ?? null) !== null">
             <div>
                 <hr class="my-3">
+
+                <h3 class="text-purple-600 mb-3">Exercise progression</h3>
+
+                <p>
+                    Student has to have
+                    <span class="text-green-600">
+                        <b>
+                            {{
+                                nodeSelectionForm.get('selectedExerciseDefinition')
+                                    !.value
+                                    !.correct_answers_to_upgrade
+                            }}
+                        </b> correct
+                    </span> answers to upgrade to a harder question<br><br>
+
+
+                    Student has to have
+                    <span class="text-red-600">
+                        <b>
+                            {{
+                                nodeSelectionForm.get('selectedExerciseDefinition')
+                                    !.value
+                                    !.incorrect_answers_to_downgrade
+                            }}
+                        </b> incorrect
+                    </span> answers to downgrade to an easier question<br><br>
+
+
+                    Student has to
+                    <span class="text-yellow-600">
+                        skip
+                        <b>
+                            {{
+                                nodeSelectionForm.get('selectedExerciseDefinition')
+                                    !.value
+                                    !.skipped_questions_to_downgrade
+                            }}
+                        </b>
+                    </span> questions to downgrade to an easier question<br><br>
+                </p>
+
+                <hr class="my-3">
+
+                <div class="my-3" formGroupName="progressionCustomization">
+                    <h2 class="text-purple-600">Customize progression</h2>
+                    <hr class="mt-3">
+
+                    <div class="mt-3">
+                        <label class="text-sm">
+                            Sequential correct answers required to upgrade question difficulty
+                        </label>
+                        <input
+                            class="w-full p-3 rounded border border-slate-400/25"
+                            type="number"
+                            min="1"
+                            formControlName="correctAnswersToUpgrade"
+                        >
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="text-sm">
+                            Sequential incorrect answers required to downgrade question difficulty
+                        </label>
+                        <input
+                            class="w-full p-3 rounded border border-slate-400/25"
+                            type="number"
+                            min="1"
+                            formControlName="incorrectAnswersToDowngrade"
+                        >
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="text-sm">
+                            Sequential skipped questions required to downgrade question difficulty
+                        </label>
+                        <input
+                            class="w-full p-3 rounded border border-slate-400/25"
+                            type="number"
+                            min="1"
+                            formControlName="skippedQuestionsToDowngrade"
+                        >
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    mat-flat-button
+                    color="primary"
+                    (click)="updateProgressionInformation()"
+                >Update progression information</button>
+            </div>
+            <div>
+                <hr class="my-3">
     
                 <h3 class="text-purple-600">Whitelist course question nodes</h3>
                 <hr class="mt-3">
@@ -141,7 +234,7 @@
             <hr class="my-3">
     
             <div class="mt-3">
-                <h3 class="text-purple-600">Course whitelisted nodes</h3>
+                <h3 class="text-purple-600">Exercise whitelisted nodes</h3>
                 <hr class="my-3">
                 <div class="overflow-auto max-h-[560px]">
                     <table class="w-full p-3 text-center">
@@ -203,7 +296,7 @@
                             <tr *ngIf="numberOfWhitelistedNodes === 0">
                                 <td
                                     class="py-2 text-gray-500/50"
-                                    colspan="4"
+                                    colspan="10"
                                 >No whitelisted nodes</td>
                             </tr>
                         </tbody>
