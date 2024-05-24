@@ -96,8 +96,18 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
 
                 selectedExerciseDefinitionControl?.setValue(null);
             } else if ((selectedExerciseDefinitionControl?.value ?? null) !== null) {
-                this.adaptiveExercisesService.getCourseExerciseDefinitions(courseControl!.value!.id)
-                    .pipe(take(1))
+                const obs = this.adaptiveExercisesService.getCourseExerciseDefinitions(courseControl!.value!.id)
+                    .pipe(take(1));
+                
+                this.exerciseDefinitions$ = obs.pipe(map(definitions =>
+                    definitions.map(exDefinition => {
+                        return {
+                            text: exDefinition.exercise_name,
+                            exDefinition
+                        };
+                    })));
+                
+                obs
                     .subscribe(defs => {
                         selectedExerciseDefinitionControl?.setValue(
                             defs.find(el => el.id === selectedExerciseDefinitionControl.value?.id) ?? null
