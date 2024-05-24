@@ -3,9 +3,9 @@ export interface IExerciseDefinition {
     id_course: number;
     exercise_name: string;
 
-    correctAnswersToUpgrade: number;
-    incorrectAnswersToDowngrade: number;
-    skippedQuestionsToDowngrade: number;
+    correct_answers_to_upgrade: number;
+    incorrect_answers_to_downgrade: number;
+    skipped_questions_to_downgrade: number;
 
     created_on: string;
 }

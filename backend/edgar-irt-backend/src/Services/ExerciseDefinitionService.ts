@@ -95,9 +95,12 @@ export class ExerciseDefinitionService {
                     ) = ($1, $2, $3)
                 WHERE id = $4`,
                 [
-                    /* $1 */ progressionDescriptor.correctAnswersToUpgrade ?? oldValues.correctAnswersToUpgrade,
-                    /* $2 */ progressionDescriptor.incorrectAnswersToDowngrade ?? oldValues.incorrectAnswersToDowngrade,
-                    /* $3 */ progressionDescriptor.skippedQuestionsToDowngrade ?? oldValues.skippedQuestionsToDowngrade,
+                    /* $1 */ progressionDescriptor.correctAnswersToUpgrade ??
+                        oldValues.correct_answers_to_upgrade,
+                    /* $2 */ progressionDescriptor.incorrectAnswersToDowngrade ??
+                        oldValues.incorrect_answers_to_downgrade,
+                    /* $3 */ progressionDescriptor.skippedQuestionsToDowngrade ??
+                        oldValues.skipped_questions_to_downgrade,
                     /* $4 */ idExerciseDefinition,
                 ]
             )
