@@ -26,7 +26,10 @@ export class Main {
         const edgarService = new EdgarService(DbConnProvider.getDbConn());
         const adaptiveExerciseService = new AdaptiveExerciseService(DbConnProvider.getDbConn());
         const exerciseDefinitionService = new ExerciseDefinitionService(DbConnProvider.getDbConn(), courseService);
-        const defaultAdaptiveExerciseInfoProvider = new DefaultAdaptiveExerciseInfoProvider(edgarService);
+        const defaultAdaptiveExerciseInfoProvider = new DefaultAdaptiveExerciseInfoProvider(
+            edgarService,
+            adaptiveExerciseService
+        );
 
         Main.server.useJsonBodyParsing();
 

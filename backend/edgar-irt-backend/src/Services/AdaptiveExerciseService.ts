@@ -1,5 +1,6 @@
 import { DatabaseConnection } from "../Database/DatabaseConnection.js";
 import { TransactionContext } from "../Database/TransactionContext.js";
+import { IExerciseDefinition } from "../Models/Database/AdaptiveExercise/IExerciseDefinition.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 import { QuestionIrtClassification } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
 
@@ -58,5 +59,18 @@ export class AdaptiveExerciseService {
                 ]
             )
         )?.rows ?? [];
+    }
+
+    public async getExerciseDefinition(idExerciseInstance: number): Promise<IExerciseDefinition | null> {
+        return (
+            await this.dbConn.doQuery<IExerciseDefinition>(
+                `SELECT exercise_definition.*
+                FROM adaptive_exercise.exercise_instance
+                    JOIN adaptive_exercise.exercise_definition
+                        ON exercise_instance.id_exercise_definition = exercise_definition.id
+                WHERE exercise_instance.id = $1`,
+                [ idExerciseInstance ]
+            )
+        )?.rows[0] ?? null;
     }
 }

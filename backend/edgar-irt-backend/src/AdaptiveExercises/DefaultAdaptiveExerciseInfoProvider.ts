@@ -9,8 +9,9 @@ import { IQuestionAnswer } from "../Models/Database/Edgar/IQuestionAnswer.js";
 import { QuestionIrtClassification } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
 import { IEdgarStatProcessingQuestionIRTInfo } from "../Models/Database/Statistics/IEdgarStatProcessingQuestionIRTInfo.js";
 import { LogisticFunction } from "../Models/Irt/LogisticFunction.js";
-import { IQuestionPoolQuestion } from "../Services/AdaptiveExerciseService.js";
+import { AdaptiveExerciseService, IQuestionPoolQuestion } from "../Services/AdaptiveExerciseService.js";
 import { EdgarService } from "../Services/EdgarService.js";
+import { ExerciseDefinitionService } from "../Services/ExerciseDefinitionService.js";
 import { QuestionClassificationUtil } from "../Util/QuestionClassificationUtil.js";
 
 type QuestionAnswerStreak = "correct" | "skip" | "incorrect";
@@ -26,6 +27,7 @@ export class DefaultAdaptiveExerciseInfoProvider implements
 
     constructor(
         private readonly edgarService: EdgarService,
+        private readonly adaptiveExerciseService: AdaptiveExerciseService,
     ) {}
 
     private static getQuestionStreakType(question: IExerciseInstanceQuestion): QuestionAnswerStreak {
@@ -47,13 +49,15 @@ export class DefaultAdaptiveExerciseInfoProvider implements
             );
     }
 
-    private filterQuestionPool(
+    private async filterQuestionPool(
         exercise: IExerciseInstance,
         qPool: IQuestionPoolQuestion[],
         initial: boolean,
         previousQuestions?: IExerciseInstanceQuestion[],
-    ): IQuestionPoolQuestion[] {
+    ): Promise<IQuestionPoolQuestion[]> {
         const useOldLogic: boolean = false;
+
+        const exerciseDefinition = await this.adaptiveExerciseService.getExerciseDefinition(exercise.id);
 
         let streakType: QuestionAnswerStreak | null = null;
         let streak = 0;
@@ -151,33 +155,39 @@ export class DefaultAdaptiveExerciseInfoProvider implements
 
                 switch (streakType) {
                     case "correct": {
-                        testStreak = (streak - 1) % DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE;
+                        const streakToUpgrade = exerciseDefinition?.correct_answers_to_upgrade ??
+                            DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE;
+
+                        testStreak = (streak - 1) % streakToUpgrade;
                         testStreak++;
 
-                        return classJump === 0 &&
-                            testStreak < DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE
+                        return classJump === 0 && testStreak < streakToUpgrade
                         || (QuestionClassificationUtil.instance.isHighestClass(difficultyClass!) && classJump === 0 || classJump === 1) &&
-                            testStreak >= DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE;
+                            testStreak >= streakToUpgrade;
                     }
 
                     case "skip": {
-                        testStreak = (streak - 1) % DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE;
+                        const streakToDowngrade = exerciseDefinition?.incorrect_answers_to_downgrade ??
+                            DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE;
+
+                        testStreak = (streak - 1) % streakToDowngrade;
                         testStreak++;
 
-                        return classJump === 0 &&
-                            testStreak < DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE
+                        return classJump === 0 && testStreak < streakToDowngrade
                         || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
-                            testStreak >= DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE;
+                            testStreak >= streakToDowngrade;
                     }
 
                     case "incorrect": {
-                        testStreak = (streak - 1) % DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE;
+                        const streakToDowngrade = exerciseDefinition?.skipped_questions_to_downgrade ??
+                            DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE;
+
+                        testStreak = (streak - 1) % streakToDowngrade;
                         testStreak++;
 
-                        return classJump === 0 &&
-                                testStreak < DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE
+                        return classJump === 0 && testStreak < streakToDowngrade
                         || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
-                                testStreak >= DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE;
+                                testStreak >= streakToDowngrade;
                     }
                 }
             });
@@ -198,7 +208,7 @@ export class DefaultAdaptiveExerciseInfoProvider implements
     > {
         const dbConn = DbConnProvider.getDbConn();
         
-        const filteredQuestionPool = this.filterQuestionPool(exercise, questionPool, initial, previousQuestions);
+        const filteredQuestionPool = await this.filterQuestionPool(exercise, questionPool, initial, previousQuestions);
 
         const q = filteredQuestionPool[Math.round(Math.random() * (filteredQuestionPool.length - 1))];
         const answers = (
