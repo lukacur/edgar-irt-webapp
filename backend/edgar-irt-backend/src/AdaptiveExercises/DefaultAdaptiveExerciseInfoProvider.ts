@@ -135,7 +135,13 @@ export class DefaultAdaptiveExerciseInfoProvider implements
                     if (initial && (exercise.start_difficulty ?? null) !== null) {
                         return q.question_irt_classification === exercise.start_difficulty;
                     } else if (initial) {
-                        if (exerciseDefinition === null) {
+                        const studentAvgStartDifficulty =
+                            await this.adaptiveExerciseService.getStudentStartingDifficulty(
+                                exercise.id_student_started,
+                                exerciseDefinition?.id ?? null,
+                            );
+
+                        if (studentAvgStartDifficulty === null) {
                             const logFn = LogisticFunction.withParams({
                                 itemDifficulty: q.item_difficulty,
                                 levelOfItemKnowledge: q.level_of_item_knowledge,
@@ -146,12 +152,6 @@ export class DefaultAdaptiveExerciseInfoProvider implements
                             const correctAnswerProbability = logFn.fourParamLogisticFn(exercise.current_irt_theta);
                             return correctAnswerProbability >= 0.2;
                         }
-
-                        const studentAvgStartDifficulty =
-                            await this.adaptiveExerciseService.getStudentStartingDifficulty(
-                                exercise.id_student_started,
-                                exerciseDefinition.id,
-                            );
 
                         return studentAvgStartDifficulty === q.question_irt_classification;
                     }

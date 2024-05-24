@@ -77,8 +77,12 @@ export class AdaptiveExerciseService {
 
     public async getStudentStartingDifficulty(
         idStudent: number,
-        idExerciseDefinition: number,
-    ): Promise<QuestionIrtClassification> {
+        idExerciseDefinition: number | null,
+    ): Promise<QuestionIrtClassification | null> {
+        if (idExerciseDefinition === null) {
+            return null;
+        }
+
         const previousExerciseDifficulties: { final_difficulty: QuestionIrtClassification }[] = (
             await this.dbConn.doQuery<{ final_difficulty: QuestionIrtClassification }>(
                 `SELECT exercise_instance_question.question_difficulty AS final_difficulty
@@ -98,8 +102,14 @@ export class AdaptiveExerciseService {
             )
         )?.rows ?? [];
 
-        return QuestionClassificationUtil.instance.getAverageDifficulty(
-            previousExerciseDifficulties.map(ed => ed.final_difficulty)
-        );
+        const calculationPreparedPrevExers = previousExerciseDifficulties
+            .filter(ed => ed !== null)
+            .map(ed => ed.final_difficulty);
+
+        if (calculationPreparedPrevExers.length === 0) {
+            return null;
+        }
+
+        return QuestionClassificationUtil.instance.getAverageDifficulty(calculationPreparedPrevExers);
     }
 }
