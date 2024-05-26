@@ -7,7 +7,7 @@ import { IEdgarNode } from 'src/app/models/edgar/node.model';
 import { INodeQuestionClass } from 'src/app/models/exercise-definition/node-question-class.model';
 import { AdaptiveExercisesService } from 'src/app/services/adaptive-exercises.service';
 import { EdgarService } from 'src/app/services/edgar.service';
-import { ExerciseDefinitionServiceService } from 'src/app/services/exercise-definition-service.service';
+import { ExerciseDefinitionService } from 'src/app/services/exercise-definition.service';
 import { QuestionIrtClassification, QuestionUtil } from 'src/app/util/question.util';
 
 type CourseQuestionClassInfo = { qClass?: string, qClassCount?: number };
@@ -64,7 +64,7 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
 
     constructor(
         private adaptiveExercisesService: AdaptiveExercisesService,
-        private exerciseDefinitionService: ExerciseDefinitionServiceService,
+        private exerciseDefinitionService: ExerciseDefinitionService,
         private edgarService: EdgarService,
     ) { }
 

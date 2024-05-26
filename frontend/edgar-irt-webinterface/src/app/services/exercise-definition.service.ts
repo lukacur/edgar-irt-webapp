@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { map, Observable, tap } from 'rxjs';
-import { INodeQuestionClass } from '../models/exercise-definition/node-question-class.model';
+import { INodeQuestionClass } from '../models/exercise-definition/node-question-class.model.js';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { IQuestionDifficultyInfo } from '../models/exercise-definition/exercise-question-difficulty-info.model.js';
@@ -15,7 +15,7 @@ type ProgressionInformation = {
 @Injectable({
     providedIn: 'root'
 })
-export class ExerciseDefinitionServiceService {
+export class ExerciseDefinitionService {
 
     constructor(
         private readonly http: HttpClient,

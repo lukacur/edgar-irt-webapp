@@ -1,11 +1,11 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { BehaviorSubject, firstValueFrom, map, Observable, Subscription, take, tap } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, map, Observable, Subscription } from 'rxjs';
 import { IExerciseDefinition } from 'src/app/models/adaptive-exercises/exercise-definition.model';
 import { IEdgarCourse } from 'src/app/models/edgar/course.model';
 import { AdaptiveExercisesService } from 'src/app/services/adaptive-exercises.service';
 import { EdgarService } from 'src/app/services/edgar.service';
-import { ExerciseDefinitionServiceService } from 'src/app/services/exercise-definition-service.service';
+import { ExerciseDefinitionService } from 'src/app/services/exercise-definition.service';
 
 @Component({
     selector: 'app-exercise-definition',
@@ -30,7 +30,7 @@ export class ExerciseDefinitionComponent implements OnInit, OnDestroy {
     private readonly subscriptions: Subscription[] = [];
     constructor(
         private adaptiveExercisesService: AdaptiveExercisesService,
-        private exerciseDefinitionService: ExerciseDefinitionServiceService,
+        private exerciseDefinitionService: ExerciseDefinitionService,
         private edgarService: EdgarService,
     ) { }
 
