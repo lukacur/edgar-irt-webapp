@@ -47,7 +47,7 @@
             [ngClass]="ngClassObj"
             *ngIf="optionsExpanded"
         >
-            <li class="bg-white sticky top-0" *ngIf="searchable">
+            <li class="bg-white sticky top-0 mb-3" *ngIf="searchable">
                 <div class="relative top-3">
                     <mat-icon class="absolute top-1/2 -translate-y-1/2 mx-3 select-none">search</mat-icon>
                     <input
@@ -66,7 +66,11 @@
                 </div>
             </li>
             <li
-                class="p-2 cursor-pointer first:border-none border-t border-slate-400/25 hover:bg-blue-400/15 bg-white mt-3"
+                class="p-3 cursor-pointer border-t border-slate-400/25 hover:bg-blue-400/15 bg-white"
+                [ngClass]="{
+                    'first:border-none': !searchable,
+                    '[&:nth-child(2)]:border-none': searchable
+                }"
                 *ngFor="let selectableItem of getFilteredItems()"
                 (click)="
                     $event.preventDefault();
@@ -81,8 +85,11 @@
                 {{ getItemText(selectableItem) }}
             </li>
             <li
-                class="p-2 text-gray-500/50 border-t border-slate-400/25"
-                *ngIf="selectableItems.length === 0 || multi && selectableItems.length === selectedItems.length"
+                class="p-3 text-gray-500/50 border-t border-slate-400/25 mt-3 hidden"
+                [ngClass]="{
+                    'first:block first:border-none': !searchable,
+                    '[&:nth-child(2)]:block [&:nth-child(2)]:border-none': searchable
+                }"
             >
                 {{ noItemsText }}
             </li>
