@@ -83,6 +83,16 @@ export class QuestionUtil {
         return "bg-slate-500";
     }
 
+    public static getMaterialColorClassForClassification(classification: QuestionIrtClassification) {
+        switch (classification) {
+            case "very_easy": return "question-class-ve";
+            case "easy": return "question-class-e";
+            case "normal": return "question-class-n";
+            case "hard": return "question-class-h";
+            case "very_hard": return "question-class-vh";
+        }
+    }
+
     public static getAvailableClasses(): QuestionIrtClassification[] {
         return [ 'very_easy', 'easy', 'normal', 'hard', 'very_hard' ];
     }

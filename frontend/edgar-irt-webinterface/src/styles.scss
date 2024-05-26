@@ -6,3 +6,52 @@
 body {
     height: 100vh;
 }
+
+.mat-stroked-button, .mat-stroked-button:not([disabled]) {
+    &.mat-question-class-ve {
+        border-color: #81c784;
+    }
+    
+    &.mat-question-class-e {
+        border-color: #4caf50;
+    }
+    
+    &.mat-question-class-n {
+        border-color: #ffeb3b;
+    }
+    
+    &.mat-question-class-h {
+        border-color: #ff9800;
+    }
+    
+    &.mat-question-class-vh {
+        border-color: #f44336;
+    }
+}
+
+.mat-flat-button, .mat-flat-button:not([disabled]) {
+    &.mat-question-class-ve {
+        background-color: #81c784;
+        border-color: #81c784;
+    }
+    
+    &.mat-question-class-e {
+        background-color: #4caf50;
+        border-color: #4caf50;
+    }
+    
+    &.mat-question-class-n {
+        background-color: #ffeb3b;
+        border-color: #ffeb3b;
+    }
+    
+    &.mat-question-class-h {
+        background-color: #ff9800;
+        border-color: #ff9800;
+    }
+    
+    &.mat-question-class-vh {
+        background-color: #f44336;
+        border-color: #f44336;
+    }
+}
