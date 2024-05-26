@@ -1,8 +1,11 @@
 import { DatabaseConnection } from "../Database/DatabaseConnection.js";
 import { TransactionContext } from "../Database/TransactionContext.js";
 import { IExerciseDefinition } from "../Models/Database/AdaptiveExercise/IExerciseDefinition.js";
+import { IExerciseQuestionDifficultyOverride } from "../Models/Database/AdaptiveExercise/IExerciseQuestionDifficultyOverride.js";
+import { IQuestionDifficultyInfo } from "../Models/Database/AdaptiveExercise/IQuestionDifficultyInfo.js";
 import { IQuestionNodeWhitelistEntry } from "../Models/Database/AdaptiveExercise/IQuestionNodeWhitelistEntry.js";
 import { IEdgarNode } from "../Models/Database/Edgar/IEdgarNode.js";
+import { QuestionIrtClassification } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
 import { CourseService } from "./CourseService.js";
 
 export type ExerciseDefinitionProgressionDescriptor = {
@@ -230,6 +233,169 @@ export class ExerciseDefinitionService {
 
             await transaction.commit();
 
+            return true;
+        } catch {
+            return false;
+        } finally {
+            if (!transaction.isFinished()) {
+                await transaction.rollback();
+            }
+        }
+    }
+
+    public async getQuestionDifficultyInformation(idExerciseDefinition: number): Promise<IQuestionDifficultyInfo[]> {
+        const overridenInfo = (
+            await this.dbConn.doQuery<IQuestionDifficultyInfo>(
+                `SELECT id_question,
+                        question_difficulty,
+                        TRUE AS is_override
+                FROM adaptive_exercise.exercise_question_difficulty_override
+                WHERE id_exercise_definition = $1`,
+                [ idExerciseDefinition ]
+            )
+        )?.rows ?? [];
+
+        const calculatedInfo = (
+            await this.dbConn.doQuery<IQuestionDifficultyInfo>(
+                `SELECT question_param_calculation.id_question,
+                        question_param_course_level_calculation.question_irt_classification AS question_difficulty,
+                        FALSE AS is_override
+                FROM adaptive_exercise.exercise_node_whitelist
+                    JOIN public.question_node
+                        ON exercise_node_whitelist.id_node = question_node.id_node
+                    JOIN public.question
+                        ON question_node.id_question = question.id
+                    LEFT JOIN statistics_schema.question_param_calculation
+                        ON question.id = question_param_calculation.id_question
+                    LEFT JOIN statistics_schema.question_param_course_level_calculation
+                        ON question_param_calculation.id =
+                            question_param_course_level_calculation.id_question_param_calculation
+                WHERE exercise_node_whitelist.id_exercise_definition = $1 AND
+                    question_param_calculation.id_question NOT IN (
+                        SELECT id_question
+                        FROM adaptive_exercise.exercise_question_difficulty_override AS eqdo
+                        WHERE eqdo.id_exercise_definition = $1
+                    )
+                ORDER BY question_param_calculation.id_question`,
+                [ idExerciseDefinition ]
+            )
+        )?.rows ?? [];
+
+        const reducedCalculatedInfo: IQuestionDifficultyInfo[] = [];
+
+        let i = 0;
+        while (i < calculatedInfo.length) {
+            const currIdQuestion = calculatedInfo[i].id_question;
+            while (i < calculatedInfo.length && calculatedInfo[i].id_question === currIdQuestion) {
+                reducedCalculatedInfo.push(calculatedInfo[i]);
+                ++i;
+            }
+        }
+
+        return [
+            ...overridenInfo,
+            ...reducedCalculatedInfo
+        ];
+    }
+
+    public async getQuestionDifficultyOverrides(
+        idExerciseDefinition: number
+    ): Promise<IExerciseQuestionDifficultyOverride[]> {
+        return (
+            await this.dbConn.doQuery<IExerciseQuestionDifficultyOverride>(
+                `SELECT *
+                FROM adaptive_exercise.exercise_question_difficulty_override
+                WHERE id_exercise_definition = $1`,
+                [ idExerciseDefinition ]
+            )
+        )?.rows ?? [];
+    }
+
+    public async overrideQuestionDifficulties(
+        idExerciseDefinition: number,
+        overrideInfo: { idQuestion: number, newDifficulty: QuestionIrtClassification | null }[]
+    ): Promise<boolean> {
+        const resetToDefaultArr = overrideInfo.filter(en => en.newDifficulty === null);
+        const updateOrInsertArr = overrideInfo.filter(en => en.newDifficulty !== null);
+
+        const transaction = await this.dbConn.beginTransaction('adaptive_exercise');
+
+        try {
+            for (const resetToDefaultReq of resetToDefaultArr) {
+                const queryRes = (
+                    await transaction.doQuery(
+                        `DELETE FROM exercise_question_difficulty_override
+                        WHERE id_exercise_definition = $1 AND
+                            id_question = $2`,
+                        [
+                            /* $1 */ idExerciseDefinition,
+                            /* $2 */ resetToDefaultReq.idQuestion,
+                        ]
+                    )
+                );
+                if (queryRes === null) {
+                    await transaction.rollback();
+                    return false;
+                }
+            }
+
+            const toUpdateQuestionIds = (
+                await transaction.doQuery<{ id_question: number }>(
+                    `SELECT id_question
+                    FROM exercise_question_difficulty_override
+                    WHERE id_exercise_definition = $1`,
+                    [ idExerciseDefinition ]
+                )
+            )?.rows ?? [];
+
+            for (
+                const toUpdateReq of
+                    updateOrInsertArr.filter(oi => toUpdateQuestionIds.some(qi => qi.id_question === oi.idQuestion))
+            ) {
+                const queryRes = (
+                    await transaction.doQuery(
+                        `UPDATE exercise_question_difficulty_override
+                        SET question_difficulty = $1
+                        WHERE id_exercise_definition = $2 AND
+                            id_question = $3`,
+                        [
+                            /* $1 */ toUpdateReq.newDifficulty,
+                            /* $2 */ idExerciseDefinition,
+                            /* $3 */ toUpdateReq.idQuestion,
+                        ]
+                    )
+                );
+                if (queryRes === null) {
+                    await transaction.rollback();
+                    return false;
+                }
+            }
+
+            for (
+                const toInsertReq of
+                    updateOrInsertArr.filter(oi => toUpdateQuestionIds.every(qi => qi.id_question !== oi.idQuestion))
+            ) {
+                const queryRes = (
+                    await transaction.doQuery(
+                        `INSERT INTO exercise_question_difficulty_override (
+                            id_exercise_definition,
+                            id_question,
+                            question_difficulty
+                        ) VALUES ($1, $2, $3)`,
+                        [
+                            /* $1 */ idExerciseDefinition,
+                            /* $2 */ toInsertReq.idQuestion,
+                            /* $3 */ toInsertReq.newDifficulty,
+                        ]
+                    )
+                );
+                if (queryRes === null) {
+                    await transaction.rollback();
+                    return false;
+                }
+            }
+
+            await transaction.commit();
             return true;
         } catch {
             return false;
