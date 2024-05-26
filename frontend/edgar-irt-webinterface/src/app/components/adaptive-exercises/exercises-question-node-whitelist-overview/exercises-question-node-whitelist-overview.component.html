@@ -1,8 +1,8 @@
-<div class="p-3 shadow-md border border-slate-500/50">
-    <h2 class="text-lg text-purple-600">Question whitelist definition</h2>
-    <hr class="my-3">
+<div [formGroup]="nodeSelectionForm">
+    <div class="p-3 shadow-md border border-slate-500/50 rounded-lg">
+        <h2 class="text-lg text-purple-600">Question whitelist definition</h2>
+        <hr class="my-3">
 
-    <div [formGroup]="nodeSelectionForm">
         <app-searchable-select
             labelText="Select a course"
     
@@ -71,168 +71,279 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <div *ngIf="(nodeSelectionForm.get('selectedExerciseDefinition')?.value ?? null) !== null">
+    <div *ngIf="(nodeSelectionForm.get('selectedExerciseDefinition')?.value ?? null) !== null">
+        <div class="p-3 mt-3 shadow-md border border-slate-500/50 rounded-lg">
+            <h3 class="text-purple-600 mb-3">Exercise progression</h3>
+
+            <p>
+                Student has to have
+                <span class="text-green-600">
+                    <b>
+                        {{
+                            nodeSelectionForm.get('selectedExerciseDefinition')
+                                !.value
+                                !.correct_answers_to_upgrade
+                        }}
+                    </b> correct
+                </span> answers to upgrade to a harder question<br><br>
+
+
+                Student has to have
+                <span class="text-red-600">
+                    <b>
+                        {{
+                            nodeSelectionForm.get('selectedExerciseDefinition')
+                                !.value
+                                !.incorrect_answers_to_downgrade
+                        }}
+                    </b> incorrect
+                </span> answers to downgrade to an easier question<br><br>
+
+
+                Student has to
+                <span class="text-yellow-600">
+                    skip
+                    <b>
+                        {{
+                            nodeSelectionForm.get('selectedExerciseDefinition')
+                                !.value
+                                !.skipped_questions_to_downgrade
+                        }}
+                    </b>
+                </span> questions to downgrade to an easier question<br><br>
+            </p>
+
+            <hr class="my-3">
+
+            <div class="my-3" formGroupName="progressionCustomization">
+                <h2 class="text-purple-600">Customize progression</h2>
+                <hr class="mt-3">
+
+                <div class="mt-3">
+                    <label class="text-sm">
+                        Sequential correct answers required to upgrade question difficulty
+                    </label>
+                    <input
+                        class="w-full p-3 rounded border border-slate-400/25"
+                        type="number"
+                        min="1"
+                        formControlName="correctAnswersToUpgrade"
+                    >
+                </div>
+
+                <div class="mt-3">
+                    <label class="text-sm">
+                        Sequential incorrect answers required to downgrade question difficulty
+                    </label>
+                    <input
+                        class="w-full p-3 rounded border border-slate-400/25"
+                        type="number"
+                        min="1"
+                        formControlName="incorrectAnswersToDowngrade"
+                    >
+                </div>
+
+                <div class="mt-3">
+                    <label class="text-sm">
+                        Sequential skipped questions required to downgrade question difficulty
+                    </label>
+                    <input
+                        class="w-full p-3 rounded border border-slate-400/25"
+                        type="number"
+                        min="1"
+                        formControlName="skippedQuestionsToDowngrade"
+                    >
+                </div>
+            </div>
+
+            <button
+                type="button"
+                mat-flat-button
+                color="primary"
+                (click)="updateProgressionInformation()"
+            >Update progression information</button>
+        </div>
+
+        <div #barChartCont class="p-3 mt-3 shadow-md border border-slate-500/50 rounded-lg">
+            <h3 class="text-purple-600">Question classification information</h3>
+            <hr class="my-3">
             <div>
+                Total questions: {{ getExerciseTotalQuestionCount() }}
+            </div>
+            <app-bar-chart
+                [classes]="questionClasses"
+                [classColors]="questionClassColors"
+
+                [data]="courseQuestionClasses"
+
+                dataClassKey="qClass"
+                dataValueKey="qClassCount"
+
+                [chartWidth]="400"
+
+                *ngIf="
+                    courseQuestionClasses !== null && courseQuestionClasses.length !== 0; else noExerciseQuestions
+                "
+            ></app-bar-chart>
+            <ng-template #noExerciseQuestions>
+                <div>
+                    This exercise does not have any nodes that contain questions with statistics information yet.
+
+                    <br><br>If statistics and IRT calculation exists for this course, add nodes to this exercise
+                    definition in order to display question difficulty information.<br><br>
+
+                    If no statistics and IRT calculation is present for this course, start one, wait for it to
+                    finish and then come back to overview the exam definition question difficulties.
+                </div>
+            </ng-template>
+
+            <hr class="my-3">
+
+            <div>
+                <h2 class="text-purple-600">Override question difficulty classification</h2>
                 <hr class="my-3">
 
-                <h3 class="text-purple-600 mb-3">Exercise progression</h3>
-
-                <p>
-                    Student has to have
-                    <span class="text-green-600">
-                        <b>
-                            {{
-                                nodeSelectionForm.get('selectedExerciseDefinition')
-                                    !.value
-                                    !.correct_answers_to_upgrade
-                            }}
-                        </b> correct
-                    </span> answers to upgrade to a harder question<br><br>
-
-
-                    Student has to have
-                    <span class="text-red-600">
-                        <b>
-                            {{
-                                nodeSelectionForm.get('selectedExerciseDefinition')
-                                    !.value
-                                    !.incorrect_answers_to_downgrade
-                            }}
-                        </b> incorrect
-                    </span> answers to downgrade to an easier question<br><br>
-
-
-                    Student has to
-                    <span class="text-yellow-600">
-                        skip
-                        <b>
-                            {{
-                                nodeSelectionForm.get('selectedExerciseDefinition')
-                                    !.value
-                                    !.skipped_questions_to_downgrade
-                            }}
-                        </b>
-                    </span> questions to downgrade to an easier question<br><br>
-                </p>
-
-                <hr class="my-3">
-
-                <div class="my-3" formGroupName="progressionCustomization">
-                    <h2 class="text-purple-600">Customize progression</h2>
-                    <hr class="mt-3">
-
-                    <div class="mt-3">
-                        <label class="text-sm">
-                            Sequential correct answers required to upgrade question difficulty
-                        </label>
-                        <input
-                            class="w-full p-3 rounded border border-slate-400/25"
-                            type="number"
-                            min="1"
-                            formControlName="correctAnswersToUpgrade"
-                        >
-                    </div>
-
-                    <div class="mt-3">
-                        <label class="text-sm">
-                            Sequential incorrect answers required to downgrade question difficulty
-                        </label>
-                        <input
-                            class="w-full p-3 rounded border border-slate-400/25"
-                            type="number"
-                            min="1"
-                            formControlName="incorrectAnswersToDowngrade"
-                        >
-                    </div>
-
-                    <div class="mt-3">
-                        <label class="text-sm">
-                            Sequential skipped questions required to downgrade question difficulty
-                        </label>
-                        <input
-                            class="w-full p-3 rounded border border-slate-400/25"
-                            type="number"
-                            min="1"
-                            formControlName="skippedQuestionsToDowngrade"
-                        >
-                    </div>
+                <div class="mb-3 overflow-auto max-h-[560px]">
+                    <table class="w-full border border-slate-400/35">
+                        <thead class="sticky top-0 my-1 bg-white z-[9999]">
+                            <tr class="border-t border-slate-400/35">
+                                <th class="p-3">Question ID</th>
+                                <th class="p-3">Difficulty classification</th>
+                                <th class="p-3">Override actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                class="border-y border-slate-400/35"
+                                *ngFor="let exerDifficultyInfo of (exerciseQuestionDifficultyInfo$ | async) ?? []"
+                            >
+                                <td class="p-3">{{ exerDifficultyInfo.idQuestion }}</td>
+                                <td class="p-3">
+                                    <p *ngIf="!exerDifficultyInfo.isOverride; else overriden">
+                                        This question appears in
+                                        <b>{{ exerDifficultyInfo.difficulties?.length ?? 0 }}</b> calculations
+                                        <span *ngIf="exerDifficultyInfo.difficulties !== null">
+                                            and can appear in exercises as a(n):<br>
+                                            <span *ngFor="let difficulty of exerDifficultyInfo.difficulties">
+                                                <span
+                                                    appBadge
+                                                    class="inline-block"
+                                                    [backgroundColorClass]="
+                                                        QUtil.getColorClassForClassification('bg', difficulty)
+                                                    "
+                                                >
+                                                    {{ QUtil.getQuestionClassificationText(difficulty) }}
+                                                </span> question<br><br>
+                                            </span>
+                                        </span>
+                                    </p>
+                                    <ng-template #overriden>
+                                        <p>
+                                            This question's difficulty was overriden and set to:<br>
+                                            <span
+                                                appBadge
+                                                class="inline-block"
+                                                [backgroundColorClass]="
+                                                    QUtil.getColorClassForClassification(
+                                                        'bg',
+                                                        exerDifficultyInfo.difficulties![0]!
+                                                    )
+                                                "
+                                            >
+                                                {{
+                                                    QUtil.getQuestionClassificationText(
+                                                        exerDifficultyInfo.difficulties![0]!
+                                                    )
+                                                }}
+                                            </span>
+                                        </p>
+                                    </ng-template>
+                                </td>
+                                <td class="p-3">
+                                    <div class="flex flex-col md:flex-row justify-center items-center">
+                                        <div class="w-full md:w-1/6 me-2" *ngFor="let qClass of questionClasses">
+                                            <button
+                                                mat-flat-button
+                                                [color]="QUtil.getMaterialColorClassForClassification(qClass)"
+                                                *ngIf="
+                                                    exerDifficultyInfo.isOverride &&
+                                                        !questionDifficultyOverridesMap
+                                                            .has(exerDifficultyInfo.idQuestion) &&
+                                                        (exerDifficultyInfo.difficulties ?? [])[0] === qClass ||
+                                                    questionDifficultyOverridesMap.has(exerDifficultyInfo.idQuestion) &&
+                                                        questionDifficultyOverridesMap
+                                                            .get(exerDifficultyInfo.idQuestion) === qClass;
+                                                    else btnStroke
+                                                "
+                                                (click)="
+                                                    questionDifficultyOverridesMap
+                                                        .set(
+                                                            exerDifficultyInfo.idQuestion,
+                                                            null
+                                                        );
+                                                "
+                                            >{{ QUtil.getQuestionClassificationText(qClass) }}</button>
+    
+                                            <ng-template #btnStroke>
+                                                <button
+                                                    mat-stroked-button
+                                                    [color]="QUtil.getMaterialColorClassForClassification(qClass)"
+                                                    (click)="
+                                                        questionDifficultyOverridesMap
+                                                            .set(
+                                                                exerDifficultyInfo.idQuestion,
+                                                                qClass
+                                                            );
+                                                    "
+                                                >{{ QUtil.getQuestionClassificationText(qClass) }}</button>
+                                            </ng-template>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <button
-                    type="button"
                     mat-flat-button
                     color="primary"
-                    (click)="updateProgressionInformation()"
-                >Update progression information</button>
+                    (click)="confirmQuestionClassOverrides()"
+                    [disabled]="questionDifficultyOverridesMap.size === 0"
+                >Confirm overrides</button>
             </div>
-            <div>
-                <hr class="my-3">
-    
-                <h3 class="text-purple-600">Whitelist course question nodes</h3>
-                <hr class="mt-3">
-                <app-searchable-select
-                    labelText="Select question nodes to whitelist"
-                    
-                    [multi]="true"
-                    [searchable]="true"
-                    [selectableItems]="(selectableNodes$ | async) ?? []"
-                    
-                    textKey="text"
-                    valueKey="node"
-    
-                    [useObjectAsValue]="false"
-                    
-                    [control]="nodeSelectionForm.get('selectedNodes')!"
-                ></app-searchable-select>
-    
-                <button
-                    type="button"
-                    mat-raised-button
-                    color="primary"
-                    [disabled]="!nodeSelectionForm.dirty"
-                    (click)="whitelistSelectedNodes()"
-                >Confirm</button>
-            </div>
-    
+        </div>
+
+        <div class="p-3 mt-3 shadow-md border border-slate-500/50 rounded-lg">
+            <h3 class="text-purple-600">Whitelist exercise question nodes</h3>
+            <hr class="mt-3">
+            <app-searchable-select
+                labelText="Select question nodes to whitelist"
+                
+                [multi]="true"
+                [searchable]="true"
+                [selectableItems]="(selectableNodes$ | async) ?? []"
+                
+                textKey="text"
+                valueKey="node"
+
+                [useObjectAsValue]="false"
+                
+                [control]="nodeSelectionForm.get('selectedNodes')!"
+            ></app-searchable-select>
+
+            <button
+                type="button"
+                mat-raised-button
+                color="primary"
+                [disabled]="!nodeSelectionForm.dirty"
+                (click)="whitelistSelectedNodes()"
+            >Confirm</button>
+
             <hr class="my-3">
 
-            <div #barChartCont class="mt-3">
-                <h3 class="text-purple-600">Question classification information</h3>
-                <hr class="my-3">
-                <div>
-                    Total questions: {{ getExerciseTotalQuestionCount() }}
-                </div>
-                <app-bar-chart
-                    [classes]="questionClasses"
-                    [classColors]="questionClassColors"
-
-                    [data]="courseQuestionClasses"
-
-                    dataClassKey="qClass"
-                    dataValueKey="qClassCount"
-
-                    [chartWidth]="400"
-
-                    *ngIf="
-                        courseQuestionClasses !== null && courseQuestionClasses.length !== 0; else noExerciseQuestions
-                    "
-                ></app-bar-chart>
-                <ng-template #noExerciseQuestions>
-                    <div>
-                        This exercise does not have any nodes that contain questions with statistics information yet.
-
-                        <br><br>If statistics and IRT calculation exists for this course, add nodes to this exercise
-                        definition in order to display question difficulty information.<br><br>
-
-                        If no statistics and IRT calculation is present for this course, start one, wait for it to
-                        finish and then come back to overview the exam definition question difficulties.
-                    </div>
-                </ng-template>
-            </div>
-
-            <hr class="my-3">
-    
             <div class="mt-3">
                 <h3 class="text-purple-600">Exercise whitelisted nodes</h3>
                 <hr class="my-3">

@@ -8,18 +8,27 @@ import { INodeQuestionClass } from 'src/app/models/exercise-definition/node-ques
 import { AdaptiveExercisesService } from 'src/app/services/adaptive-exercises.service';
 import { EdgarService } from 'src/app/services/edgar.service';
 import { ExerciseDefinitionServiceService } from 'src/app/services/exercise-definition-service.service';
-import { QuestionUtil } from 'src/app/util/question.util';
+import { QuestionIrtClassification, QuestionUtil } from 'src/app/util/question.util';
 
 type CourseQuestionClassInfo = { qClass?: string, qClassCount?: number };
+type ReducedQuestionDifficultyInfo = {
+    idQuestion: number;
+    difficulties: QuestionIrtClassification[] | null;
+    isOverride: boolean;
+};
 
 @Component({
     selector: 'app-question-node-whitelist-overview',
     templateUrl: './exercises-question-node-whitelist-overview.component.html',
 })
 export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, OnDestroy {
+    readonly QUtil = QuestionUtil;
+
     courses$: Observable<{ text: string, course: IEdgarCourse }[]> = new BehaviorSubject([]);
     exerciseDefinitions$: Observable<{ text: string, exDefinition: IExerciseDefinition }[]> = new BehaviorSubject([]);
     selectableNodes$: Observable<{ text: string, node: IEdgarNode }[]> = new BehaviorSubject([]);
+    exerciseQuestionDifficultyInfo$: Observable<ReducedQuestionDifficultyInfo[]> =
+        new BehaviorSubject([]);
     exerciseDefinitionWhitelistedNodes$: Observable<(IEdgarNode & { whitelisted_on: string })[]> =
         new BehaviorSubject([]);
 
@@ -48,6 +57,8 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
             skippedQuestionsToDowngrade: new FormControl<number>(5, [Validators.min(1)]),
         }),
     });
+    
+    readonly questionDifficultyOverridesMap = new Map<number, QuestionIrtClassification | null>();
 
     readonly subscriptions: Subscription[] = [];
 
@@ -209,6 +220,43 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
                                 this.adaptiveExercisesService.getExerciseDefinitionNodeWhitelist(exDef.id)
                                     .pipe(tap(nodes => this.numberOfWhitelistedNodes = nodes.length));
 
+                            this.exerciseQuestionDifficultyInfo$ =
+                                this.exerciseDefinitionService.getQuestionDifficultyInformation(exDef.id)
+                                    .pipe(
+                                        map(qdis => {
+                                            const map = new Map<number, ReducedQuestionDifficultyInfo>();
+
+                                            for (const qdi of qdis) {
+                                                if (!map.has(qdi.id_question)) {
+                                                    map.set(
+                                                        qdi.id_question,
+                                                        {
+                                                            idQuestion: qdi.id_question,
+                                                            isOverride: qdi.is_override,
+                                                            difficulties:
+                                                                (qdi.question_difficulty === null) ?
+                                                                    null :
+                                                                    [qdi.question_difficulty],
+                                                        }
+                                                    );
+                                                } else {
+                                                    const oldInfo = map.get(qdi.id_question);
+
+                                                    if (qdi.question_difficulty !== null) {
+                                                        oldInfo?.difficulties?.push(qdi.question_difficulty!);
+                                                    }
+                                                }
+                                            }
+
+                                            const retArr: ReducedQuestionDifficultyInfo[] = [];
+                                            for (const val of map.values()) {
+                                                retArr.push(val);
+                                            }
+
+                                            return retArr;
+                                        })
+                                    );
+
                             this.byNodeQuestionClasses$ =
                                 this.exerciseDefinitionService.getQuestionClassesForDefinition(exDef.id)
                                     .pipe(
@@ -314,6 +362,31 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
 
             this.reloadComponentData(true, true);
         });
+    }
+
+    confirmQuestionClassOverrides() {
+        if (this.questionDifficultyOverridesMap.size === 0) {
+            window.alert("No new question overrides were set.");
+            return;
+        }
+
+        if ((this.nodeSelectionForm.get('selectedExerciseDefinition')?.value ?? null) === null) {
+            window.alert("An exercise definition must be selected before proceeding to question difficulty override");
+            return;
+        }
+
+        const idExerciseDefinition = this.nodeSelectionForm.get('selectedExerciseDefinition')!.value!.id;
+        const overrides: { idQuestion: number, newDifficulty: QuestionIrtClassification | null }[] = [];
+        this.questionDifficultyOverridesMap.forEach(
+            (newDifficulty, idQuestion) => overrides.push({ idQuestion, newDifficulty })
+        );
+
+        this.exerciseDefinitionService.overrideQuestionDifficulties(idExerciseDefinition, overrides)
+            .subscribe(() => {
+                window.alert("Question difficulties successfully updated");
+                this.questionDifficultyOverridesMap.clear();
+                this.reloadComponentData(true, true);
+            });
     }
 
 
