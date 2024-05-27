@@ -26,6 +26,17 @@ export class ExerciseDefinitionService {
         private readonly courseService: CourseService,
     ) {}
 
+    public async getExerciseDefinition(idDefinition: number): Promise<IExerciseDefinition | null> {
+        return (
+            await this.dbConn.doQuery<IExerciseDefinition>(
+                `SELECT *
+                FROM adaptive_exercise.exercise_definition
+                WHERE id = $1`,
+                [ idDefinition ]
+            )
+        )?.rows[0] ?? null;
+    }
+
     public async getDefinitionsForCourse(idCourse: number): Promise<IExerciseDefinition[]> {
         return (
             await this.dbConn.doQuery<IExerciseDefinition>(
