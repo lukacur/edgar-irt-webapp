@@ -244,20 +244,25 @@ export class ExerciseDefinitionService {
     }
 
     public async getQuestionDifficultyInformation(idExerciseDefinition: number): Promise<IQuestionDifficultyInfo[]> {
-        const overridenInfo = (
+        const difficultyInfo = (
             await this.dbConn.doQuery<IQuestionDifficultyInfo>(
-                `SELECT id_question,
+                `SELECT question.id AS id_question,
+                        question_node.id AS id_node,
+                        question.question_text,
                         question_difficulty,
                         TRUE AS is_override
                 FROM adaptive_exercise.exercise_question_difficulty_override
-                WHERE id_exercise_definition = $1`,
-                [ idExerciseDefinition ]
-            )
-        )?.rows ?? [];
-
-        const calculatedInfo = (
-            await this.dbConn.doQuery<IQuestionDifficultyInfo>(
-                `SELECT question_param_calculation.id_question,
+                    JOIN public.question
+                        ON exercise_question_difficulty_override.id_question = question.id
+                    JOIN public.question_node
+                        ON question.id = question_node.id_question
+                WHERE id_exercise_definition = $1
+                
+                UNION ALL
+                
+                SELECT question.id AS id_question,
+                        question_node.id AS id_node,
+                        question.question_text,
                         question_param_course_level_calculation.question_irt_classification AS question_difficulty,
                         FALSE AS is_override
                 FROM adaptive_exercise.exercise_node_whitelist
@@ -270,32 +275,24 @@ export class ExerciseDefinitionService {
                     LEFT JOIN statistics_schema.question_param_course_level_calculation
                         ON question_param_calculation.id =
                             question_param_course_level_calculation.id_question_param_calculation
-                WHERE exercise_node_whitelist.id_exercise_definition = $1 AND
-                    question_param_calculation.id_question NOT IN (
+                WHERE exercise_node_whitelist.id_exercise_definition = $1 AND (
+                    question_irt_classification IS NOT NULL OR question.id NOT IN (
                         SELECT id_question
-                        FROM adaptive_exercise.exercise_question_difficulty_override AS eqdo
-                        WHERE eqdo.id_exercise_definition = $1
+                        FROM statistics_schema.question_param_calculation AS qpc
+                            JOIN adaptive_exercise.exercise_definition AS exdef
+                                ON qpc.id_based_on_course = exdef.id_course
                     )
-                ORDER BY question_param_calculation.id_question`,
+                ) AND question.id NOT IN (
+                    SELECT id_question
+                    FROM adaptive_exercise.exercise_question_difficulty_override AS eqdo
+                    WHERE eqdo.id_exercise_definition = $1
+                )
+                ORDER BY is_override DESC, id_question`,
                 [ idExerciseDefinition ]
             )
         )?.rows ?? [];
 
-        const reducedCalculatedInfo: IQuestionDifficultyInfo[] = [];
-
-        let i = 0;
-        while (i < calculatedInfo.length) {
-            const currIdQuestion = calculatedInfo[i].id_question;
-            while (i < calculatedInfo.length && calculatedInfo[i].id_question === currIdQuestion) {
-                reducedCalculatedInfo.push(calculatedInfo[i]);
-                ++i;
-            }
-        }
-
-        return [
-            ...overridenInfo,
-            ...reducedCalculatedInfo
-        ];
+        return difficultyInfo;
     }
 
     public async getQuestionDifficultyOverrides(
