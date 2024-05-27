@@ -3,6 +3,7 @@ import { DbConnProvider } from "../DbConnProvider.js";
 import { IAdaptiveExerciseInitialThetaGenerator } from "../Logic/IAdaptiveExerciseInitialThetaGenerator.js";
 import { IAdaptiveExerciseNextQuestionGenerator } from "../Logic/IAdaptiveExerciseNextQuestionGenerator.js";
 import { IAdaptiveExerciseThetaDeltaGenerator, ThetaDeltaInfo } from "../Logic/IAdaptiveExerciseThetaDeltaGenerator.js";
+import { IExerciseDefinition } from "../Models/Database/AdaptiveExercise/IExerciseDefinition.js";
 import { IExerciseInstance } from "../Models/Database/AdaptiveExercise/IExerciseInstance.js";
 import { IExerciseInstanceQuestion } from "../Models/Database/AdaptiveExercise/IExerciseInstanceQuestion.js";
 import { IQuestionAnswer } from "../Models/Database/Edgar/IQuestionAnswer.js";
@@ -11,6 +12,7 @@ import { IEdgarStatProcessingQuestionIRTInfo } from "../Models/Database/Statisti
 import { LogisticFunction } from "../Models/Irt/LogisticFunction.js";
 import { AdaptiveExerciseService, IQuestionPoolQuestion } from "../Services/AdaptiveExerciseService.js";
 import { EdgarService } from "../Services/EdgarService.js";
+import { ExerciseDefinitionService } from "../Services/ExerciseDefinitionService.js";
 import { QuestionClassificationUtil } from "../Util/QuestionClassificationUtil.js";
 
 type QuestionAnswerStreak = "correct" | "skip" | "incorrect";
@@ -27,6 +29,7 @@ export class DefaultAdaptiveExerciseInfoProvider implements
     constructor(
         private readonly edgarService: EdgarService,
         private readonly adaptiveExerciseService: AdaptiveExerciseService,
+        private readonly exerciseDefinitionService: ExerciseDefinitionService,
     ) {}
 
     private static getQuestionStreakType(question: IExerciseInstanceQuestion): QuestionAnswerStreak {
@@ -56,7 +59,12 @@ export class DefaultAdaptiveExerciseInfoProvider implements
     ): Promise<IQuestionPoolQuestion[]> {
         const useOldLogic: boolean = false;
 
-        const exerciseDefinition = await this.adaptiveExerciseService.getExerciseDefinition(exercise.id);
+        const exerciseDefinition = await this.exerciseDefinitionService.getExerciseDefinition(exercise.id_exercise_definition);
+        const studentAvgStartDifficulty =
+            await this.adaptiveExerciseService.getStudentStartingDifficulty(
+                exercise.id_student_started,
+                exerciseDefinition?.id ?? null,
+            );
 
         let streakType: QuestionAnswerStreak | null = null;
         let streak = 0;
@@ -130,78 +138,71 @@ export class DefaultAdaptiveExerciseInfoProvider implements
                 }
             });
         } else {
-            return await Promise.all(
-                qPool.filter(async q => {
-                    if (initial && (exercise.start_difficulty ?? null) !== null) {
-                        return q.question_irt_classification === exercise.start_difficulty;
-                    } else if (initial) {
-                        const studentAvgStartDifficulty =
-                            await this.adaptiveExerciseService.getStudentStartingDifficulty(
-                                exercise.id_student_started,
-                                exerciseDefinition?.id ?? null,
-                            );
-
-                        if (studentAvgStartDifficulty === null) {
-                            const logFn = LogisticFunction.withParams({
-                                itemDifficulty: q.item_difficulty,
-                                levelOfItemKnowledge: q.level_of_item_knowledge,
-                                itemGuessProbability: q.item_guess_probability,
-                                itemMistakeProbability: q.item_mistake_probability,
-                            }, q.default_item_offset_parameter);
-                
-                            const correctAnswerProbability = logFn.fourParamLogisticFn(exercise.current_irt_theta);
-                            return correctAnswerProbability >= 0.2;
-                        }
-
-                        return studentAvgStartDifficulty === q.question_irt_classification;
+            return qPool.filter(q => {
+                if (initial && (exercise.start_difficulty ?? null) !== null) {
+                    return q.question_irt_classification === exercise.start_difficulty;
+                } else if (initial) {
+                    if (studentAvgStartDifficulty === null) {
+                        /*const logFn = LogisticFunction.withParams({
+                            itemDifficulty: q.item_difficulty,
+                            levelOfItemKnowledge: q.level_of_item_knowledge,
+                            itemGuessProbability: q.item_guess_probability,
+                            itemMistakeProbability: q.item_mistake_probability,
+                        }, q.default_item_offset_parameter);
+            
+                        const correctAnswerProbability = logFn.fourParamLogisticFn(exercise.current_irt_theta);
+                        return correctAnswerProbability >= 0.2;*/
+                        return q.question_irt_classification === 'easy'; // TODO: If OK, leave it like this
                     }
 
-                    const classJump = QuestionClassificationUtil.instance.getClassJump(
-                        difficultyClass!,
-                        q.question_irt_classification,
-                    );
+                    return studentAvgStartDifficulty === q.question_irt_classification;
+                }
 
-                    let testStreak: number;
+                const classJump = QuestionClassificationUtil.instance.getClassJump(
+                    difficultyClass!,
+                    q.question_irt_classification,
+                );
 
-                    switch (streakType) {
-                        case "correct": {
-                            const streakToUpgrade = exerciseDefinition?.correct_answers_to_upgrade ??
-                                DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE;
+                let testStreak: number;
 
-                            testStreak = (streak - 1) % streakToUpgrade;
-                            testStreak++;
+                switch (streakType) {
+                    case "correct": {
+                        const streakToUpgrade = exerciseDefinition?.correct_answers_to_upgrade ??
+                            DefaultAdaptiveExerciseInfoProvider.CORRECT_STREAK_TO_UPGRADE;
 
-                            return classJump === 0 && testStreak < streakToUpgrade
-                            || (QuestionClassificationUtil.instance.isHighestClass(difficultyClass!) && classJump === 0 || classJump === 1) &&
-                                testStreak >= streakToUpgrade;
-                        }
+                        testStreak = (streak - 1) % streakToUpgrade;
+                        testStreak++;
 
-                        case "skip": {
-                            const streakToDowngrade = exerciseDefinition?.incorrect_answers_to_downgrade ??
-                                DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE;
+                        return classJump === 0 && testStreak < streakToUpgrade
+                        || (QuestionClassificationUtil.instance.isHighestClass(difficultyClass!) && classJump === 0 || classJump === 1) &&
+                            testStreak >= streakToUpgrade;
+                    }
 
-                            testStreak = (streak - 1) % streakToDowngrade;
-                            testStreak++;
+                    case "skip": {
+                        const streakToDowngrade = exerciseDefinition?.skipped_questions_to_downgrade ??
+                            DefaultAdaptiveExerciseInfoProvider.SKIP_STREAK_TO_DOWNGRADE;
 
-                            return classJump === 0 && testStreak < streakToDowngrade
-                            || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
+                        testStreak = (streak - 1) % streakToDowngrade;
+                        testStreak++;
+
+                        return classJump === 0 && testStreak < streakToDowngrade
+                        || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
+                            testStreak >= streakToDowngrade;
+                    }
+
+                    case "incorrect": {
+                        const streakToDowngrade = exerciseDefinition?.incorrect_answers_to_downgrade ??
+                            DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE;
+
+                        testStreak = (streak - 1) % streakToDowngrade;
+                        testStreak++;
+
+                        return classJump === 0 && testStreak < streakToDowngrade
+                        || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
                                 testStreak >= streakToDowngrade;
-                        }
-
-                        case "incorrect": {
-                            const streakToDowngrade = exerciseDefinition?.skipped_questions_to_downgrade ??
-                                DefaultAdaptiveExerciseInfoProvider.INCORRECT_STREAK_TO_DOWNGRADE;
-
-                            testStreak = (streak - 1) % streakToDowngrade;
-                            testStreak++;
-
-                            return classJump === 0 && testStreak < streakToDowngrade
-                            || (QuestionClassificationUtil.instance.isLowestClass(difficultyClass!) && classJump === 0 || classJump === -1) &&
-                                    testStreak >= streakToDowngrade;
-                        }
                     }
-                })
-            );
+                }
+            });
         }
     }
 
@@ -274,18 +275,12 @@ export class DefaultAdaptiveExerciseInfoProvider implements
             const paramsTestBasedCalcs = [ info.calculation_group, q.id ];
 
             const acYearIds: number[] = (
-                (transactionCtx === null) ?
-                    await dbConn.doQuery<{ id_academic_year: number }>(sqlYears, paramsYears) :
-                    await transactionCtx.doQuery<{ id_academic_year: number }>(sqlYears, paramsYears)
+                await (transactionCtx ?? dbConn).doQuery<{ id_academic_year: number }>(sqlYears, paramsYears)
             )?.rows.map(r => r.id_academic_year) ?? [];
 
             const tbInfoIds: { id_test_based_info: number, id_based_on_test: number }[] = (
-                (transactionCtx === null) ?
-                    await dbConn.doQuery<{ id_test_based_info: number, id_based_on_test: number }>(
-                        sqlTestBasedCalcs,
-                        paramsTestBasedCalcs
-                    ) :
-                    await transactionCtx.doQuery<{ id_test_based_info: number, id_based_on_test: number }>(
+                await (transactionCtx ?? dbConn)
+                    .doQuery<{ id_test_based_info: number, id_based_on_test: number }>(
                         sqlTestBasedCalcs,
                         paramsTestBasedCalcs
                     )
@@ -296,16 +291,13 @@ export class DefaultAdaptiveExerciseInfoProvider implements
         }
 
         const irtInfo = irtInfoArr[0] ?? null;
-        if (irtInfo === null) {
-            throw new Error("IRT info was null");
-        }
 
         return {
             id_question: q.id,
             correct_answers: answers?.filter(a => a.is_correct).map(a => a.ordinal) ?? null,
-            id_question_irt_cb_info: irtInfo.id_course_based_info,
+            id_question_irt_cb_info: irtInfo?.id_course_based_info ?? null,
             question_difficulty: q.question_irt_classification,
-            id_question_irt_tb_info: irtInfo.testBasedInfo.map(tbi => tbi.id_test_based_info),
+            id_question_irt_tb_info: irtInfo?.testBasedInfo.map(tbi => tbi.id_test_based_info) ?? null,
         };
     }
 

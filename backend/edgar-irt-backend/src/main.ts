@@ -28,7 +28,8 @@ export class Main {
         const exerciseDefinitionService = new ExerciseDefinitionService(DbConnProvider.getDbConn(), courseService);
         const defaultAdaptiveExerciseInfoProvider = new DefaultAdaptiveExerciseInfoProvider(
             edgarService,
-            adaptiveExerciseService
+            adaptiveExerciseService,
+            exerciseDefinitionService,
         );
 
         Main.server.useJsonBodyParsing();
