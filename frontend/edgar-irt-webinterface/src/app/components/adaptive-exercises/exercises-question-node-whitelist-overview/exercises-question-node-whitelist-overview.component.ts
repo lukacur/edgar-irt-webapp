@@ -14,7 +14,6 @@ type CourseQuestionClassInfo = { qClass?: string, qClassCount?: number };
 type ReducedQuestionDifficultyInfo = {
     idQuestion: number;
     questionText: string;
-    idNode: number;
     difficulties: QuestionIrtClassification[];
     isOverride: boolean;
 };
@@ -243,7 +242,6 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
                                                     {
                                                         idQuestion: qdi.id_question,
                                                         questionText: qdi.question_text,
-                                                        idNode: qdi.id_node,
                                                         isOverride: qdi.is_override,
                                                         difficulties:
                                                             (qdi.question_difficulty === null) ?
