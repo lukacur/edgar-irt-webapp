@@ -1,6 +1,6 @@
 import { IBaseIrtParameters } from "../models/irt/question-irt-parameters.model.js";
 
-export type QuestionIrtClassification = "very_easy" | "easy" | "normal" | "hard" | "very_hard"
+export type QuestionIrtClassification = "very_easy" | "easy" | "normal" | "hard" | "very_hard" | "unclassified";
 
 export interface IQuestionClassifier {
     classifyQuestion(question: IBaseIrtParameters): QuestionIrtClassification;
@@ -47,8 +47,11 @@ export class QuestionUtil {
         return QuestionUtil.classifier?.classifyQuestion(question);
     }
 
-    public static getQuestionClassificationText(classification: QuestionIrtClassification) {
+    public static getQuestionClassificationText(classification: QuestionIrtClassification | null) {
+        classification ??= "unclassified";
+
         switch (classification) {
+            case "unclassified": return "Unclassified";
             case "very_easy": return "Very easy";
             case "easy": return "Easy";
             case "normal": return "Normal";
@@ -60,10 +63,13 @@ export class QuestionUtil {
 
     public static getColorClassForClassification(
         type: "bg" | "text",
-        classification: QuestionIrtClassification,
+        classification: QuestionIrtClassification | null,
     ) {
+        classification ??= "unclassified";
+
         if (type === "bg") {
             switch (classification) {
+                case "unclassified": return "bg-slate-600";
                 case "very_easy": return "bg-green-300";
                 case "easy": return "bg-green-500";
                 case "normal": return "bg-yellow-500";
@@ -72,6 +78,7 @@ export class QuestionUtil {
             }
         } else if (type === "text") {
             switch (classification) {
+                case "unclassified": return "text-slate-600";
                 case "very_easy": return "text-green-300";
                 case "easy": return "text-green-500";
                 case "normal": return "text-yellow-500";
@@ -83,8 +90,10 @@ export class QuestionUtil {
         return "bg-slate-500";
     }
 
-    public static getMaterialColorClassForClassification(classification: QuestionIrtClassification) {
+    public static getMaterialColorClassForClassification(classification: QuestionIrtClassification | null) {
+        classification ??= "unclassified";
         switch (classification) {
+            case "unclassified": return "question-class-unc";
             case "very_easy": return "question-class-ve";
             case "easy": return "question-class-e";
             case "normal": return "question-class-n";
@@ -92,12 +101,16 @@ export class QuestionUtil {
             case "very_hard": return "question-class-vh";
         }
     }
-
-    public static getAvailableClasses(): QuestionIrtClassification[] {
+    
+    public static getSettableClasses(): QuestionIrtClassification[] {
         return [ 'very_easy', 'easy', 'normal', 'hard', 'very_hard' ];
     }
 
+    public static getAvailableClasses(): QuestionIrtClassification[] {
+        return [ 'unclassified', ...this.getSettableClasses() ];
+    }
+
     public static questionClassHexColors(): string[] {
-        return [ '#81c784', '#4caf50', '#ffeb3b', '#ff9800', '#f44336' ];
+        return [ '#475569', '#81c784', '#4caf50', '#ffeb3b', '#ff9800', '#f44336' ];
     }
 }

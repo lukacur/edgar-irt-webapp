@@ -8,6 +8,10 @@ body {
 }
 
 .mat-stroked-button, .mat-stroked-button:not([disabled]) {
+    &.mat-question-class-unc {
+        border-color: #475569;
+    }
+
     &.mat-question-class-ve {
         border-color: #81c784;
     }
@@ -30,6 +34,10 @@ body {
 }
 
 .mat-flat-button, .mat-flat-button:not([disabled]) {
+    &.mat-question-class-unc {
+        border-color: #475569;
+    }
+
     &.mat-question-class-ve {
         background-color: #81c784;
         border-color: #81c784;
