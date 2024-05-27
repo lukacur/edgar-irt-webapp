@@ -59,10 +59,22 @@ export class QuestionClassificationUtil {
         return index === (this.classificationOrder.length - 1);
     }
 
-    public getAverageDifficulty(difficulties: QuestionIrtClassification[]): QuestionIrtClassification {
-        const idxArr = difficulties
+    public getDifficultyRanks(difficulties: QuestionIrtClassification[]): number[] {
+        return difficulties
             .map(diff => this.classificationOrder.indexOf(diff))
             .filter(diffIdx => diffIdx !== -1);
+    }
+
+    public getDifficultyForRank(rank: number): QuestionIrtClassification {
+        if (rank < 0 || rank >= this.classificationOrder.length || !Number.isInteger(rank)) {
+            throw new Error("Invalid rank");
+        }
+
+        return this.classificationOrder[rank];
+    }
+
+    public getAverageDifficulty(difficulties: QuestionIrtClassification[]): QuestionIrtClassification {
+        const idxArr = this.getDifficultyRanks(difficulties);
 
         const finalIdx = Math.floor(
             idxArr.reduce((acc, el) => acc + el, 0) / idxArr.length
