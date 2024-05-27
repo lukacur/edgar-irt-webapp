@@ -6,10 +6,10 @@ export interface IExerciseInstanceQuestion {
 
 	id_question: number;
 
-    id_question_irt_cb_info: number;
+    id_question_irt_cb_info: number | null;
     question_difficulty: QuestionIrtClassification;
 
-    id_question_irt_tb_info: number[];
+    id_question_irt_tb_info: number[] | null;
 
     question_ordinal: number;
 

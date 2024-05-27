@@ -20,12 +20,12 @@ export class AdaptiveExerciseService {
     ) {}
 
     public async getQuestionPool(
-        idCourse: number,
         idExercise: number,
-        transaction: TransactionContext,
+        idExerciseDefinition: number,
+        transaction: TransactionContext | null,
     ): Promise<IQuestionPoolQuestion[]> {
         return (
-            await transaction.doQuery<IQuestionPoolQuestion>(
+            await (transaction ?? this.dbConn).doQuery<IQuestionPoolQuestion>(
                 `SELECT DISTINCT question.*,
                     question_param_course_level_calculation.default_item_offset_parameter,
                     question_param_course_level_calculation.level_of_item_knowledge,
@@ -57,18 +57,19 @@ export class AdaptiveExerciseService {
                     LEFT JOIN adaptive_exercise.exercise_question_difficulty_override
                         ON question.id = exercise_question_difficulty_override.id_question AND
                             exercise_definition.id = exercise_question_difficulty_override.id_exercise_definition
-                    LEFT JOIN adaptive_exercise.exercise_instance_question
-                        ON question.id = exercise_instance_question.id_question
                 WHERE question.is_active AND
-                    exercise_definition.id_course = $1 AND
-                    exercise_instance.id = $2 AND
+                    exercise_definition.id = $1 AND
                     (
                         question_param_course_level_calculation.question_irt_classification IS NOT NULL OR
                         exercise_question_difficulty_override.question_difficulty IS NOT NULL
                     ) AND
-                    exercise_instance_question.id IS NULL`,
+                    question.id NOT IN (
+                        SELECT id_question
+                        FROM adaptive_exercise.exercise_instance_question AS eiq
+                        WHERE eiq.id_exercise = $2
+                    )`,
                 [
-                    /* $1 */ idCourse,
+                    /* $1 */ idExerciseDefinition,
                     /* $2 */ idExercise,
                 ]
             )
@@ -96,9 +97,16 @@ export class AdaptiveExerciseService {
             return null;
         }
 
-        const previousExerciseDifficulties: { final_difficulty: QuestionIrtClassification }[] = (
-            await this.dbConn.doQuery<{ final_difficulty: QuestionIrtClassification }>(
-                `SELECT exercise_instance_question.question_difficulty AS final_difficulty
+        const previousExerciseDifficulties = (
+            await this.dbConn.doQuery<
+                { final_difficulty: QuestionIrtClassification, correctness: 'skipped' | 'correct' | 'incorrect' }
+            >(
+                `SELECT exercise_instance_question.question_difficulty AS final_difficulty,
+                    CASE
+                        WHEN question_skipped THEN 'skipped'
+                        WHEN user_answer_correct THEN 'correct'
+                        ELSE 'incorrect'
+                    END AS correctness
                 FROM adaptive_exercise.exercise_instance
                     JOIN adaptive_exercise.exercise_instance_question
                         ON exercise_instance.id = exercise_instance_question.id_exercise
@@ -106,8 +114,7 @@ export class AdaptiveExerciseService {
                         ON exercise_instance.id_exercise_definition = exercise_definition.id
                 WHERE id_student_started = $1 AND
                     id_exercise_definition = $2 AND
-                    exercise_instance.finished_on IS NOT NULL AND
-                    user_answer_correct`,
+                    exercise_instance.finished_on IS NOT NULL`,
                 [
                     /* $1 */ idStudent,
                     /* $2 */ idExerciseDefinition,
@@ -116,13 +123,22 @@ export class AdaptiveExerciseService {
         )?.rows ?? [];
 
         const calculationPreparedPrevExers = previousExerciseDifficulties
-            .filter(ed => ed !== null)
-            .map(ed => ed.final_difficulty);
+            .filter(ed => ed !== null && ed.final_difficulty !== null);
 
         if (calculationPreparedPrevExers.length === 0) {
             return null;
         }
 
-        return QuestionClassificationUtil.instance.getAverageDifficulty(calculationPreparedPrevExers);
+        const difficultyRanks = QuestionClassificationUtil.instance.getDifficultyRanks(
+            calculationPreparedPrevExers.filter(ed => ed.correctness === 'correct').map(ed => ed.final_difficulty)
+        );
+
+        const avgDifficulty = QuestionClassificationUtil.instance.getDifficultyForRank(
+            Math.round(
+                difficultyRanks.reduce((acc, el) => acc + el, 0) / calculationPreparedPrevExers.length
+            )
+        );
+
+        return avgDifficulty;
     }
 }

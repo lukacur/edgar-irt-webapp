@@ -631,10 +631,22 @@ export class AdaptiveExercisesController extends AbstractController {
                 res.sendStatus(500);
                 return;
             }
+
+            const questionPool = await this.adaptiveExerciseService.getQuestionPool(
+                exerId,
+                idExerciseDefinition,
+                transaction
+            );
+            if (questionPool.length === 0 || questionPool.length < questionsCount * 2) {
+                res
+                    .status(400)
+                    .send({ error: "Not enough questions to create an exercise" });
+                return;
+            }
     
             const nextQuestionInfo = await this.nextQuestionGenerator.provideQuestion(
                 exerInfo,
-                await this.adaptiveExerciseService.getQuestionPool(idCourse, exerId, transaction),
+                questionPool,
                 transaction,
                 true
             );
@@ -768,17 +780,40 @@ export class AdaptiveExercisesController extends AbstractController {
                 studentAnswers,
             );
         
-            const wasFinalQuestion: boolean = (await transaction.doQuery<{ was_final: boolean }>(
-                `SELECT questions_count = MAX(question_ordinal) AS was_final
+            const lastQuestionOrdinal: number = (await transaction.doQuery<{ last_question_ordinal: number }>(
+                `SELECT MAX(question_ordinal) AS last_question_ordinal
                 FROM adaptive_exercise.exercise_instance
                     JOIN adaptive_exercise.exercise_instance_question
                         ON exercise_instance.id = exercise_instance_question.id_exercise
                 WHERE exercise_instance.id = $1
                 GROUP BY exercise_instance.id`,
                 [idExercise]
-            ))?.rows[0]?.was_final ?? false;
+            ))?.rows[0]?.last_question_ordinal ?? -1;
+
+            const exerDef: IExerciseDefinition | null =
+                await this.adaptiveExerciseService.getExerciseDefinition(idExercise);
+            if (exerDef === null) {
+                res.sendStatus(400);
+                return;
+            }
+
+            const exercise: IExerciseInstance | null = (
+                await transaction.doQuery<IExerciseInstance>(
+                    `SELECT *
+                    FROM adaptive_exercise.exercise_instance
+                    WHERE id = $1`,
+                    [idExercise]
+                )
+            )?.rows[0] ?? null;
+            if (exercise === null) {
+                res.sendStatus(400);
+                return;
+            }
+
+            const wasFinalQuestion = lastQuestionOrdinal === exercise.questions_count;
 
             const thetaDeltaInfo = await this.thetaDeltaGenerator.generateThetaDelta(
+                exerDef,
                 {
                     correct: (questionSkipped) ? false : (questionCorrect ?? answerSetActionResult.answerCorrect),
                     skipped: questionSkipped ?? false,
@@ -834,23 +869,24 @@ export class AdaptiveExercisesController extends AbstractController {
                 return;
             }
 
-        
-            const exercise: IExerciseInstance | null = (
-                await transaction.doQuery<IExerciseInstance>(
-                    `SELECT *
-                    FROM adaptive_exercise.exercise_instance
-                    WHERE id = $1`,
-                    [idExercise]
-                )
-            )?.rows[0] ?? null;
-            if (exercise === null) {
-                res.sendStatus(400);
+            const questionPool = await this.adaptiveExerciseService.getQuestionPool(
+                exercise.id,
+                exercise.id_exercise_definition,
+                transaction
+            );
+            if (
+                questionPool.length === 0 ||
+                    questionPool.length < (exercise.questions_count - lastQuestionOrdinal) * 2
+            ) {
+                res
+                    .status(400)
+                    .send({ error: "Not enough questions to finish exercise" });
                 return;
             }
             
             const nextQuestionInfo = await this.nextQuestionGenerator.provideQuestion(
                 exercise,
-                await this.adaptiveExerciseService.getQuestionPool(exercise.id_course, exercise.id, transaction),
+                questionPool,
                 transaction,
                 false,
                 await this.getPreviousExerciseQuestions(transaction, idExercise, 0),
@@ -865,6 +901,8 @@ export class AdaptiveExercisesController extends AbstractController {
             }
 
             await transaction.commit();
+
+            insertedQuestionInfo.correct_answers = null;
     
             res
                 .status(200)

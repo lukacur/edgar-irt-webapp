@@ -6,6 +6,7 @@ export interface IExerciseInstance {
     id_student_started: number;
 
     id_course: number;
+    id_exercise_definition: number;
 
     start_difficulty: QuestionIrtClassification;
     current_difficulty: QuestionIrtClassification;
