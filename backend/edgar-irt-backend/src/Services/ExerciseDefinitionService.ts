@@ -256,7 +256,8 @@ export class ExerciseDefinitionService {
                         ON exercise_question_difficulty_override.id_question = question.id
                     JOIN public.question_node
                         ON question.id = question_node.id_question
-                WHERE id_exercise_definition = $1
+                WHERE id_exercise_definition = $1 AND
+                    question.is_active
                 
                 UNION ALL
                 
@@ -275,18 +276,20 @@ export class ExerciseDefinitionService {
                     LEFT JOIN statistics_schema.question_param_course_level_calculation
                         ON question_param_calculation.id =
                             question_param_course_level_calculation.id_question_param_calculation
-                WHERE exercise_node_whitelist.id_exercise_definition = $1 AND (
-                    question_irt_classification IS NOT NULL OR question.id NOT IN (
+                WHERE exercise_node_whitelist.id_exercise_definition = $1 AND
+                    question.is_active AND
+                    (
+                        question_irt_classification IS NOT NULL OR question.id NOT IN (
+                            SELECT id_question
+                            FROM statistics_schema.question_param_calculation AS qpc
+                                JOIN adaptive_exercise.exercise_definition AS exdef
+                                    ON qpc.id_based_on_course = exdef.id_course
+                        )
+                    ) AND question.id NOT IN (
                         SELECT id_question
-                        FROM statistics_schema.question_param_calculation AS qpc
-                            JOIN adaptive_exercise.exercise_definition AS exdef
-                                ON qpc.id_based_on_course = exdef.id_course
+                        FROM adaptive_exercise.exercise_question_difficulty_override AS eqdo
+                        WHERE eqdo.id_exercise_definition = $1
                     )
-                ) AND question.id NOT IN (
-                    SELECT id_question
-                    FROM adaptive_exercise.exercise_question_difficulty_override AS eqdo
-                    WHERE eqdo.id_exercise_definition = $1
-                )
                 ORDER BY is_override DESC, id_question`,
                 [ idExerciseDefinition ]
             )

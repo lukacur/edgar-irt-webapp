@@ -26,18 +26,19 @@ export class AdaptiveExerciseService {
     ): Promise<IQuestionPoolQuestion[]> {
         return (
             await transaction.doQuery<IQuestionPoolQuestion>(
-                `SELECT question.*,
+                `SELECT DISTINCT question.*,
                     question_param_course_level_calculation.default_item_offset_parameter,
                     question_param_course_level_calculation.level_of_item_knowledge,
                     question_param_course_level_calculation.item_difficulty,
                     question_param_course_level_calculation.item_guess_probability,
                     question_param_course_level_calculation.item_mistake_probability,
-                    question_param_course_level_calculation.question_irt_classification
+                    CASE
+                        WHEN exercise_question_difficulty_override.question_difficulty IS NOT NULL
+                            THEN exercise_question_difficulty_override.question_difficulty
+                        ELSE
+                            question_param_course_level_calculation.question_irt_classification
+                    END AS question_irt_classification
                 FROM public.question
-                    JOIN statistics_schema.question_param_calculation
-                        ON question.id = question_param_calculation.id_question
-                    JOIN statistics_schema.question_param_course_level_calculation
-                        ON question_param_calculation.id = question_param_course_level_calculation.id_question_param_calculation
                     JOIN adaptive_exercise.exercise_allowed_question_type
                         ON question.id_question_type = exercise_allowed_question_type.id_question_type
                     JOIN public.question_node
@@ -48,11 +49,23 @@ export class AdaptiveExerciseService {
                         ON exercise_node_whitelist.id_exercise_definition = exercise_instance.id_exercise_definition
                     JOIN adaptive_exercise.exercise_definition
                         ON exercise_instance.id_exercise_definition = exercise_definition.id
+                    LEFT JOIN statistics_schema.question_param_calculation
+                        ON question.id = question_param_calculation.id_question
+                    LEFT JOIN statistics_schema.question_param_course_level_calculation
+                        ON question_param_calculation.id =
+                            question_param_course_level_calculation.id_question_param_calculation
+                    LEFT JOIN adaptive_exercise.exercise_question_difficulty_override
+                        ON question.id = exercise_question_difficulty_override.id_question AND
+                            exercise_definition.id = exercise_question_difficulty_override.id_exercise_definition
                     LEFT JOIN adaptive_exercise.exercise_instance_question
                         ON question.id = exercise_instance_question.id_question
                 WHERE question.is_active AND
                     exercise_definition.id_course = $1 AND
                     exercise_instance.id = $2 AND
+                    (
+                        question_param_course_level_calculation.question_irt_classification IS NOT NULL OR
+                        exercise_question_difficulty_override.question_difficulty IS NOT NULL
+                    ) AND
                     exercise_instance_question.id IS NULL`,
                 [
                     /* $1 */ idCourse,

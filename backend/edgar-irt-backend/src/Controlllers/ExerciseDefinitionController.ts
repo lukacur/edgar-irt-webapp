@@ -38,11 +38,14 @@ export class ExerciseDefinitionController extends AbstractController {
                     FROM adaptive_exercise.exercise_node_whitelist
                         JOIN public.question_node
                             ON question_node.id_node = exercise_node_whitelist.id_node
+                        JOIN public.question
+                            ON question_node.id_question = question.id
                         JOIN adaptive_exercise.exercise_question_difficulty_override
                             ON exercise_node_whitelist.id_exercise_definition =
                                 exercise_question_difficulty_override.id_exercise_definition AND
                                 question_node.id_question = exercise_question_difficulty_override.id_question
-                    WHERE exercise_node_whitelist.id_exercise_definition = $1
+                    WHERE exercise_node_whitelist.id_exercise_definition = $1 AND
+                        question.is_active
                     GROUP BY question_node.id_node,
                         exercise_question_difficulty_override.question_difficulty
                     
@@ -54,23 +57,27 @@ export class ExerciseDefinitionController extends AbstractController {
                     FROM adaptive_exercise.exercise_node_whitelist
                         JOIN public.question_node
                             ON question_node.id_node = exercise_node_whitelist.id_node
+                        JOIN public.question
+                            ON question_node.id_question = question.id
                         LEFT JOIN statistics_schema.question_param_calculation
                             ON question_node.id_question = question_param_calculation.id_question
                         LEFT JOIN statistics_schema.question_param_course_level_calculation
                             ON question_param_calculation.id =
                                 question_param_course_level_calculation.id_question_param_calculation
-                    WHERE exercise_node_whitelist.id_exercise_definition = $1 AND (
-                        question_irt_classification IS NOT NULL OR question_node.id_question NOT IN (
+                    WHERE exercise_node_whitelist.id_exercise_definition = $1 AND
+                        question.is_active AND 
+                        (
+                            question_irt_classification IS NOT NULL OR question_node.id_question NOT IN (
+                                SELECT id_question
+                                FROM statistics_schema.question_param_calculation AS qpc
+                                    JOIN adaptive_exercise.exercise_definition AS exdef
+                                        ON qpc.id_based_on_course = exdef.id_course
+                            )
+                        ) AND question_node.id_question NOT IN (
                             SELECT id_question
-                            FROM statistics_schema.question_param_calculation AS qpc
-                                JOIN adaptive_exercise.exercise_definition AS exdef
-                                    ON qpc.id_based_on_course = exdef.id_course
+                            FROM adaptive_exercise.exercise_question_difficulty_override AS eqdo
+                            WHERE eqdo.id_exercise_definition = $1
                         )
-                    ) AND question_node.id_question NOT IN (
-                        SELECT id_question
-                        FROM adaptive_exercise.exercise_question_difficulty_override AS eqdo
-                        WHERE eqdo.id_exercise_definition = $1
-                    )
                     GROUP BY question_node.id_node,
                         question_param_course_level_calculation.question_irt_classification
                 ) AS union_tab

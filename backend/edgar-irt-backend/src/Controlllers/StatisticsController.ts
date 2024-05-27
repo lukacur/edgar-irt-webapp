@@ -155,7 +155,10 @@ export class StatisticsController extends AbstractController {
                     JOIN statistics_schema.question_param_calculation
                         ON question_param_course_level_calculation.id_question_param_calculation =
                             question_param_calculation.id
-                WHERE question_param_calculation.calculation_group = $1`,
+                    JOIN public.question
+                        ON question_param_calculation.id_question = question.id
+                WHERE question_param_calculation.calculation_group = $1 AND
+                    question.is_active`,
                 [calcGroup],
             ))?.rows ?? [];
 
@@ -185,7 +188,10 @@ export class StatisticsController extends AbstractController {
                     JOIN statistics_schema.question_param_calculation
                         ON question_param_test_level_calculation.id_question_param_calculation =
                             question_param_calculation.id
-                WHERE question_param_calculation.calculation_group = $1`,
+                    JOIN public.question
+                        ON question_param_calculation.id_question = question.id
+                WHERE question_param_calculation.calculation_group = $1 AND
+                    question.is_active`,
                 [calcGroup],
             ))?.rows ?? [];
 
