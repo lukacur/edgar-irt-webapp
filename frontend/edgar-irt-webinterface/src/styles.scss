@@ -7,7 +7,7 @@ body {
     height: 100vh;
 }
 
-.mat-stroked-button, .mat-stroked-button:not([disabled]) {
+.mat-stroked-button:not([disabled]) {
     &.mat-question-class-unc {
         border-color: #475569;
     }
@@ -33,7 +33,7 @@ body {
     }
 }
 
-.mat-flat-button, .mat-flat-button:not([disabled]) {
+.mat-flat-button:not([disabled]) {
     &.mat-question-class-unc {
         border-color: #475569;
     }
