@@ -234,7 +234,6 @@ export class DefaultAdaptiveExerciseInfoProvider implements
                 item_difficulty,
                 item_guess_probability,
                 item_mistake_probability,
-                question_irt_classification, -- TODO: When overriding implemented, change this to a switch-case
                 id_based_on_course AS id_course,
                 calculation_group,
                 id_question
@@ -259,7 +258,8 @@ export class DefaultAdaptiveExerciseInfoProvider implements
                 JOIN statistics_schema.question_param_calculation_academic_year
                     ON question_param_calculation.id =
                         question_param_calculation_academic_year.id_question_param_calculation
-            WHERE calculation_group = $1`;
+            WHERE calculation_group = $1
+            ORDER BY id_academic_year`;
 
         const sqlTestBasedCalcs =
             `SELECT DISTINCT id AS id_test_based_info,
@@ -304,7 +304,7 @@ export class DefaultAdaptiveExerciseInfoProvider implements
             id_question: q.id,
             correct_answers: answers?.filter(a => a.is_correct).map(a => a.ordinal) ?? null,
             id_question_irt_cb_info: irtInfo.id_course_based_info,
-            question_difficulty: irtInfo.question_irt_classification,
+            question_difficulty: q.question_irt_classification,
             id_question_irt_tb_info: irtInfo.testBasedInfo.map(tbi => tbi.id_test_based_info),
         };
     }
