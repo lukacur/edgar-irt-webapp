@@ -173,8 +173,8 @@ export class QuestionStatisticsPlotComponent implements OnInit, AfterViewInit {
             .subscribe(clCalcs => {this.courseLevelCalcs = clCalcs; console.log(clCalcs);});
     }
 
-    readonly availableQuestionClasses = QuestionUtil.getAvailableClasses();
-    readonly questionClassesColors = QuestionUtil.questionClassHexColors();
+    readonly availableQuestionClasses = QuestionUtil.getSettableClasses();
+    readonly questionClassesColors = QuestionUtil.getSettableClassColors();
 
     //#region Difficulty bar chart init
     private preparedBarChartData: { qClass: string, calculations: ICourseLevelStatisticsCalculation[] }[] | null = null;

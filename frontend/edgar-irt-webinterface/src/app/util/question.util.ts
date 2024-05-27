@@ -110,7 +110,11 @@ export class QuestionUtil {
         return [ 'unclassified', ...this.getSettableClasses() ];
     }
 
+    public static getSettableClassColors(): string[] {
+        return [ '#81c784', '#4caf50', '#ffeb3b', '#ff9800', '#f44336' ];
+    }
+
     public static questionClassHexColors(): string[] {
-        return [ '#475569', '#81c784', '#4caf50', '#ffeb3b', '#ff9800', '#f44336' ];
+        return [ '#475569', ...this.getSettableClassColors() ];
     }
 }

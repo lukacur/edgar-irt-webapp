@@ -17,7 +17,7 @@ import { QuestionIrtClassification, QuestionUtil } from 'src/app/util/question.u
 export class MyExercisesComponent implements OnInit, OnDestroy {
     readonly QUtil = QuestionUtil;
 
-    readonly availableDifficulties = QuestionUtil.getAvailableClasses();
+    readonly availableDifficulties = QuestionUtil.getSettableClasses();
 
     readonly startExerciseForm = new FormGroup({
         selectedCourse: new FormControl<IEdgarCourse | null>(null, [Validators.required]),
