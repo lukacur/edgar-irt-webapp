@@ -57,10 +57,12 @@
                                 [backgroundColorClass]="
                                     QUtil.getColorClassForClassification(
                                         'bg',
-                                        QUtil.classifyQuestion(questionIrtParams)!
+                                        questionIrtParams.question_irt_classification!
                                     )
                                 "
-                            >{{ QUtil.getQuestionClassificationText(QUtil.classifyQuestion(questionIrtParams)!) }}</div>
+                            >
+                                {{ QUtil.getQuestionClassificationText(questionIrtParams.question_irt_classification) }}
+                            </div>
                         </td>
                     </tr>
                 </tbody>

@@ -156,9 +156,15 @@
 
                             <td>
                                 <div
-                                    #badge
+                                    appBadge
+                                    [backgroundColorClass]="
+                                        QUtil.getColorClassForClassification(
+                                            'bg',
+                                            clCalc.question_irt_classification
+                                        )
+                                    "
                                     class="px-2 py-1 rounded-lg w-full"
-                                >{{ setClassificationBadge(badge, clCalc) }}</div>
+                                >{{ QUtil.getQuestionClassificationText(clCalc.question_irt_classification) }}</div>
                             </td>
                         </tr>
                         <tr #qTlInfo class="hidden border mx-2">

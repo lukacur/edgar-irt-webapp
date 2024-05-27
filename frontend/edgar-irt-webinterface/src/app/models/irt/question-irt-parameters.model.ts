@@ -1,3 +1,5 @@
+import { QuestionIrtClassification } from "src/app/util/question.util.js";
+
 export interface IBaseIrtParameters {
     default_item_offset_parameter: number;
     level_of_item_knowledge: number;
@@ -11,6 +13,8 @@ export interface IQuestionIrtParameters extends IBaseIrtParameters {
     id_course: number;
     calculation_group: string;
     id_academic_years: number[];
+
+    question_irt_classification: QuestionIrtClassification;
 
     testBasedInfo: { id_test_based_info: number, id_based_on_test: number }[];
     id_question: number;

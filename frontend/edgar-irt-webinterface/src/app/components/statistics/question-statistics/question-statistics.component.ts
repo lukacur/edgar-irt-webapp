@@ -14,6 +14,8 @@ import { QuestionUtil } from 'src/app/util/question.util';
     templateUrl: './question-statistics.component.html',
 })
 export class QuestionStatisticsComponent implements OnInit, OnDestroy {
+    readonly QUtil = QuestionUtil;
+
     selectedCourse: IEdgarCourse | null = null;
     selectedCalculation: { calculationGroup: string, acYears: string } | null = null;
 
@@ -82,13 +84,6 @@ export class QuestionStatisticsComponent implements OnInit, OnDestroy {
         );
 
         return (theta: number) => logFn.fourParamLogisticFn(theta);
-    }
-
-    setClassificationBadge(badgeDiv: HTMLDivElement, irtParams: IBaseIrtParameters): string {
-        const classification = QuestionUtil.classifyQuestion(irtParams);
-
-        badgeDiv.classList.add(QuestionUtil.getColorClassForClassification("bg", classification!));
-        return QuestionUtil.getQuestionClassificationText(classification!);
     }
 
     toggleVisibilityWithClasses(element: HTMLElement) {
