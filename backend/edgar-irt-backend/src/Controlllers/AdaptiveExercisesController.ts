@@ -22,7 +22,6 @@ import { TransactionContext } from "../Database/TransactionContext.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 import { IEdgarCourse } from "../Models/Database/Edgar/IEdgarCourse.js";
 import { IExerciseDefinition } from "../Models/Database/AdaptiveExercise/IExerciseDefinition.js";
-import { IEdgarStatProcessingCourseLevelCalc } from "../Models/Database/Statistics/IEdgarStatProcessingCourseLevelCalc.js";
 import { ExerciseDefinitionProgressionDescriptor, ExerciseDefinitionService } from "../Services/ExerciseDefinitionService.js";
 
 type NextExerciseQuestionRequest = {
@@ -129,12 +128,8 @@ export class AdaptiveExercisesController extends AbstractController {
 
         const lastExerciseInstanceQuestion: IExerciseInstanceQuestion | null = (
             await this.dbConn.doQuery<IExerciseInstanceQuestion>(
-                `SELECT exercise_instance_question.*,
-                        question_param_course_level_calculation.question_irt_classification AS question_difficulty
+                `SELECT exercise_instance_question.*
                 FROM adaptive_exercise.exercise_instance_question
-                    JOIN statistics_schema.question_param_course_level_calculation
-                        ON exercise_instance_question.id_question_param_course_level_calculation =
-                            question_param_course_level_calculation.id_question_param_calculation
                 WHERE id_exercise = $1 AND
                         finished_on IS NULL`,
                 [
@@ -415,12 +410,8 @@ export class AdaptiveExercisesController extends AbstractController {
     ): Promise<IExerciseInstanceQuestion | null> {
         return (
             await transaction.doQuery<IExerciseInstanceQuestion>(
-                `SELECT exercise_instance_question.*,
-                    question_param_course_level_calculation.question_irt_classification AS question_difficulty
+                `SELECT exercise_instance_question.*
                 FROM exercise_instance_question
-                    JOIN statistics_schema.question_param_course_level_calculation
-                        ON exercise_instance_question.id_question_param_course_level_calculation =
-                            question_param_course_level_calculation.id_question_param_calculation
                 WHERE id_exercise = $1
                 ORDER BY question_ordinal DESC
                 OFFSET $2
@@ -437,12 +428,8 @@ export class AdaptiveExercisesController extends AbstractController {
     ): Promise<IExerciseInstanceQuestion[]> {
         return (
             await transaction.doQuery<IExerciseInstanceQuestion>(
-                `SELECT exercise_instance_question.*,
-                    question_param_course_level_calculation.question_irt_classification AS question_difficulty
+                `SELECT exercise_instance_question.*
                 FROM adaptive_exercise.exercise_instance_question
-                    JOIN statistics_schema.question_param_course_level_calculation
-                        ON exercise_instance_question.id_question_param_course_level_calculation =
-                            question_param_course_level_calculation.id_question_param_calculation
                 WHERE id_exercise = $1
                 ORDER BY question_ordinal DESC
                 OFFSET $2`,
@@ -483,27 +470,12 @@ export class AdaptiveExercisesController extends AbstractController {
             ]
         );
 
-        const questionCourseLevelCalc = (
-            await transactionCtx.doQuery<IEdgarStatProcessingCourseLevelCalc>(
-                `SELECT *
-                FROM statistics_schema.question_param_course_level_calculation
-                WHERE id_question_param_calculation = $1`,
-                [ nextQuestionInfo.id_question_irt_cb_info ]
-            )
-        )?.rows[0] ?? null;
-        if (questionCourseLevelCalc === null) {
-            throw new Error(
-                `Course level calculation for question with ID ${nextQuestionInfo.id_question} could not be found` +
-                ` (course level calculation ID ${nextQuestionInfo.id_question_irt_cb_info})`
-            );
-        }
-
         await transactionCtx.doQuery(
             `UPDATE adaptive_exercise.exercise_instance
             SET current_difficulty = $1
             WHERE id = $2`,
             [
-                /* $1 */ questionCourseLevelCalc.question_irt_classification,
+                /* $1 */ nextQuestionInfo.question_difficulty,
                 /* $2 */ exerId,
             ]
         );
