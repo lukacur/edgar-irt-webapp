@@ -183,6 +183,11 @@
 
                 [chartWidth]="400"
 
+                [selectable]="true"
+                selectionChannel="none"
+
+                (dataSelected)="doFilterQuestionsByClass($event?.qClass ?? '')"
+
                 *ngIf="
                     courseQuestionClasses !== null && courseQuestionClasses.length !== 0; else noExerciseQuestions
                 "
@@ -205,11 +210,30 @@
                 <h2 class="text-purple-600">Override question difficulty classification</h2>
                 <hr class="my-3">
 
+                <div>
+                    <label class="text-sm">Search by question ID or question text</label>
+                    <input
+                        type="text"
+                        class="w-full p-3 border border-slate-400/25 rounded"
+                        [(ngModel)]="filterText"
+                        [ngModelOptions]="{ standalone: true }"
+                        (blur)="doFilterQuestions(null)"
+                        (keydown)="doFilterQuestions($event)"
+                    >
+                </div>
+
+                <hr class="my-3">
+
+                <div class="text-sm">
+                    {{ getTableRowCountInfoText$() | async }}
+                </div>
                 <div class="mb-3 overflow-auto max-h-[560px]">
-                    <table class="w-full border border-slate-400/35">
+                    <table class="w-full">
                         <thead class="sticky top-0 my-1 bg-white z-[9999]">
                             <tr class="border-t border-slate-400/35">
                                 <th class="p-3">Question ID</th>
+                                <th class="p-3 max-w-[120px]">Question text</th>
+                                <th class="p-3">Question Node ID</th>
                                 <th class="p-3">Difficulty classification</th>
                                 <th class="p-3">Override actions</th>
                             </tr>
@@ -217,14 +241,18 @@
                         <tbody>
                             <tr
                                 class="border-y border-slate-400/35"
-                                *ngFor="let exerDifficultyInfo of (exerciseQuestionDifficultyInfo$ | async) ?? []"
+                                *ngFor="
+                                    let exerDifficultyInfo of (filteredExerciseQuestionDifficultyInfo$ | async) ?? []
+                                "
                             >
                                 <td class="p-3">{{ exerDifficultyInfo.idQuestion }}</td>
+                                <td class="p-3 max-w-[120px]">{{ exerDifficultyInfo.questionText }}</td>
+                                <td class="p-3">{{ exerDifficultyInfo.idNode }}</td>
                                 <td class="p-3">
                                     <p *ngIf="!exerDifficultyInfo.isOverride; else overriden">
                                         This question appears in
-                                        <b>{{ exerDifficultyInfo.difficulties?.length ?? 0 }}</b> calculations
-                                        <span *ngIf="exerDifficultyInfo.difficulties !== null">
+                                        <b>{{ exerDifficultyInfo.difficulties.length }}</b> calculations
+                                        <span *ngIf="exerDifficultyInfo.difficulties.length !== 0">
                                             and can appear in exercises as a(n):<br>
                                             <span *ngFor="let difficulty of exerDifficultyInfo.difficulties">
                                                 <span
@@ -262,11 +290,10 @@
                                     </ng-template>
                                 </td>
                                 <td class="p-3">
-                                    <div class="flex flex-col md:flex-row justify-center items-center">
-                                        <div class="w-full md:w-1/6 me-2" *ngFor="let qClass of questionClasses">
-                                            <button
-                                                mat-flat-button
-                                                [color]="QUtil.getMaterialColorClassForClassification(qClass)"
+                                    <div class="flex flex-col 2xl:flex-row justify-between items-center">
+                                        <div class="w-full 2xl:w-1/6" *ngFor="let qClass of settableQuestionClasses">
+                                            <div
+                                                class="my-2 2xl:my-0"
                                                 *ngIf="
                                                     exerDifficultyInfo.isOverride &&
                                                         !questionDifficultyOverridesMap
@@ -277,42 +304,72 @@
                                                             .get(exerDifficultyInfo.idQuestion) === qClass;
                                                     else btnStroke
                                                 "
-                                                (click)="
-                                                    questionDifficultyOverridesMap
-                                                        .set(
-                                                            exerDifficultyInfo.idQuestion,
-                                                            null
-                                                        );
-                                                "
-                                            >{{ QUtil.getQuestionClassificationText(qClass) }}</button>
-    
-                                            <ng-template #btnStroke>
+                                            >
                                                 <button
-                                                    mat-stroked-button
+                                                    class="w-full"
+                                                    mat-flat-button
                                                     [color]="QUtil.getMaterialColorClassForClassification(qClass)"
                                                     (click)="
                                                         questionDifficultyOverridesMap
                                                             .set(
                                                                 exerDifficultyInfo.idQuestion,
-                                                                qClass
+                                                                null
                                                             );
                                                     "
                                                 >{{ QUtil.getQuestionClassificationText(qClass) }}</button>
+                                            </div>
+    
+                                            <ng-template #btnStroke>
+                                                <div class="my-2 2xl:my-0">
+                                                    <button
+                                                        class="w-full"
+                                                        mat-stroked-button
+                                                        [color]="QUtil.getMaterialColorClassForClassification(qClass)"
+                                                        (click)="
+                                                            questionDifficultyOverridesMap
+                                                                .set(
+                                                                    exerDifficultyInfo.idQuestion,
+                                                                    qClass
+                                                                );
+                                                        "
+                                                    >{{ QUtil.getQuestionClassificationText(qClass) }}</button>
+                                                </div>
                                             </ng-template>
                                         </div>
                                     </div>
                                 </td>
                             </tr>
+
+                            <tr
+                                class="border-y border-slate-400/35 hidden first:table-row text-center"
+                            >
+                                <td class="p-3 text-gray-500/50" colspan="4">No entries</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <button
-                    mat-flat-button
-                    color="primary"
-                    (click)="confirmQuestionClassOverrides()"
-                    [disabled]="questionDifficultyOverridesMap.size === 0"
-                >Confirm overrides</button>
+                <div class="flex flex-col md:flex-row items-center px-2">
+                    <div class="w-full md:w-fit md:me-3">
+                        <button
+                            class="w-full"
+                            mat-flat-button
+                            color="primary"
+                            (click)="confirmQuestionClassOverrides()"
+                            [disabled]="questionDifficultyOverridesMap.size === 0"
+                        >Confirm overrides</button>
+                    </div>
+
+                    <div class="w-full md:w-fit mt-3 md:mt-0">
+                        <button
+                            class="w-full"
+                            mat-flat-button
+                            color="warn"
+                            (click)="questionDifficultyOverridesMap.clear()"
+                            [disabled]="questionDifficultyOverridesMap.size === 0"
+                        >Clear overrides</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -360,9 +417,10 @@
                                         [disabled]="numberOfWhitelistedNodes === 0"
                                     ></mat-checkbox>
                                 </th>
-                                <th class="text-center">ID</th>
+                                <th class="text-center">Node ID</th>
                                 <th class="text-center">(Node type) - Name</th>
                                 <th class="text-center">Node total questions</th>
+                                <th class="text-center">Unclassified questions</th>
                                 <th class="text-center">Very easy questions</th>
                                 <th class="text-center">Easy questions</th>
                                 <th class="text-center">Normal questions</th>
@@ -385,7 +443,8 @@
                                 <td class="text-center">{{ node.id }}</td>
                                 <td class="text-center">({{ node.node_type_name }}) - {{ node.node_name }}</td>
                                 <td class="text-center">{{ getNodeTotalQuestions(node.id) }}</td>
-
+                                
+                                <td class="text-center">{{ getNodeQuestionClassCount(node.id, "unclassified") }}</td>
                                 <td class="text-center">
                                     {{ getNodeQuestionClassCount(node.id, "very_easy") }}
                                 </td>
@@ -407,7 +466,7 @@
                             <tr *ngIf="numberOfWhitelistedNodes === 0">
                                 <td
                                     class="py-2 text-gray-500/50"
-                                    colspan="10"
+                                    colspan="11"
                                 >No whitelisted nodes</td>
                             </tr>
                         </tbody>
