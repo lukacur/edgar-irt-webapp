@@ -310,6 +310,7 @@ export class DefaultAdaptiveExerciseInfoProvider implements
     }
 
     async generateThetaDelta(
+        exerciseDefinition: IExerciseDefinition,
         currentQuestionStatus: { skipped: boolean; correct: boolean; },
         previousQuestions: IExerciseInstanceQuestion[]
     ): Promise<ThetaDeltaInfo> {
