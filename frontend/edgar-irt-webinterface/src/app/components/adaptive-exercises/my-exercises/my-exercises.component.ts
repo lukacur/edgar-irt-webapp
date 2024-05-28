@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { BehaviorSubject, map, Observable, Subscription, tap } from 'rxjs';
+import { BehaviorSubject, map, Observable, Subscription, take, tap } from 'rxjs';
 import { ICurrentExercise } from 'src/app/models/adaptive-exercises/current-exercise.model';
 import { IExerciseDefinition } from 'src/app/models/adaptive-exercises/exercise-definition.model.js';
 import { IExerciseInstance } from 'src/app/models/adaptive-exercises/exercise-instance.model';
@@ -41,6 +41,8 @@ export class MyExercisesComponent implements OnInit, OnDestroy {
 
     currentlyActiveExercise: ICurrentExercise | null = null;
     previousExercises$: Observable<IExerciseInstance[]> = new BehaviorSubject([]);
+
+    studentStartDifficulty: QuestionIrtClassification | null = null;
 
     numberOfPreviousExercises: number = 0;
 
@@ -136,6 +138,14 @@ export class MyExercisesComponent implements OnInit, OnDestroy {
                         .subscribe(ex => this.currentlyActiveExercise = ex);
                 }
             }),
+
+            this.startExerciseForm.get('selectedExerciseDefinition')!.valueChanges.subscribe(exDef => {
+                if (exDef !== null) {
+                    this.adaptiveExerciseProgressionService.getStudentStartDifficulty(null, exDef.id)
+                        .pipe(take(1))
+                        .subscribe(diff => this.studentStartDifficulty = diff);
+                }
+            })
         );
     }
 

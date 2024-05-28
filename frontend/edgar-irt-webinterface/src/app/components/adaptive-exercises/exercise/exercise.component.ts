@@ -44,6 +44,7 @@ export class ExerciseComponent implements OnInit, OnDestroy {
     }
 
     private subscribeToQuestionAnswering(obs: Observable<ICurrentExercise | { exerciseComplete: true }>) {
+        this.loading = true;
         obs.subscribe(val => {
             if ("exerciseComplete" in val && val.exerciseComplete) {
                 this.finished = true;

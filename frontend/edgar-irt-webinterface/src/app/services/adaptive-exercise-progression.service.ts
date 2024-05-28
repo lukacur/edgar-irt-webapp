@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, firstValueFrom, Observable, tap } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, map, Observable, tap } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { IExerciseInstance } from '../models/adaptive-exercises/exercise-instance.model';
 import { HttpClient } from '@angular/common/http';
@@ -30,6 +30,16 @@ export class AdaptiveExerciseProgressionService {
     constructor(
         private readonly http: HttpClient,
     ) { }
+
+    public getStudentStartDifficulty(
+        idStudent: number | null,
+        idExerciseDefinition: number,
+    ): Observable<QuestionIrtClassification | null> {
+        return this.http.post<{ difficulty: QuestionIrtClassification | null }>(
+            `${environment.backendServerInfo.applicationAddress}/adaptive-exercises/starting-difficulty`,
+            { idStudent: idStudent ?? this.idTestStudent, idExerciseDefinition, }
+        ).pipe(map(rsp => rsp.difficulty));
+    }
 
     public getStudentPreviousExercises(idStudent: number | null, idCourse: number): Observable<IExerciseInstance[]> {
         idStudent ??= this.idTestStudent;

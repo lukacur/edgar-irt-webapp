@@ -96,13 +96,25 @@
                             </div>
                         </div>
 
-                        <div>
+                        <div class="mb-3">
                             <mat-slide-toggle
                                 class="block mb-3"
                                 formControlName="considerPreviousExercises"
                                 [labelPosition]="'before'"
                                 color="accent"
                             >Previous exercise success impacts starting point?</mat-slide-toggle>
+
+                            <div *ngIf="startExerciseForm.get('considerPreviousExercises')?.value ?? false">
+                                You will start on
+                                <span
+                                    class="inline-block"
+                                    appBadge
+                                    [backgroundColorClass]="
+                                        QUtil.getColorClassForClassification('bg', studentStartDifficulty ?? 'normal')
+                                    "
+                                >{{ QUtil.getQuestionClassificationText(studentStartDifficulty ?? 'normal') }}</span>
+                                difficulty
+                            </div>
                         </div>
                         <button
                             type="button"
