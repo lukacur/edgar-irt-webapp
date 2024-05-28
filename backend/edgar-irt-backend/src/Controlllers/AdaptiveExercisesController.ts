@@ -67,6 +67,20 @@ export class AdaptiveExercisesController extends AbstractController {
             .send(courses);
     }
 
+    @Post("starting-difficulty")
+    public async getStudentStartingDifficulty(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const { idStudent, idExerciseDefinition } = req.body;
+
+        if ((idStudent ?? null) === null || (idExerciseDefinition ?? null) === null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        res.send({
+            difficulty: await this.adaptiveExerciseService.getStudentStartingDifficulty(idStudent, idExerciseDefinition)
+        });
+    }
+
     @Post("previous")
     public async getStudentPreviousExercises(req: Request, res: Response, next: NextFunction): Promise<void> {
         const { idStudent, idCourse } = req.body;
