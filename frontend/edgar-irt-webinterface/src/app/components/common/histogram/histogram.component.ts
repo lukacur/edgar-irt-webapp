@@ -18,7 +18,7 @@ export class HistogramComponent<TData extends { [ky: string]: any }> implements 
     selectable: boolean = false;
 
     @Output('dataSelected')
-    dataSelected$ = new BehaviorSubject<TData[]>([]);
+    dataSelected$ = new BehaviorSubject<{ data: TData[], bin: string } | null>(null);
 
     @Input('selectionChannel')
     selectionChannel: string = "default-channel";
@@ -175,10 +175,13 @@ export class HistogramComponent<TData extends { [ky: string]: any }> implements 
                 d3.select(this).style("fill", "#F97316");
                 highlightedEl = this;
 
-                outerThis.dataSelected$.next(data);
+                outerThis.dataSelected$.next({
+                    data,
+                    bin: `[${[d.x0!.toFixed(2), d.x1!.toFixed(2)].join(", ")}` + ((d.x1 === max) ? "]" : ">")
+                });
             } else {
                 highlightedEl = null;
-                outerThis.dataSelected$.next([]);
+                outerThis.dataSelected$.next({ data: [], bin: "" });
             }
         };
 

@@ -4,7 +4,7 @@ import { BehaviorSubject, map, Observable, Subscription, take } from 'rxjs';
 import { IEdgarCourse } from 'src/app/models/edgar/course.model.js';
 import { ICourseLevelStatisticsCalculation } from 'src/app/models/statistics-processing/course-level-statistics-calculation.model.js';
 import { StatisticsService } from 'src/app/services/statistics.service';
-import { QuestionUtil } from 'src/app/util/question.util';
+import { QuestionIrtClassification, QuestionUtil } from 'src/app/util/question.util';
 
 @Component({
     selector: 'app-question-info-plot',
@@ -27,6 +27,7 @@ export class QuestionStatisticsPlotComponent implements OnInit, AfterViewInit {
 
     courseLevelCalcs: ICourseLevelStatisticsCalculation[] | null = null;
 
+    focusFilterTitle: string = "";
     readonly focusedCourseLevelCalculations: ICourseLevelStatisticsCalculation[] = [];
 
     private readonly subscriptions: Subscription[] = [];
@@ -79,11 +80,19 @@ export class QuestionStatisticsPlotComponent implements OnInit, AfterViewInit {
         }
     }
 
+    stringAsClassification(str: string): QuestionIrtClassification {
+        return str as QuestionIrtClassification;
+    }
+
     focusCalculations(
         calcs: ICourseLevelStatisticsCalculation[],
         from: "bar-chart" | "histogram",
         ...clearChannels: ("ALL" | string)[]
     ): void {
+        if (calcs === null) {
+            return;
+        }
+
         let theCalculations: ICourseLevelStatisticsCalculation[];
         switch (from) {
             case 'histogram': {

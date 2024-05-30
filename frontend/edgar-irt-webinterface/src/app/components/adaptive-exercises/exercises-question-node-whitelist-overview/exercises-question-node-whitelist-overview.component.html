@@ -190,7 +190,7 @@
                 [selectable]="true"
                 selectionChannel="none"
 
-                (dataSelected)="doFilterQuestionsByClass($event?.qClass ?? '')"
+                (dataSelected)="doFilterQuestionsByClass($event?.data?.qClass ?? '')"
 
                 *ngIf="
                     courseQuestionClasses !== null && courseQuestionClasses.length !== 0; else noExerciseQuestions

@@ -34,7 +34,7 @@ export class BarChartComponent<TData extends { [ky: string]: any }> implements A
     selectable: boolean = false;
     
     @Output('dataSelected')
-    dataSelected$ = new BehaviorSubject<TData | null>(null);
+    dataSelected$ = new BehaviorSubject<{ data: TData, dataClass: string } | null>(null);
 
     @Input('selectionChannel')
     selectionChannel: string = "default-channel";
@@ -201,7 +201,12 @@ export class BarChartComponent<TData extends { [ky: string]: any }> implements A
                 d3.select(this).attr("fill", "#F97316B3");
                 highlightedEl = this;
 
-                outerThis.dataSelected$.next(data);
+                const classVal = outerThis.extractValueFromObj<string>(
+                    d3.select<d3.BaseType, TData>(highlightedEl).data()[0],
+                    classMapArray,
+                );
+
+                outerThis.dataSelected$.next({ data, dataClass: classVal! });
             } else {
                 highlightedEl = null;
                 outerThis.dataSelected$.next(null);

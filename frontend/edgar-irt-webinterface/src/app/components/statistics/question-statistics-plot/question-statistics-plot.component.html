@@ -66,13 +66,21 @@
                     selectionChannel="difficulty-barchart"
                     [clearSelection]="clearSelection"
 
-                    (dataSelected)="focusCalculations(
-                        $event?.calculations ?? [],
-                        'bar-chart',
-                        'mean-hist',
-                        'stddev-hist',
-                        'med-hist'
-                    )"
+                    (dataSelected)="
+                        focusCalculations(
+                            $event?.data?.calculations ?? [],
+                            'bar-chart',
+                            'mean-hist',
+                            'stddev-hist',
+                            'med-hist'
+                        );
+                        focusFilterTitle =
+                            ($event === null) ?
+                                '' :
+                                ('Active filter: questions of [' +
+                                QUtil.getQuestionClassificationText(stringAsClassification($event.dataClass)) +
+                                '] difficulty');
+                    "
 
                     *ngIf="courseLevelCalcs !== null && courseLevelCalcs.length !== 0"
                 ></app-bar-chart>
@@ -97,13 +105,17 @@
                         selectionChannel="mean-hist"
                         [clearSelection]="clearSelection"
 
-                        (dataSelected)="focusCalculations(
-                            $event,
-                            'histogram',
-                            'difficulty-barchart',
-                            'stddev-hist',
-                            'med-hist'
-                        )"
+                        (dataSelected)="
+                            focusCalculations(
+                                $event?.data ?? [],
+                                'histogram',
+                                'difficulty-barchart',
+                                'stddev-hist',
+                                'med-hist'
+                            );
+                            focusFilterTitle =
+                                ($event === null) ? '' : 'Active filter: score % mean in bin ' + $event.bin;
+                        "
 
                         *ngIf="courseLevelCalcs !== null && courseLevelCalcs.length !== 0"
                     ></app-histogram>
@@ -127,13 +139,18 @@
                         selectionChannel="stddev-hist"
                         [clearSelection]="clearSelection"
 
-                        (dataSelected)="focusCalculations(
-                            $event,
-                            'histogram',
-                            'difficulty-barchart',
-                            'mean-hist',
-                            'med-hist'
-                        )"
+                        (dataSelected)="
+                            focusCalculations(
+                                $event?.data ?? [],
+                                'histogram',
+                                'difficulty-barchart',
+                                'mean-hist',
+                                'med-hist'
+                            );
+                            focusFilterTitle =
+                                ($event === null) ?
+                                    '' : 'Active filter: score % standard deviation in bin ' + $event.bin;
+                        "
 
                         *ngIf="courseLevelCalcs !== null && courseLevelCalcs.length !== 0"
                     ></app-histogram>
@@ -157,13 +174,17 @@
                         selectionChannel="med-hist"
                         [clearSelection]="clearSelection"
 
-                        (dataSelected)="focusCalculations(
-                            $event,
-                            'histogram',
-                            'difficulty-barchart',
-                            'mean-hist',
-                            'stddev-hist'
-                        )"
+                        (dataSelected)="
+                            focusCalculations(
+                                $event?.data ?? [],
+                                'histogram',
+                                'difficulty-barchart',
+                                'mean-hist',
+                                'stddev-hist'
+                            );
+                            focusFilterTitle =
+                                ($event === null) ? '' : 'Active filter: score % median in bin ' + $event.bin;
+                        "
 
                         *ngIf="courseLevelCalcs !== null && courseLevelCalcs.length !== 0"
                     ></app-histogram>
@@ -192,133 +213,139 @@
             </div TODO: If needed -->
         </div>
 
-        <div class="overflow-auto w-full max-h-[560px]" *ngIf="focusedCourseLevelCalculations.length !== 0">
-            <table class="p-3 text-center w-full">
-                <thead class="sticky top-0 bg-white">
-                    <tr>
-                        <th>Question ID</th>
-                        <th>Score % mean</th>
-                        <th>Score % stddev</th>
-                        <th>Score % median</th>
-                        <th>Total score achieved</th>
-                        <th>Total achievable score</th>
-                        <th>Number of answers</th>
-                        <th>% of correct answers</th>
-                        <th>% of incorrect answers</th>
-                        <th>% of unanswered</th>
-                        <th>% of partial answers</th>
-                        <th>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>IRT information</th>
-                                    </tr>
-                                    <tr>
-                                        <th>
-                                            <div class="flex justify-between items-center text-center">
-                                                <div class="w-2/12">Default item offset constant</div>
-                                                <div class="w-2/12">Level of item knowledge</div>
-                                                <div class="w-2/12">Item difficulty</div>
-                                                <div class="w-2/12">Guess probability</div>
-                                                <div class="w-2/12">Mistake probability</div>
-                                            </div>
-                                        </th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        </th>
-                        <th class="px-2">Question class</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <ng-template
-                        ngFor
-                        let-clCalc
-                        [ngForOf]="focusedCourseLevelCalculations"
-                    >
-                        <tr class="hover:bg-blue-400/25">
-                            <td>
-                                <span
-                                    class="underline cursor-pointer"
-                                    title="Click to open IRT overview"
-                                    [routerLink]="['..', 'question-irt-overview', clCalc.id_question]"
-                                >
-                                    {{ clCalc.id_question }}
-                                </span> <mat-icon
-                                    class="text-sm cursor-pointer"
-                                    title="Click to open IRT overview"
-                                    (click)="showHelp($event, helpText)"
-                                >
-                                    help
-                                </mat-icon>
+        <div class="mt-5" *ngIf="focusedCourseLevelCalculations.length !== 0">
+            <hr class="my-3">
+            <h3 class="text-purple-600 text-lg">{{focusFilterTitle}}</h3>
+            <hr class="my-3">
 
-                                <span
-                                    #helpText
-                                    class="hidden"
-                                    (click)="$event.preventDefault(); $event.stopPropagation();"
-                                >Click to open IRT overview</span>
-                            </td>
-                            <td>
-                                <div
-                                    class="px-2 py-1 rounded-lg w-full"
-                                    [appGradient]="clCalc.score_perc_mean"
-                                    [gradientStart]="{ r: 255, g: 75, b: 75 }"
-                                    [gradientEnd]="{ r: 150, g: 255, b: 150 }"
-                                    gradientType="background"
-                                >{{ (clCalc.score_perc_mean * 100).toFixed(2) }}</div>
-                            </td>
-                            <td>
-                                <div
-                                    class="px-2 py-1 rounded-lg w-full"
-                                    [appGradient]="clCalc.score_perc_std_dev"
-                                    [gradientStart]="{ r: 150, g: 255, b: 150 }"
-                                    [gradientEnd]="{ r: 255, g: 75, b: 75 }"
-                                    gradientType="background"
-                                >{{ (clCalc.score_perc_std_dev * 100).toFixed(2) }}</div>
-                            </td>
-                            <td>
-                                <div
-                                    class="px-2 py-1 rounded-lg w-full"
-                                    [appGradient]="clCalc.score_perc_median"
-                                    [gradientStart]="{ r: 255, g: 75, b: 75 }"
-                                    [gradientEnd]="{ r: 150, g: 255, b: 150 }"
-                                    gradientType="background"
-                                >{{ (clCalc.score_perc_median * 100).toFixed(2) }}</div>
-                            </td>
-                            <td>{{ clCalc.total_achieved }}</td>
-                            <td>{{ clCalc.total_achievable }}</td>
-                            <td>{{ clCalc.answers_count }}</td>
-                            <td>{{ (clCalc.correct_perc * 100).toFixed(2) }}</td>
-                            <td>{{ (clCalc.incorrect_perc * 100).toFixed(2) }}</td>
-                            <td>{{ (clCalc.unanswered_perc * 100).toFixed(2) }}</td>
-                            <td>{{ (clCalc.partial_perc * 100).toFixed(2) }}</td>
-
-                            <td>
-                                <div class="flex justify-between items-center text-center">
-                                    <div class="w-2/12">{{ clCalc.default_item_offset_parameter.toFixed(4) }}</div>
-                                    <div class="w-2/12">{{ clCalc.level_of_item_knowledge.toFixed(4) }}</div>
-                                    <div class="w-2/12">{{ clCalc.item_difficulty.toFixed(4) }}</div>
-                                    <div class="w-2/12">{{ clCalc.item_guess_probability.toFixed(4) }}</div>
-                                    <div class="w-2/12">{{ clCalc.item_mistake_probability.toFixed(4) }}</div>
-                                </div>
-                            </td>
-
-                            <td>
-                                <div
-                                    class="inline-block w-full"
-                                    appBadge
-                                    [backgroundColorClass]="QUtil.getColorClassForClassification(
-                                        'bg',
-                                        clCalc.question_irt_classification
-                                    )"
-                                >
-                                    {{ QUtil.getQuestionClassificationText(clCalc.question_irt_classification) }}
-                                </div>
-                            </td>
+            <div class="overflow-auto w-full max-h-[560px]">
+                <table class="p-3 text-center w-full">
+                    <thead class="sticky top-0 bg-white">
+                        <tr>
+                            <th>Question ID</th>
+                            <th>Score % mean</th>
+                            <th>Score % stddev</th>
+                            <th>Score % median</th>
+                            <th>Total score achieved</th>
+                            <th>Total achievable score</th>
+                            <th>Number of answers</th>
+                            <th>% of correct answers</th>
+                            <th>% of incorrect answers</th>
+                            <th>% of unanswered</th>
+                            <th>% of partial answers</th>
+                            <th>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>IRT information</th>
+                                        </tr>
+                                        <tr>
+                                            <th>
+                                                <div class="flex justify-between items-center text-center">
+                                                    <div class="w-2/12">Default item offset constant</div>
+                                                    <div class="w-2/12">Level of item knowledge</div>
+                                                    <div class="w-2/12">Item difficulty</div>
+                                                    <div class="w-2/12">Guess probability</div>
+                                                    <div class="w-2/12">Mistake probability</div>
+                                                </div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </th>
+                            <th class="px-2">Question class</th>
                         </tr>
-                    </ng-template>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <ng-template
+                            ngFor
+                            let-clCalc
+                            [ngForOf]="focusedCourseLevelCalculations"
+                        >
+                            <tr class="hover:bg-blue-400/25">
+                                <td>
+                                    <span
+                                        class="underline cursor-pointer"
+                                        title="Click to open IRT overview"
+                                        [routerLink]="['..', 'question-irt-overview', clCalc.id_question]"
+                                    >
+                                        {{ clCalc.id_question }}
+                                    </span> <mat-icon
+                                        class="text-sm cursor-pointer"
+                                        title="Click to open IRT overview"
+                                        (click)="showHelp($event, helpText)"
+                                    >
+                                        help
+                                    </mat-icon>
+    
+                                    <span
+                                        #helpText
+                                        class="hidden"
+                                        (click)="$event.preventDefault(); $event.stopPropagation();"
+                                    >Click to open IRT overview</span>
+                                </td>
+                                <td>
+                                    <div
+                                        class="px-2 py-1 rounded-lg w-full"
+                                        [appGradient]="clCalc.score_perc_mean"
+                                        [gradientStart]="{ r: 255, g: 75, b: 75 }"
+                                        [gradientEnd]="{ r: 150, g: 255, b: 150 }"
+                                        gradientType="background"
+                                    >{{ (clCalc.score_perc_mean * 100).toFixed(2) }}</div>
+                                </td>
+                                <td>
+                                    <div
+                                        class="px-2 py-1 rounded-lg w-full"
+                                        [appGradient]="clCalc.score_perc_std_dev"
+                                        [gradientStart]="{ r: 150, g: 255, b: 150 }"
+                                        [gradientEnd]="{ r: 255, g: 75, b: 75 }"
+                                        gradientType="background"
+                                    >{{ (clCalc.score_perc_std_dev * 100).toFixed(2) }}</div>
+                                </td>
+                                <td>
+                                    <div
+                                        class="px-2 py-1 rounded-lg w-full"
+                                        [appGradient]="clCalc.score_perc_median"
+                                        [gradientStart]="{ r: 255, g: 75, b: 75 }"
+                                        [gradientEnd]="{ r: 150, g: 255, b: 150 }"
+                                        gradientType="background"
+                                    >{{ (clCalc.score_perc_median * 100).toFixed(2) }}</div>
+                                </td>
+                                <td>{{ clCalc.total_achieved }}</td>
+                                <td>{{ clCalc.total_achievable }}</td>
+                                <td>{{ clCalc.answers_count }}</td>
+                                <td>{{ (clCalc.correct_perc * 100).toFixed(2) }}</td>
+                                <td>{{ (clCalc.incorrect_perc * 100).toFixed(2) }}</td>
+                                <td>{{ (clCalc.unanswered_perc * 100).toFixed(2) }}</td>
+                                <td>{{ (clCalc.partial_perc * 100).toFixed(2) }}</td>
+    
+                                <td>
+                                    <div class="flex justify-between items-center text-center">
+                                        <div class="w-2/12">{{ clCalc.default_item_offset_parameter.toFixed(4) }}</div>
+                                        <div class="w-2/12">{{ clCalc.level_of_item_knowledge.toFixed(4) }}</div>
+                                        <div class="w-2/12">{{ clCalc.item_difficulty.toFixed(4) }}</div>
+                                        <div class="w-2/12">{{ clCalc.item_guess_probability.toFixed(4) }}</div>
+                                        <div class="w-2/12">{{ clCalc.item_mistake_probability.toFixed(4) }}</div>
+                                    </div>
+                                </td>
+    
+                                <td>
+                                    <div
+                                        class="inline-block w-full"
+                                        appBadge
+                                        [backgroundColorClass]="QUtil.getColorClassForClassification(
+                                            'bg',
+                                            clCalc.question_irt_classification
+                                        )"
+                                    >
+                                        {{ QUtil.getQuestionClassificationText(clCalc.question_irt_classification) }}
+                                    </div>
+                                </td>
+                            </tr>
+                        </ng-template>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
