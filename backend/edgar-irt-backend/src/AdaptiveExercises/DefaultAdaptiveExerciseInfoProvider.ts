@@ -60,11 +60,11 @@ export class DefaultAdaptiveExerciseInfoProvider implements
         const useOldLogic: boolean = false;
 
         const exerciseDefinition = await this.exerciseDefinitionService.getExerciseDefinition(exercise.id_exercise_definition);
-        const studentAvgStartDifficulty =
+        const studentAvgStartDifficulty = (initial) ?
             await this.adaptiveExerciseService.getStudentStartingDifficulty(
                 exercise.id_student_started,
                 exerciseDefinition?.id ?? null,
-            );
+            ) : null;
 
         let streakType: QuestionAnswerStreak | null = null;
         let streak = 0;
