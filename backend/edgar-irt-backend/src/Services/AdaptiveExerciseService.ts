@@ -33,8 +33,8 @@ export class AdaptiveExerciseService {
                     question_param_course_level_calculation.item_guess_probability,
                     question_param_course_level_calculation.item_mistake_probability,
                     CASE
-                        WHEN exercise_question_difficulty_override.question_difficulty IS NOT NULL
-                            THEN exercise_question_difficulty_override.question_difficulty
+                        WHEN exercise_question_difficulty.question_difficulty IS NOT NULL
+                            THEN exercise_question_difficulty.question_difficulty
                         ELSE
                             question_param_course_level_calculation.question_irt_classification
                     END AS question_irt_classification
@@ -54,14 +54,14 @@ export class AdaptiveExerciseService {
                     LEFT JOIN statistics_schema.question_param_course_level_calculation
                         ON question_param_calculation.id =
                             question_param_course_level_calculation.id_question_param_calculation
-                    LEFT JOIN adaptive_exercise.exercise_question_difficulty_override
-                        ON question.id = exercise_question_difficulty_override.id_question AND
-                            exercise_definition.id = exercise_question_difficulty_override.id_exercise_definition
+                    LEFT JOIN adaptive_exercise.exercise_question_difficulty
+                        ON question.id = exercise_question_difficulty.id_question AND
+                            exercise_definition.id = exercise_question_difficulty.id_exercise_definition
                 WHERE question.is_active AND
                     exercise_definition.id = $1 AND
                     (
                         question_param_course_level_calculation.question_irt_classification IS NOT NULL OR
-                        exercise_question_difficulty_override.question_difficulty IS NOT NULL
+                        exercise_question_difficulty.question_difficulty IS NOT NULL
                     ) AND
                     question.id NOT IN (
                         SELECT id_question

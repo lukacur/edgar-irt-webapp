@@ -33,53 +33,40 @@ export class ExerciseDefinitionController extends AbstractController {
                     SUM(number_of_questions) AS number_of_questions
                 FROM (
                     SELECT DISTINCT question_node.id_node,
-                        exercise_question_difficulty_override.question_difficulty AS class_name,
+                        exercise_question_difficulty.question_difficulty AS class_name,
                         COUNT(DISTINCT question_node.id_question) AS number_of_questions
                     FROM adaptive_exercise.exercise_node_whitelist
                         JOIN public.question_node
                             ON question_node.id_node = exercise_node_whitelist.id_node
                         JOIN public.question
                             ON question_node.id_question = question.id
-                        JOIN adaptive_exercise.exercise_question_difficulty_override
+                        JOIN adaptive_exercise.exercise_question_difficulty
                             ON exercise_node_whitelist.id_exercise_definition =
-                                exercise_question_difficulty_override.id_exercise_definition AND
-                                question_node.id_question = exercise_question_difficulty_override.id_question
+                                exercise_question_difficulty.id_exercise_definition AND
+                                question_node.id_question = exercise_question_difficulty.id_question
                     WHERE exercise_node_whitelist.id_exercise_definition = $1 AND
+                        exercise_question_difficulty.question_difficulty_override IS NULL AND
                         question.is_active
-                    GROUP BY question_node.id_node,
-                        exercise_question_difficulty_override.question_difficulty
+                    GROUP BY question_node.id_node, exercise_question_difficulty.question_difficulty
                     
                     UNION ALL
                     
                     SELECT DISTINCT question_node.id_node,
-                        question_param_course_level_calculation.question_irt_classification AS class_name,
+                        exercise_question_difficulty.question_difficulty_override AS class_name,
                         COUNT(DISTINCT question_node.id_question) AS number_of_questions
                     FROM adaptive_exercise.exercise_node_whitelist
                         JOIN public.question_node
                             ON question_node.id_node = exercise_node_whitelist.id_node
                         JOIN public.question
                             ON question_node.id_question = question.id
-                        LEFT JOIN statistics_schema.question_param_calculation
-                            ON question_node.id_question = question_param_calculation.id_question
-                        LEFT JOIN statistics_schema.question_param_course_level_calculation
-                            ON question_param_calculation.id =
-                                question_param_course_level_calculation.id_question_param_calculation
+                        JOIN adaptive_exercise.exercise_question_difficulty
+                            ON exercise_node_whitelist.id_exercise_definition =
+                                exercise_question_difficulty.id_exercise_definition AND
+                                question_node.id_question = exercise_question_difficulty.id_question
                     WHERE exercise_node_whitelist.id_exercise_definition = $1 AND
-                        question.is_active AND 
-                        (
-                            question_irt_classification IS NOT NULL OR question_node.id_question NOT IN (
-                                SELECT id_question
-                                FROM statistics_schema.question_param_calculation AS qpc
-                                    JOIN adaptive_exercise.exercise_definition AS exdef
-                                        ON qpc.id_based_on_course = exdef.id_course
-                            )
-                        ) AND question_node.id_question NOT IN (
-                            SELECT id_question
-                            FROM adaptive_exercise.exercise_question_difficulty_override AS eqdo
-                            WHERE eqdo.id_exercise_definition = $1
-                        )
-                    GROUP BY question_node.id_node,
-                        question_param_course_level_calculation.question_irt_classification
+                        exercise_question_difficulty.question_difficulty_override IS NOT NULL AND
+                        question.is_active
+                    GROUP BY question_node.id_node, exercise_question_difficulty.question_difficulty_override
                 ) AS union_tab
                 GROUP BY id_node, class_name
                 ORDER BY id_node, class_name`,
