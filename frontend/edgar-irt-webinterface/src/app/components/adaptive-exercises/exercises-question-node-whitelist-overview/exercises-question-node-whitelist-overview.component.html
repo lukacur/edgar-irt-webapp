@@ -252,11 +252,13 @@
                                 <td class="p-3 max-w-[120px]">{{ exerDifficultyInfo.questionText }}</td>
                                 <td class="p-3">
                                     <p *ngIf="!exerDifficultyInfo.isOverride; else overriden">
-                                        This question appears in
-                                        <b>{{ exerDifficultyInfo.difficulties.length }}</b> calculations
-                                        <span *ngIf="exerDifficultyInfo.difficulties.length !== 0">
-                                            and can appear in exercises as a(n):<br>
-                                            <span *ngFor="let difficulty of exerDifficultyInfo.difficulties">
+                                        <span
+                                            *ngIf="
+                                                exerDifficultyInfo.baseDifficulties.length !== 0; else noDifficulties
+                                            "
+                                        >
+                                            This question can appear in exercises as a(n):<br>
+                                            <span *ngFor="let difficulty of exerDifficultyInfo.baseDifficulties">
                                                 <span
                                                     appBadge
                                                     class="inline-block"
@@ -268,6 +270,21 @@
                                                 </span> question<br><br>
                                             </span>
                                         </span>
+
+                                        <ng-template #noDifficulties>
+                                            <span>
+                                                This question will not appear in exercises because it is:<br>
+                                                <span
+                                                    appBadge
+                                                    class="inline-block"
+                                                    [backgroundColorClass]="
+                                                        QUtil.getColorClassForClassification('bg', null)
+                                                    "
+                                                >
+                                                    {{ QUtil.getQuestionClassificationText(null) }}
+                                                </span>
+                                            </span>
+                                        </ng-template>
                                     </p>
                                     <ng-template #overriden>
                                         <p>
@@ -278,13 +295,13 @@
                                                 [backgroundColorClass]="
                                                     QUtil.getColorClassForClassification(
                                                         'bg',
-                                                        exerDifficultyInfo.difficulties![0]!
+                                                        exerDifficultyInfo.overrideDifficulty
                                                     )
                                                 "
                                             >
                                                 {{
                                                     QUtil.getQuestionClassificationText(
-                                                        exerDifficultyInfo.difficulties![0]!
+                                                        exerDifficultyInfo.overrideDifficulty
                                                     )
                                                 }}
                                             </span>
@@ -300,7 +317,7 @@
                                                     exerDifficultyInfo.isOverride &&
                                                         !questionDifficultyOverridesMap
                                                             .has(exerDifficultyInfo.idQuestion) &&
-                                                        (exerDifficultyInfo.difficulties ?? [])[0] === qClass ||
+                                                        exerDifficultyInfo.overrideDifficulty === qClass ||
                                                     questionDifficultyOverridesMap.has(exerDifficultyInfo.idQuestion) &&
                                                         questionDifficultyOverridesMap
                                                             .get(exerDifficultyInfo.idQuestion) === qClass;

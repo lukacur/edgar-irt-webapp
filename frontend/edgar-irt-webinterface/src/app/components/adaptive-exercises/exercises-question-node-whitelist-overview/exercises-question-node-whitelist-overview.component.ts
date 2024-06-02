@@ -14,7 +14,8 @@ type CourseQuestionClassInfo = { qClass?: string, qClassCount?: number };
 type ReducedQuestionDifficultyInfo = {
     idQuestion: number;
     questionText: string;
-    difficulties: QuestionIrtClassification[];
+    baseDifficulties: QuestionIrtClassification[];
+    overrideDifficulty: QuestionIrtClassification | null;
     isOverride: boolean;
 };
 
@@ -237,23 +238,28 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
 
                                         for (const qdi of qdis) {
                                             if (!map.has(qdi.id_question)) {
+                                                const diffictsArr: QuestionIrtClassification[] = [];
+                                                if (!qdi.is_override && qdi.question_difficulty !== null) {
+                                                    diffictsArr.push(qdi.question_difficulty);
+                                                }
+
                                                 map.set(
                                                     qdi.id_question,
                                                     {
                                                         idQuestion: qdi.id_question,
                                                         questionText: qdi.question_text,
                                                         isOverride: qdi.is_override,
-                                                        difficulties:
-                                                            (qdi.question_difficulty === null) ?
-                                                                [] :
-                                                                [qdi.question_difficulty],
+                                                        baseDifficulties: diffictsArr,
+                                                        overrideDifficulty: qdi.question_difficulty_override,
                                                     }
                                                 );
                                             } else {
                                                 const oldInfo = map.get(qdi.id_question);
 
                                                 if (qdi.question_difficulty !== null) {
-                                                    oldInfo?.difficulties?.push(qdi.question_difficulty!);
+                                                    oldInfo?.baseDifficulties?.push(
+                                                        qdi.question_difficulty!
+                                                    );
                                                 }
                                             }
                                         }
@@ -395,8 +401,11 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
             take(1),
             map(els =>
                 els.filter(
-                    el => el.difficulties !== null && el.difficulties.includes(qClass as QuestionIrtClassification) ||
-                        el.difficulties.length === 0 && qClass === 'unclassified'
+                    el => el.isOverride && el.overrideDifficulty === qClass ||
+                        !el.isOverride && (
+                            el.baseDifficulties.length === 0 && qClass === 'unclassified' ||
+                            el.baseDifficulties.includes(qClass as QuestionIrtClassification)
+                        )
                 )
             ),
         ).subscribe(els => {
@@ -438,8 +447,14 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
             .pipe(
                 map(rqdis => ({
                     rows: rqdis.length,
-                    classifications: rqdis.reduce((acc, el) => acc + (el.difficulties?.length ?? 0), 0),
-                    unclassified: rqdis.reduce((acc, el) => acc + (el.difficulties.length === 0 ? 1 : 0), 0),
+                    classifications: rqdis.reduce(
+                        (acc, el) => acc + ((el.isOverride) ? 1 : (el.baseDifficulties?.length ?? 0)),
+                        0
+                    ),
+                    unclassified: rqdis.reduce(
+                        (acc, el) => acc + ((el.isOverride) ? 0 : (el.baseDifficulties.length === 0 ? 1 : 0)),
+                        0
+                    ),
                 })),
                 map(textInfo =>
                     `(rows: ${textInfo.rows}; classifications: ${textInfo.classifications}; ` +
