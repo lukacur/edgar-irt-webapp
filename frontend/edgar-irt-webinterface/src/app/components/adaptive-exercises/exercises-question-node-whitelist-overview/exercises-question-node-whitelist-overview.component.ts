@@ -4,13 +4,12 @@ import { BehaviorSubject, map, Observable, Subscription, take, tap } from 'rxjs'
 import { IExerciseDefinition } from 'src/app/models/adaptive-exercises/exercise-definition.model';
 import { IEdgarCourse } from 'src/app/models/edgar/course.model';
 import { IEdgarNode } from 'src/app/models/edgar/node.model';
-import { INodeQuestionClass } from 'src/app/models/exercise-definition/node-question-class.model';
+import { CourseQuestionClassInfo, IExerciseDefinitionQuestionClassificationInfo, NodeQuestionClass } from 'src/app/models/exercise-definition/node-question-class.model';
 import { AdaptiveExercisesService } from 'src/app/services/adaptive-exercises.service';
 import { EdgarService } from 'src/app/services/edgar.service';
 import { ExerciseDefinitionService } from 'src/app/services/exercise-definition.service';
 import { QuestionIrtClassification, QuestionUtil } from 'src/app/util/question.util';
 
-type CourseQuestionClassInfo = { qClass?: string, qClassCount?: number };
 type ReducedQuestionDifficultyInfo = {
     idQuestion: number;
     questionText: string;
@@ -40,9 +39,10 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
     exerciseDefinitionWhitelistedNodes$: Observable<(IEdgarNode & { whitelisted_on: string })[]> =
         new BehaviorSubject([]);
 
-    private byNodeQuestionClasses$: Observable<INodeQuestionClass[]> = new BehaviorSubject([]);
+    private definitionQuestionClasses$: Observable<IExerciseDefinitionQuestionClassificationInfo | null> =
+        new BehaviorSubject(null);
 
-    nodeQuestionClasses: INodeQuestionClass[] = [];
+    nodeQuestionClasses: NodeQuestionClass[] = [];
     courseQuestionClasses: CourseQuestionClassInfo[] = [];
 
     readonly questionClasses = QuestionUtil.getAvailableClasses();
@@ -139,39 +139,22 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
                         selectedExerciseDefinitionControl!.value!.id
                     ).pipe(tap(nodes => this.numberOfWhitelistedNodes = nodes.length));
 
-                    this.byNodeQuestionClasses$ =
+                    this.definitionQuestionClasses$ =
                         this.exerciseDefinitionService.getQuestionClassesForDefinition(
                             selectedExerciseDefinitionControl!.value!.id
                         ).pipe(
                             tap(qcls => {
-                                this.nodeQuestionClasses = qcls;
-                                this.courseQuestionClasses = qcls.reduce(
-                                    (acc, el) => {
-                                        let found = false;
-                                        for (const entry of acc) {
-                                            if (entry.qClass === (el.class_name ?? "unclassified")) {
-                                                entry.qClassCount! += el.number_of_questions;
-                                                found = true;
-                                                break;
-                                            }
-                                        }
-
-                                        if (!found) {
-                                            const obj: CourseQuestionClassInfo = {
-                                                qClass: (el.class_name ?? "unclassified"),
-                                                qClassCount: el.number_of_questions
-                                            };
-                                            acc.push(obj);
-                                        }
-
-                                        return acc;
-                                    },
-                                    [] as CourseQuestionClassInfo[]
-                                );
+                                this.nodeQuestionClasses = qcls.nodeQuestionClasses;
+                                this.courseQuestionClasses = qcls.questionClassInfo;
+                                for (const entr of this.courseQuestionClasses) {
+                                    if (entr.class_name === null) {
+                                         entr.class_name = 'unclassified';
+                                    }
+                                }
                             }),
                         );
 
-                    this.subscriptions.push(this.byNodeQuestionClasses$.subscribe());
+                    this.subscriptions.push(this.definitionQuestionClasses$.subscribe());
             }
         }
 
@@ -239,7 +222,7 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
                                         for (const qdi of qdis) {
                                             if (!map.has(qdi.id_question)) {
                                                 const diffictsArr: QuestionIrtClassification[] = [];
-                                                if (!qdi.is_override && qdi.question_difficulty !== null) {
+                                                if (qdi.question_difficulty !== null) {
                                                     diffictsArr.push(qdi.question_difficulty);
                                                 }
 
@@ -277,34 +260,17 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
                                     this.filteredExerciseQuestionDifficultyInfo$.next(qdis);
                                 });
 
-                            this.byNodeQuestionClasses$ =
+                            this.definitionQuestionClasses$ =
                                 this.exerciseDefinitionService.getQuestionClassesForDefinition(exDef.id)
                                     .pipe(
                                         tap(qcls => {
-                                            this.nodeQuestionClasses = qcls;
-                                            this.courseQuestionClasses = qcls.reduce(
-                                                (acc, el) => {
-                                                    let found = false;
-                                                    for (const entry of acc) {
-                                                        if (entry.qClass === (el.class_name ?? "unclassified")) {
-                                                            entry.qClassCount! += el.number_of_questions;
-                                                            found = true;
-                                                            break;
-                                                        }
-                                                    }
-            
-                                                    if (!found) {
-                                                        const obj: CourseQuestionClassInfo = {
-                                                            qClass: (el.class_name ?? "unclassified"),
-                                                            qClassCount: el.number_of_questions
-                                                        };
-                                                        acc.push(obj);
-                                                    }
-            
-                                                    return acc;
-                                                },
-                                                [] as CourseQuestionClassInfo[]
-                                            );
+                                            this.nodeQuestionClasses = qcls.nodeQuestionClasses;
+                                            this.courseQuestionClasses = qcls.questionClassInfo;
+                                            for (const entr of this.courseQuestionClasses) {
+                                                if (entr.class_name === null) {
+                                                     entr.class_name = 'unclassified';
+                                                }
+                                            }
                                         }),
                                     );
 
@@ -314,7 +280,7 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
                                 skippedQuestionsToDowngrade: exDef.skipped_questions_to_downgrade,
                             });
 
-                            this.subscriptions.push(this.byNodeQuestionClasses$.subscribe());
+                            this.subscriptions.push(this.definitionQuestionClasses$.subscribe());
                         }
                     })
             );
@@ -352,7 +318,7 @@ export class ExercisesQuestionNodeWhitelistOverviewComponent implements OnInit, 
     }
 
     getExerciseTotalQuestionCount(): number {
-        return this.courseQuestionClasses.reduce((acc, el) => acc += (el.qClassCount ?? 0), 0);
+        return this.courseQuestionClasses.reduce((acc, el) => acc += (el.number_of_questions ?? 0), 0);
     }
 
     getNodeTotalQuestions(idNode: number): number {

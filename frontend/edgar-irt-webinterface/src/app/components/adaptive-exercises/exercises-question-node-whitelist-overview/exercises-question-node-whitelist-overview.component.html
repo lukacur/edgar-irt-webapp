@@ -171,10 +171,6 @@
             <hr class="my-3">
             <div>
                 Total questions: {{ getExerciseTotalQuestionCount() }}
-                <sup>
-                    * this value can differ from the actual row count / classification count since one question can
-                    appear in multiple nodes
-                </sup>
             </div>
             <app-bar-chart
                 [classes]="questionClasses"
@@ -182,15 +178,15 @@
 
                 [data]="courseQuestionClasses"
 
-                dataClassKey="qClass"
-                dataValueKey="qClassCount"
+                dataClassKey="class_name"
+                dataValueKey="number_of_questions"
 
                 [chartWidth]="400"
 
                 [selectable]="true"
                 selectionChannel="none"
 
-                (dataSelected)="doFilterQuestionsByClass($event?.data?.qClass ?? '')"
+                (dataSelected)="doFilterQuestionsByClass($event?.data?.class_name ?? '')"
 
                 *ngIf="
                     courseQuestionClasses !== null && courseQuestionClasses.length !== 0; else noExerciseQuestions
@@ -288,7 +284,28 @@
                                     </p>
                                     <ng-template #overriden>
                                         <p>
-                                            This question's difficulty was overriden and set to:<br>
+                                            <span
+                                                *ngIf="
+                                                    exerDifficultyInfo.baseDifficulties.length !== 0;
+                                                    else nonClassifiedText
+                                                "
+                                            >
+                                                This question's difficulty was overriden from:<br>
+                                                <span *ngFor="let difficulty of exerDifficultyInfo.baseDifficulties">
+                                                    <span
+                                                        appBadge
+                                                        class="inline-block"
+                                                        [backgroundColorClass]="
+                                                            QUtil.getColorClassForClassification('bg', difficulty)
+                                                        "
+                                                    >
+                                                        {{ QUtil.getQuestionClassificationText(difficulty) }}
+                                                    </span><br>
+                                                </span>
+                                            </span>
+                                            <ng-template #nonClassifiedText>
+                                                This question's difficulty was overriden 
+                                            </ng-template>and set to:<br>
                                             <span
                                                 appBadge
                                                 class="inline-block"
