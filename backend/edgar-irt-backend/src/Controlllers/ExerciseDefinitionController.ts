@@ -19,7 +19,7 @@ export class ExerciseDefinitionController extends AbstractController {
     }
 
     @Get(":idExerciseDefinition/question-classes")
-    public async getNodeQuestions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    public async getQuestionClassificationInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
         const idExerciseDefinition = req.params['idExerciseDefinition'];
         if ((idExerciseDefinition ?? null) === null) {
             res.sendStatus(400);
@@ -74,8 +74,27 @@ export class ExerciseDefinitionController extends AbstractController {
             )
         )?.rows ?? [];
 
-        res.send(
-            nodeQuestionClasses.map(
+        const questionClassInfo = (
+            await this.dbConn.doQuery<{ class_name: string, number_of_questions: number }>(
+                `SELECT CASE
+                        WHEN question_difficulty_override IS NULL THEN question_difficulty
+                        ELSE question_difficulty_override
+                    END AS class_name,
+                    COUNT(DISTINCT id_question) AS number_of_questions
+                FROM adaptive_exercise.exercise_question_difficulty
+                    JOIN public.question
+                        ON exercise_question_difficulty.id_question = question.id
+                WHERE id_exercise_definition = $1 AND
+                    question.is_active AND
+                    NOT excluded
+                GROUP BY class_name
+                ORDER BY class_name`,
+                [ idExerciseDefinition ]
+            )
+        )?.rows ?? [];
+
+        res.send({
+            nodeQuestionClasses: nodeQuestionClasses.map(
                 nqc => ({
                     ...nqc,
                     number_of_questions:
@@ -83,8 +102,17 @@ export class ExerciseDefinitionController extends AbstractController {
                             parseInt(nqc.number_of_questions) :
                             nqc.number_of_questions
                 })
-            )
-        );
+            ),
+            questionClassInfo: questionClassInfo.map(
+                qci => ({
+                    ...qci,
+                    number_of_questions:
+                        typeof(qci.number_of_questions) === "string" ?
+                            parseInt(qci.number_of_questions) :
+                            qci.number_of_questions
+                })
+            ),
+        });
     }
 
     @Post("update-progression")
