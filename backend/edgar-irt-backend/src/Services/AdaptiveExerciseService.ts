@@ -27,16 +27,16 @@ export class AdaptiveExerciseService {
         return (
             await (transaction ?? this.dbConn).doQuery<IQuestionPoolQuestion>(
                 `SELECT DISTINCT question.*,
-                    question_param_course_level_calculation.default_item_offset_parameter,
-                    question_param_course_level_calculation.level_of_item_knowledge,
-                    question_param_course_level_calculation.item_difficulty,
-                    question_param_course_level_calculation.item_guess_probability,
-                    question_param_course_level_calculation.item_mistake_probability,
+                    NULL AS default_item_offset_parameter,
+                    NULL AS level_of_item_knowledge,
+                    NULL AS item_difficulty,
+                    NULL AS item_guess_probability,
+                    NULL AS item_mistake_probability,
                     CASE
-                        WHEN exercise_question_difficulty.question_difficulty IS NOT NULL
-                            THEN exercise_question_difficulty.question_difficulty
+                        WHEN exercise_question_difficulty.question_difficulty_override IS NOT NULL
+                            THEN exercise_question_difficulty.question_difficulty_override
                         ELSE
-                            question_param_course_level_calculation.question_irt_classification
+                            exercise_question_difficulty.question_difficulty
                     END AS question_irt_classification
                 FROM public.question
                     JOIN adaptive_exercise.exercise_allowed_question_type
@@ -49,18 +49,13 @@ export class AdaptiveExerciseService {
                         ON exercise_node_whitelist.id_exercise_definition = exercise_instance.id_exercise_definition
                     JOIN adaptive_exercise.exercise_definition
                         ON exercise_instance.id_exercise_definition = exercise_definition.id
-                    LEFT JOIN statistics_schema.question_param_calculation
-                        ON question.id = question_param_calculation.id_question
-                    LEFT JOIN statistics_schema.question_param_course_level_calculation
-                        ON question_param_calculation.id =
-                            question_param_course_level_calculation.id_question_param_calculation
-                    LEFT JOIN adaptive_exercise.exercise_question_difficulty
+                    JOIN adaptive_exercise.exercise_question_difficulty
                         ON question.id = exercise_question_difficulty.id_question AND
                             exercise_definition.id = exercise_question_difficulty.id_exercise_definition
                 WHERE question.is_active AND
                     exercise_definition.id = $1 AND
                     (
-                        question_param_course_level_calculation.question_irt_classification IS NOT NULL OR
+                        exercise_question_difficulty.question_difficulty_override IS NOT NULL OR
                         exercise_question_difficulty.question_difficulty IS NOT NULL
                     ) AND
                     question.id NOT IN (
