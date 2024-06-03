@@ -457,7 +457,7 @@ export class AdaptiveExercisesController extends AbstractController {
 
     private async insertNextQuestionInfo(
         exerId: number,
-        nextQuestionInfo: Pick<IExerciseInstanceQuestion, "id_question" | "id_question_irt_cb_info" | "question_difficulty" | "id_question_irt_tb_info" | "correct_answers">,
+        nextQuestionInfo: Pick<IExerciseInstanceQuestion, "id_question" | "question_difficulty" | "id_question_irt_tb_info" | "correct_answers">,
         transactionCtx: TransactionContext
     ): Promise<IExerciseInstanceQuestion | null> {
         const answersNull = nextQuestionInfo.correct_answers === null || nextQuestionInfo.correct_answers.length === 0;
@@ -468,19 +468,17 @@ export class AdaptiveExercisesController extends AbstractController {
 
                 id_question,
 
-                id_question_param_course_level_calculation,
                 question_difficulty,
 
                 question_ordinal,
 
                 correct_answers
-            ) VALUES ($1, $2, $3, $4, 1, $5)`,
+            ) VALUES ($1, $2, $3, 1, $4)`,
             [
                 /* $1 */ exerId,
                 /* $2 */ nextQuestionInfo.id_question,
-                /* $3 */ nextQuestionInfo.id_question_irt_cb_info,
-                /* $4 */ nextQuestionInfo.question_difficulty,
-                /* $5 */ (answersNull) ? null : '{' + nextQuestionInfo.correct_answers!.join(",") + '}',
+                /* $3 */ nextQuestionInfo.question_difficulty,
+                /* $4 */ (answersNull) ? null : '{' + nextQuestionInfo.correct_answers!.join(",") + '}',
             ]
         );
 

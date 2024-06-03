@@ -12,8 +12,7 @@ export interface IAdaptiveExerciseNextQuestionGenerator {
     ): Promise<
         Pick<
             IExerciseInstanceQuestion,
-            "id_question" | "id_question_irt_cb_info" | "question_difficulty" | "id_question_irt_tb_info"
-                | "correct_answers"
+            "id_question" | "question_difficulty" | "id_question_irt_tb_info" | "correct_answers"
         >
     >;
 
@@ -26,8 +25,7 @@ export interface IAdaptiveExerciseNextQuestionGenerator {
     ): Promise<
         Pick<
             IExerciseInstanceQuestion,
-            "id_question" | "id_question_irt_cb_info" | "question_difficulty" | "id_question_irt_tb_info"
-                | "correct_answers"
+            "id_question" | "question_difficulty" | "id_question_irt_tb_info" | "correct_answers"
         >
     >;
 }

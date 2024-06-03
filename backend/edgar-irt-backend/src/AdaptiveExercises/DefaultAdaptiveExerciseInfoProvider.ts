@@ -215,8 +215,7 @@ export class DefaultAdaptiveExerciseInfoProvider implements
     ): Promise<
         Pick<
             IExerciseInstanceQuestion,
-            "id_question" | "id_question_irt_cb_info" | "question_difficulty" | "id_question_irt_tb_info"
-                | "correct_answers"
+            "id_question" | "question_difficulty" | "id_question_irt_tb_info" | "correct_answers"
         >
     > {
         const dbConn = DbConnProvider.getDbConn();
@@ -295,7 +294,6 @@ export class DefaultAdaptiveExerciseInfoProvider implements
         return {
             id_question: q.id,
             correct_answers: answers?.filter(a => a.is_correct).map(a => a.ordinal) ?? null,
-            id_question_irt_cb_info: irtInfo?.id_course_based_info ?? null,
             question_difficulty: q.question_irt_classification,
             id_question_irt_tb_info: irtInfo?.testBasedInfo.map(tbi => tbi.id_test_based_info) ?? null,
         };
