@@ -92,7 +92,8 @@ export class AdaptiveExercisesController extends AbstractController {
         const exercises: IExerciseInstance[] = (
             await this.dbConn.doQuery<IExerciseInstance>(
                 `SELECT exercise_instance.*,
-                    exercise_name
+                    exercise_definition.id_course,
+                    exercise_definition.exercise_name
                 FROM adaptive_exercise.exercise_instance
                     JOIN adaptive_exercise.exercise_definition
                         ON exercise_instance.id_exercise_definition = exercise_definition.id
@@ -123,8 +124,11 @@ export class AdaptiveExercisesController extends AbstractController {
 
         const exercise: IExerciseInstance | null = (
             await this.dbConn.doQuery<IExerciseInstance>(
-                `SELECT *
+                `SELECT exercise_instance.*,
+                        exercise_definition.id_course
                 FROM adaptive_exercise.exercise_instance
+                    JOIN adaptive_exercise.exercise_definition
+                        ON exercise_instance.id_exercise_definition = exercise_definition.id
                 WHERE id_student_started = $1 AND
                         id_course = $2 AND
                         NOT is_finished`,
@@ -142,8 +146,11 @@ export class AdaptiveExercisesController extends AbstractController {
 
         const lastExerciseInstanceQuestion: IExerciseInstanceQuestion | null = (
             await this.dbConn.doQuery<IExerciseInstanceQuestion>(
-                `SELECT exercise_instance_question.*
+                `SELECT exercise_instance_question.*,
+                    exercise_definition.id_course
                 FROM adaptive_exercise.exercise_instance_question
+                    JOIN adaptive_exercise.exercise_definition
+                        ON exercise_instance.id_exercise_definition = exercise_definition.id
                 WHERE id_exercise = $1 AND
                         finished_on IS NULL`,
                 [
@@ -557,8 +564,11 @@ export class AdaptiveExercisesController extends AbstractController {
                     ...(
                         (
                             await transaction.doQuery<IExerciseInstance>(
-                                `SELECT *
+                                `SELECT exercise_instance.*,
+                                    exercise_definition.id_course
                                 FROM exercise_instance
+                                    JOIN adaptive_exercise.exercise_definition
+                                        ON exercise_instance.id_exercise_definition = exercise_definition.id
                                 WHERE id_student_started = $1 AND
                                     id_exercise_definition = $2`,
                                 [
@@ -574,7 +584,6 @@ export class AdaptiveExercisesController extends AbstractController {
             const exerId: number | null = (await transaction.doQuery<{ id: number }>(
                 `INSERT INTO exercise_instance (
                     id_student_started,
-                    id_course,
                     id_exercise_definition,
 
                     start_difficulty,
@@ -584,14 +593,13 @@ export class AdaptiveExercisesController extends AbstractController {
                     current_irt_theta,
     
                     questions_count
-                ) VALUES ($1, $2, $3, $4, $4, $5, $5, $6) RETURNING id`,
+                ) VALUES ($1, $2, $3, $3, $4, $4, $5) RETURNING id`,
                 [
                     /* $1 */ idStudent,
-                    /* $2 */ idCourse,
-                    /* $3 */ idExerciseDefinition,
-                    /* $4 */ startDifficulty,
-                    /* $5 */ await this.initialThetaGenerator.generateTheta(idCourse, idStudent, prevExercises),
-                    /* $6 */ questionsCount,
+                    /* $2 */ idExerciseDefinition,
+                    /* $3 */ startDifficulty,
+                    /* $4 */ await this.initialThetaGenerator.generateTheta(idCourse, idStudent, prevExercises),
+                    /* $5 */ questionsCount,
                 ]
             ))?.rows[0]?.id ?? null;
     
@@ -603,8 +611,11 @@ export class AdaptiveExercisesController extends AbstractController {
     
             const exerInfo: IExerciseInstance | null = (
                 await transaction.doQuery<IExerciseInstance>(
-                    `SELECT *
+                    `SELECT exercise_instance.*,
+                        exercise_definition.id_course
                     FROM exercise_instance
+                        JOIN adaptive_exercise.exercise_definition
+                            ON exercise_instance.id_exercise_definition = exercise_definition.id
                     WHERE id = $1`,
                     [exerId]
                 )
@@ -783,8 +794,11 @@ export class AdaptiveExercisesController extends AbstractController {
 
             const exercise: IExerciseInstance | null = (
                 await transaction.doQuery<IExerciseInstance>(
-                    `SELECT *
+                    `SELECT exercise_instance.*,
+                        exercise_definition.id_course
                     FROM adaptive_exercise.exercise_instance
+                        JOIN adaptive_exercise.exercise_definition
+                            ON exercise_instance.id_exercise_definition = exercise_definition.id
                     WHERE id = $1`,
                     [idExercise]
                 )
