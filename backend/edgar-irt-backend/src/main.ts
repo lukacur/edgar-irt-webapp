@@ -24,13 +24,20 @@ export class Main {
         DbConnProvider.setDbConn(await DatabaseConnection.fromConfigFile("./database-config.json"));
         const courseService = new CourseService(DbConnProvider.getDbConn());
         const edgarService = new EdgarService(DbConnProvider.getDbConn());
-        const adaptiveExerciseService = new AdaptiveExerciseService(DbConnProvider.getDbConn());
+        const adaptiveExerciseService = new AdaptiveExerciseService(
+            DbConnProvider.getDbConn(),
+            edgarService,
+        );
         const exerciseDefinitionService = new ExerciseDefinitionService(DbConnProvider.getDbConn(), courseService);
         const defaultAdaptiveExerciseInfoProvider = new DefaultAdaptiveExerciseInfoProvider(
             edgarService,
             adaptiveExerciseService,
             exerciseDefinitionService,
         );
+
+        adaptiveExerciseService.setNextQuestionGenerator(defaultAdaptiveExerciseInfoProvider);
+        adaptiveExerciseService.setInitialThetaGenerator(defaultAdaptiveExerciseInfoProvider);
+        adaptiveExerciseService.setThetaDeltaGenerator(defaultAdaptiveExerciseInfoProvider);
 
         Main.server.useJsonBodyParsing();
 
@@ -43,14 +50,10 @@ export class Main {
         const edgarController: AbstractController = new EdgarController(DbConnProvider.getDbConn(), courseService);
         const adaptiveExercisesController: AbstractController =
             new AdaptiveExercisesController(
-                DbConnProvider.getDbConn(),
                 courseService,
                 edgarService,
                 exerciseDefinitionService,
                 adaptiveExerciseService,
-                defaultAdaptiveExerciseInfoProvider,
-                defaultAdaptiveExerciseInfoProvider,
-                defaultAdaptiveExerciseInfoProvider,
             );
 
         const exerDefController: AbstractController = new ExerciseDefinitionController(

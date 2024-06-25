@@ -1,4 +1,5 @@
 import { DatabaseConnection } from "../Database/DatabaseConnection.js";
+import { IEdgarCourse } from "../Models/Database/Edgar/IEdgarCourse.js";
 import { IEdgarNode } from "../Models/Database/Edgar/IEdgarNode.js";
 
 export class CourseService {
@@ -43,5 +44,18 @@ export class CourseService {
         )?.rows ?? [];
 
         return courseNodes;
+    }
+
+    public async getCoursesWithStartableExercises(): Promise<IEdgarCourse[]> {
+        return (
+            await this.dbConn.doQuery<IEdgarCourse>(
+                `SELECT DISTINCT course.*
+                FROM public.course
+                    JOIN statistics_schema.question_param_calculation
+                        ON course.id = question_param_calculation.id_based_on_course
+                    JOIN adaptive_exercise.exercise_definition
+                        ON course.id = exercise_definition.id_course`
+            )
+        )?.rows ?? [];
     }
 }
