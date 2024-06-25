@@ -21,9 +21,7 @@ const EDGAR_STATPROC_QUEUE_NAME = "edgar-irt-work-request-queue";
 export class Main {
     private static server: ExpressServer;
 
-    public static async main(args: string[]): Promise<void> {
-        Main.server = ExpressServer.initialize();
-        DbConnProvider.setDbConn(await DatabaseConnection.fromConfigFile("./database-config.json"));
+    private static async prepareControllers(): Promise<AbstractController[]> {
         const courseService = new CourseService(DbConnProvider.getDbConn());
         const edgarService = new EdgarService(DbConnProvider.getDbConn());
 
@@ -50,8 +48,6 @@ export class Main {
         adaptiveExerciseService.setInitialThetaGenerator(defaultAdaptiveExerciseInfoProvider);
         adaptiveExerciseService.setThetaDeltaGenerator(defaultAdaptiveExerciseInfoProvider);
 
-        Main.server.useJsonBodyParsing();
-
         const jobController: AbstractController = new JobController(jobService);
         const statisticsController: AbstractController = new StatisticsController(statisticsService);
         const edgarController: AbstractController = new EdgarController(
@@ -68,12 +64,27 @@ export class Main {
 
         const exerDefController: AbstractController = new ExerciseDefinitionController(exerciseDefinitionService);
 
-        jobController.applyController(Main.server);
-        statisticsController.applyController(Main.server);
-        edgarController.applyController(Main.server);
-        adaptiveExercisesController.applyController(Main.server);
-        exerDefController.applyController(Main.server);
-        
+        return [
+            jobController,
+            statisticsController,
+            edgarController,
+            adaptiveExercisesController,
+            exerDefController,
+        ];
+    }
+
+    public static async main(args: string[]): Promise<void> {
+        DbConnProvider.setDbConn(await DatabaseConnection.fromConfigFile("./database-config.json"));
+
+        const controllers = await Main.prepareControllers();
+
+        Main.server = ExpressServer.initialize();
+        Main.server.useJsonBodyParsing();
+
+        for (const controller of controllers) {
+            controller.applyController(Main.server);
+        }
+
         Main.server
             .start(
                 "localhost",
