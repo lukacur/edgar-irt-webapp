@@ -48,7 +48,6 @@ export class Main {
         );
         const statisticsController: AbstractController = new StatisticsController(DbConnProvider.getDbConn());
         const edgarController: AbstractController = new EdgarController(
-            DbConnProvider.getDbConn(),
             edgarService,
             courseService,
         );
@@ -60,10 +59,7 @@ export class Main {
                 adaptiveExerciseService,
             );
 
-        const exerDefController: AbstractController = new ExerciseDefinitionController(
-            DbConnProvider.getDbConn(),
-            exerciseDefinitionService
-        );
+        const exerDefController: AbstractController = new ExerciseDefinitionController(exerciseDefinitionService);
 
         jobController.applyController(Main.server);
         statisticsController.applyController(Main.server);

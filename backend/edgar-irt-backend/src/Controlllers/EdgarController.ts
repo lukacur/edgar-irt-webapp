@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from "express";
-import { DatabaseConnection } from "../Database/DatabaseConnection.js";
 import { Get } from "../Decorators/Get.decorator.js";
 import { AbstractController } from "./AbstractController.js";
 import { IEdgarAcademicYear } from "../Models/Database/Edgar/IEdgarAcademicYear.js";
@@ -10,7 +9,6 @@ import { EdgarService } from "../Services/EdgarService.js";
 
 export class EdgarController extends AbstractController {
     constructor(
-        private readonly dbConn: DatabaseConnection,
         private readonly edgarService: EdgarService,
         private readonly courseService: CourseService,
         basePath: string = "",

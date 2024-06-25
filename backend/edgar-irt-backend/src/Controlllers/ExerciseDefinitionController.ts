@@ -1,16 +1,12 @@
 import { NextFunction, Request, Response } from "express";
-import { DatabaseConnection } from "../Database/DatabaseConnection.js";
 import { Get } from "../Decorators/Get.decorator.js";
 import { AbstractController } from "./AbstractController.js";
 import { Post } from "../Decorators/Post.decorator.js";
 import { ExerciseDefinitionService } from "../Services/ExerciseDefinitionService.js";
 
-type NodeQuestionClass = { id_node: number, class_name: string | null, number_of_questions: number };
 
 export class ExerciseDefinitionController extends AbstractController {
     constructor(
-        private readonly dbConn: DatabaseConnection,
-
         private readonly exerciseDefinitionService: ExerciseDefinitionService,
 
         basePath: string = "exercise-definition"
@@ -26,75 +22,12 @@ export class ExerciseDefinitionController extends AbstractController {
             return;
         }
 
-        const nodeQuestionClasses: NodeQuestionClass[] = (
-            await this.dbConn.doQuery<NodeQuestionClass>(
-                `SELECT id_node,
-                    class_name,
-                    SUM(number_of_questions) AS number_of_questions
-                FROM (
-                    SELECT DISTINCT question_node.id_node,
-                        exercise_question_difficulty.question_difficulty AS class_name,
-                        COUNT(DISTINCT question_node.id_question) AS number_of_questions
-                    FROM adaptive_exercise.exercise_node_whitelist
-                        JOIN public.question_node
-                            ON question_node.id_node = exercise_node_whitelist.id_node
-                        JOIN public.question
-                            ON question_node.id_question = question.id
-                        JOIN adaptive_exercise.exercise_question_difficulty
-                            ON exercise_node_whitelist.id_exercise_definition =
-                                exercise_question_difficulty.id_exercise_definition AND
-                                question_node.id_question = exercise_question_difficulty.id_question
-                    WHERE exercise_node_whitelist.id_exercise_definition = $1 AND
-                        exercise_question_difficulty.question_difficulty_override IS NULL AND
-                        question.is_active
-                    GROUP BY question_node.id_node, exercise_question_difficulty.question_difficulty
-                    
-                    UNION ALL
-                    
-                    SELECT DISTINCT question_node.id_node,
-                        exercise_question_difficulty.question_difficulty_override AS class_name,
-                        COUNT(DISTINCT question_node.id_question) AS number_of_questions
-                    FROM adaptive_exercise.exercise_node_whitelist
-                        JOIN public.question_node
-                            ON question_node.id_node = exercise_node_whitelist.id_node
-                        JOIN public.question
-                            ON question_node.id_question = question.id
-                        JOIN adaptive_exercise.exercise_question_difficulty
-                            ON exercise_node_whitelist.id_exercise_definition =
-                                exercise_question_difficulty.id_exercise_definition AND
-                                question_node.id_question = exercise_question_difficulty.id_question
-                    WHERE exercise_node_whitelist.id_exercise_definition = $1 AND
-                        exercise_question_difficulty.question_difficulty_override IS NOT NULL AND
-                        question.is_active
-                    GROUP BY question_node.id_node, exercise_question_difficulty.question_difficulty_override
-                ) AS union_tab
-                GROUP BY id_node, class_name
-                ORDER BY id_node, class_name`,
-                [ idExerciseDefinition ]
-            )
-        )?.rows ?? [];
-
-        const questionClassInfo = (
-            await this.dbConn.doQuery<{ class_name: string, number_of_questions: number }>(
-                `SELECT CASE
-                        WHEN question_difficulty_override IS NULL THEN question_difficulty
-                        ELSE question_difficulty_override
-                    END AS class_name,
-                    COUNT(DISTINCT id_question) AS number_of_questions
-                FROM adaptive_exercise.exercise_question_difficulty
-                    JOIN public.question
-                        ON exercise_question_difficulty.id_question = question.id
-                WHERE id_exercise_definition = $1 AND
-                    question.is_active AND
-                    NOT excluded
-                GROUP BY class_name
-                ORDER BY class_name`,
-                [ idExerciseDefinition ]
-            )
-        )?.rows ?? [];
+        const result = await this.exerciseDefinitionService.getByNodeQuestionDifficultyInformation(
+            parseInt(idExerciseDefinition)
+        );
 
         res.send({
-            nodeQuestionClasses: nodeQuestionClasses.map(
+            nodeQuestionClasses: result.nodeQuestionClasses.map(
                 nqc => ({
                     ...nqc,
                     number_of_questions:
@@ -103,7 +36,7 @@ export class ExerciseDefinitionController extends AbstractController {
                             nqc.number_of_questions
                 })
             ),
-            questionClassInfo: questionClassInfo.map(
+            questionClassInfo: result.questionClassInfo.map(
                 qci => ({
                     ...qci,
                     number_of_questions:
