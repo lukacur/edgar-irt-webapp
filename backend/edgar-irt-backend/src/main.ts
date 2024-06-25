@@ -14,6 +14,7 @@ import { CourseService } from "./Services/CourseService.js";
 import { EdgarService } from "./Services/EdgarService.js";
 import { ExerciseDefinitionService } from "./Services/ExerciseDefinitionService.js";
 import { JobService } from "./Services/JobService.js";
+import { StatisticsService } from "./Services/StatisticsService.js";
 
 const EDGAR_STATPROC_QUEUE_NAME = "edgar-irt-work-request-queue";
 
@@ -31,6 +32,8 @@ export class Main {
             EDGAR_STATPROC_QUEUE_NAME,
             PgBossProvider.instance,
         );
+
+        const statisticsService = new StatisticsService(DbConnProvider.getDbConn());
 
         const adaptiveExerciseService = new AdaptiveExerciseService(
             DbConnProvider.getDbConn(),
@@ -50,7 +53,7 @@ export class Main {
         Main.server.useJsonBodyParsing();
 
         const jobController: AbstractController = new JobController(jobService);
-        const statisticsController: AbstractController = new StatisticsController(DbConnProvider.getDbConn());
+        const statisticsController: AbstractController = new StatisticsController(statisticsService);
         const edgarController: AbstractController = new EdgarController(
             edgarService,
             courseService,
