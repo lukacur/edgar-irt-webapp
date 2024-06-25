@@ -7,6 +7,13 @@ export class CourseService {
         private readonly dbConn: DatabaseConnection,
     ) {}
 
+    public async getCourses(): Promise<IEdgarCourse[]> {
+        return (await this.dbConn.doQuery<IEdgarCourse>(
+            `SELECT *
+            FROM public.course`
+        ))?.rows ?? [];
+    }
+
     public async getCourseNodes(idCourse: number): Promise<IEdgarNode[]> {
         const courseNodes: IEdgarNode[] = (
             await this.dbConn.doQuery<IEdgarNode>(

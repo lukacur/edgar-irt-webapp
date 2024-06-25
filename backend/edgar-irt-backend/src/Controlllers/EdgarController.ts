@@ -6,10 +6,12 @@ import { IEdgarAcademicYear } from "../Models/Database/Edgar/IEdgarAcademicYear.
 import { IEdgarCourse } from "../Models/Database/Edgar/IEdgarCourse.js";
 import { IEdgarNode } from "../Models/Database/Edgar/IEdgarNode.js";
 import { CourseService } from "../Services/CourseService.js";
+import { EdgarService } from "../Services/EdgarService.js";
 
 export class EdgarController extends AbstractController {
     constructor(
         private readonly dbConn: DatabaseConnection,
+        private readonly edgarService: EdgarService,
         private readonly courseService: CourseService,
         basePath: string = "",
     ) {
@@ -18,10 +20,7 @@ export class EdgarController extends AbstractController {
 
     @Get("courses")
     public async getCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const courses: IEdgarCourse[] = (await this.dbConn.doQuery<IEdgarCourse>(
-            `SELECT *
-            FROM public.course`
-        ))?.rows ?? [];
+        const courses: IEdgarCourse[] = await this.courseService.getCourses();
 
         res
             .status(200)
@@ -30,10 +29,7 @@ export class EdgarController extends AbstractController {
     
     @Get("academic-years")
     public async getAcademicYears(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const academicYears: IEdgarAcademicYear[] = (await this.dbConn.doQuery<IEdgarAcademicYear>(
-            `SELECT *
-            FROM public.academic_year`
-        ))?.rows ?? [];
+        const academicYears: IEdgarAcademicYear[] = await this.edgarService.getAcademicYears();
 
         res
             .status(200)

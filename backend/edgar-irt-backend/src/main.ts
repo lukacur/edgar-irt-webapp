@@ -47,7 +47,11 @@ export class Main {
             PgBossProvider.instance
         );
         const statisticsController: AbstractController = new StatisticsController(DbConnProvider.getDbConn());
-        const edgarController: AbstractController = new EdgarController(DbConnProvider.getDbConn(), courseService);
+        const edgarController: AbstractController = new EdgarController(
+            DbConnProvider.getDbConn(),
+            edgarService,
+            courseService,
+        );
         const adaptiveExercisesController: AbstractController =
             new AdaptiveExercisesController(
                 courseService,

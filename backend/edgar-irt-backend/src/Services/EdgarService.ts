@@ -1,4 +1,5 @@
 import { DatabaseConnection } from "../Database/DatabaseConnection.js";
+import { IEdgarAcademicYear } from "../Models/Database/Edgar/IEdgarAcademicYear.js";
 import { IQuestion } from "../Models/Database/Edgar/IQuestion.js";
 import { IQuestionAnswer } from "../Models/Database/Edgar/IQuestionAnswer.js";
 
@@ -6,6 +7,13 @@ export class EdgarService {
     constructor(
         private readonly dbConn: DatabaseConnection,
     ) {}
+
+    public async getAcademicYears(): Promise<IEdgarAcademicYear[]> {
+        return (await this.dbConn.doQuery<IEdgarAcademicYear>(
+            `SELECT *
+            FROM public.academic_year`
+        ))?.rows ?? [];
+    }
 
     public async getQuestionAnswers(idQuestion: number, includeCorrectness = false): Promise<IQuestionAnswer[] | null> {
         const answers: IQuestionAnswer[] | null = (
