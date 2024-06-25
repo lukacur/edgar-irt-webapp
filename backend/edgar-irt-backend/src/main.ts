@@ -13,6 +13,7 @@ import { AdaptiveExerciseService } from "./Services/AdaptiveExerciseService.js";
 import { CourseService } from "./Services/CourseService.js";
 import { EdgarService } from "./Services/EdgarService.js";
 import { ExerciseDefinitionService } from "./Services/ExerciseDefinitionService.js";
+import { JobService } from "./Services/JobService.js";
 
 const EDGAR_STATPROC_QUEUE_NAME = "edgar-irt-work-request-queue";
 
@@ -24,28 +25,31 @@ export class Main {
         DbConnProvider.setDbConn(await DatabaseConnection.fromConfigFile("./database-config.json"));
         const courseService = new CourseService(DbConnProvider.getDbConn());
         const edgarService = new EdgarService(DbConnProvider.getDbConn());
+
+        const jobService = new JobService(
+            DbConnProvider.getDbConn(),
+            EDGAR_STATPROC_QUEUE_NAME,
+            PgBossProvider.instance,
+        );
+
         const adaptiveExerciseService = new AdaptiveExerciseService(
             DbConnProvider.getDbConn(),
             edgarService,
         );
         const exerciseDefinitionService = new ExerciseDefinitionService(DbConnProvider.getDbConn(), courseService);
+        
         const defaultAdaptiveExerciseInfoProvider = new DefaultAdaptiveExerciseInfoProvider(
             edgarService,
             adaptiveExerciseService,
             exerciseDefinitionService,
         );
-
         adaptiveExerciseService.setNextQuestionGenerator(defaultAdaptiveExerciseInfoProvider);
         adaptiveExerciseService.setInitialThetaGenerator(defaultAdaptiveExerciseInfoProvider);
         adaptiveExerciseService.setThetaDeltaGenerator(defaultAdaptiveExerciseInfoProvider);
 
         Main.server.useJsonBodyParsing();
 
-        const jobController: AbstractController = new JobController(
-            DbConnProvider.getDbConn(),
-            EDGAR_STATPROC_QUEUE_NAME,
-            PgBossProvider.instance
-        );
+        const jobController: AbstractController = new JobController(jobService);
         const statisticsController: AbstractController = new StatisticsController(DbConnProvider.getDbConn());
         const edgarController: AbstractController = new EdgarController(
             edgarService,

@@ -1,21 +1,15 @@
 import { NextFunction, Request, Response } from "express";
 import { AbstractController } from "./AbstractController.js";
-import { DatabaseConnection } from "../Database/DatabaseConnection.js";
 import { Get } from "../Decorators/Get.decorator.js";
 import { Post } from "../Decorators/Post.decorator.js";
 import { IEdgarJobFrameworkJob } from "../Models/Database/Job/IEdgarJobFrameworkJob.js";
-import { IStartJobRequest } from "../Models/Job/IStartJobRequest.js";
-import { ICourseStatisticsProcessingRequest } from "../Models/Job/ICourseStatisticsProcessingRequest.js";
-import { PgBossProvider } from "../PgBossProvider.js";
 import { IEdgarJobFrameworkJobStep } from "../Models/Database/Job/IEdgarJobFrameworkJobStep.js";
 import { IEdgarJobFrameworkJobType } from "../Models/Database/Job/IEdgarJobFrameworkJobType.js";
+import { JobService } from "../Services/JobService.js";
 
 export class JobController extends AbstractController {
     constructor(
-        private readonly dbConn: DatabaseConnection,
-
-        private readonly statisticsProcessingQueueName: string,
-        private readonly pgBossProvider: PgBossProvider,
+        private readonly jobService: JobService,
 
         baseEndpoint: string = "",
     ) {
@@ -24,11 +18,7 @@ export class JobController extends AbstractController {
 
     @Get("jobs")
     public async getJobs(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const jobs: IEdgarJobFrameworkJob[] = (await this.dbConn.doQuery<IEdgarJobFrameworkJob>(
-            `SELECT *
-            FROM job_tracking_schema.job
-            ORDER BY started_on DESC`
-        ))?.rows ?? [];
+        const jobs: IEdgarJobFrameworkJob[] = await this.jobService.getJobs();
 
         res
             .status(200)
@@ -56,10 +46,7 @@ export class JobController extends AbstractController {
             return;
         }
 
-        const statProcReq: IStartJobRequest<ICourseStatisticsProcessingRequest> = req.body;
-        console.log(statProcReq);
-
-        await this.pgBossProvider.enqueue(this.statisticsProcessingQueueName, statProcReq);
+        await this.jobService.startJob(req.body);
 
         res
             .status(202)
@@ -68,36 +55,20 @@ export class JobController extends AbstractController {
 
     @Post("job/restart")
     public async restartJob(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const jobId = req.body["jobId"];
-        if ((jobId ?? null) === null) {
+        const idJob = req.body["jobId"];
+        if ((idJob ?? null) === null) {
             res.sendStatus(400);
             return;
         }
 
-        const result = await this.dbConn.doQuery(
-            "UPDATE job_tracking_schema.job SET rerun_requested = TRUE WHERE id = $1",
-            [jobId]
-        );
-
-        if (result === null) {
-            res.sendStatus(500);
-            return;
-        }
-
-        res.sendStatus(200);
+        res.sendStatus((await this.jobService.restartJob(idJob)) ? 200 : 400);
     }
 
     @Get("job/:jobId/steps")
     public async getJobSteps(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const jobId = req.params["jobId"];
+        const idJob = req.params["jobId"];
 
-        const jobSteps: IEdgarJobFrameworkJobStep[] = (await this.dbConn.doQuery<IEdgarJobFrameworkJobStep>(
-            `SELECT *
-            FROM job_tracking_schema.job_step
-            WHERE parent_job = $1
-            ORDER BY ordinal`,
-            [jobId]
-        ))?.rows ?? [];
+        const jobSteps: IEdgarJobFrameworkJobStep[] = await this.jobService.getJobSteps(idJob);
 
         res
             .status(200)
@@ -106,10 +77,7 @@ export class JobController extends AbstractController {
 
     @Get("job-steps")
     public async getAllJobSteps(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const jobSteps: IEdgarJobFrameworkJobStep[] = (await this.dbConn.doQuery<IEdgarJobFrameworkJobStep>(
-            `SELECT *
-            FROM job_tracking_schema.job_step`
-        ))?.rows ?? [];
+        const jobSteps: IEdgarJobFrameworkJobStep[] = await this.jobService.getAllJobSteps();
 
         res
             .status(200)
@@ -118,10 +86,7 @@ export class JobController extends AbstractController {
 
     @Get("job-types")
     public async getAllJobTypes(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const jobTypes: IEdgarJobFrameworkJobType[] = (await this.dbConn.doQuery<IEdgarJobFrameworkJobType>(
-            `SELECT *
-            FROM job_tracking_schema.job_type`
-        ))?.rows ?? [];
+        const jobTypes: IEdgarJobFrameworkJobType[] = await this.jobService.getJobTypes();
 
         res
             .status(200)
