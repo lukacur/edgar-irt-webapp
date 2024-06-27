@@ -9,7 +9,7 @@ Firstly, you have to configure the database that the server will use to:
 - store data on adaptive exercises
 
 Note that the PostgreSQL database server has to contain both the _Edgar_ database and the following schemas:
-- statistics_processing_schema
+- statistics_schema
 - adaptive_exercise
 
 Please note that without these schemas (defined in the
