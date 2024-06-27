@@ -1,27 +1,44 @@
-# EdgarIrtWebinterface
+# Edgar IRT exercises web application fronted
+This is the web user interface server that is used to provide functionality demonstration for the job execution
+framework, statistics calculation and adaptive exercising developed alongside the master thesis. This README will
+explain how to setup and configure the frontend server for personal use with the
+_Edgar automated programming assessment system_.
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 14.0.6.
+## Technologies note
+This web user interface was developed using [Angular](https://angular.io). It uses the server that can be started
+through the Angular CLI to host the web application user interface.
 
-## Development server
+## Backend connection configuration
+To configure the connection to the application backend server, you can edit the `environment.ts` and
+`environment.prod.ts` files in the `src/environments` directory if you are working with development or producion
+environments respectively. The exported environment object has only one property used by the application:
+```
+{
+    backendServerInfo: {
+        applicationAddress: "http://localhost:8970"
+    }
+}
+```
+The `backendServerInfo` object should specify an application address that the user interface will be connecting to for
+running bussiness logic related to adaptive exercises.
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+After configuring the connection to the backend server you can start the application. Note that, if the server that you
+configured is not running, the application will not be able to fetch data from the server and thus will not be working
+properly. For best results, it is recommended to start the backend server first and only after it is fully booted up you
+should start the frontend application server.
 
-## Code scaffolding
+## Starting the server
+The application user interface server can be started with a script `npm run dev`. This script opens up a new command
+line window with the application server started in it. After starting the server, the application should be accessible
+on the `http://localhost:4200` address.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+### Note for Linux users
+All custom NPM scripts in this project are adapted for Linux usage. If you want to run a Linux script, add an `-l` to
+the end of the script name. For example, if you wish to start the `npm run dev` script on Linux, use the `npm run dev-l`
+script instead.
 
-## Build
+<br>
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+<span style="font-size: 1.2rem"> __WARNING__: DO NOT USE THE SERVER IN A PRODUCTION ENVIRONMENT. THIS SERVER IS BUILT
+FOR DEMONSTRATION PURPOSES AND SHOULD ONLY BE USED FOR TESTING THE ADAPTIVE EXERCISES FUNCTIONALITY IN ITS CURRENT FORM.
+</span>
