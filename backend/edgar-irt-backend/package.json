@@ -7,7 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/main.js",
     "dev": "tsc && start npm run start",
-    "build": "tsc"
+    "dev-l": "tsc && npm run start",
+    "build": "tsc",
+    "build-l": "tsc"
   },
   "author": "Luka Curic",
   "license": "ISC",

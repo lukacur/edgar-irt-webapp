@@ -90,6 +90,11 @@ The server can be started using one of the included scripts:
 The first script should be used if you plan to develop this package further. If no development is required, you should
 run the `npm run build` after which you should use the `npm run start` script described above.
 
+### Note for Linux users
+All custom NPM scripts in this project are adapted for Linux usage. If you want to run a Linux script, add an `-l` to
+the end of the script name. For example, if you wish to start the `npm run dev` script on Linux, use the `npm run dev-l`
+script instead.
+
 ## Explaining the server boot output
 On boot, the server displays all endpoints that have been registered for it to listen to. All of these endpoints will be
 accessible by users that can connect to your server PC. Be aware that this is only a test server and is in no way
