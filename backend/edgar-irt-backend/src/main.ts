@@ -1,3 +1,4 @@
+import { readFile } from "fs/promises";
 import { DefaultAdaptiveExerciseInfoProvider } from "./AdaptiveExercises/DefaultAdaptiveExerciseInfoProvider.js";
 import { AbstractController } from "./Controlllers/AbstractController.js";
 import { AdaptiveExercisesController } from "./Controlllers/AdaptiveExercisesController.js";
@@ -15,13 +16,28 @@ import { EdgarService } from "./Services/EdgarService.js";
 import { ExerciseDefinitionService } from "./Services/ExerciseDefinitionService.js";
 import { JobService } from "./Services/JobService.js";
 import { StatisticsService } from "./Services/StatisticsService.js";
+import { existsSync } from "fs";
 
 const EDGAR_STATPROC_QUEUE_NAME = "edgar-irt-work-request-queue";
 
+type ServerConfig = {
+    address: string;
+    port: number;
+};
+
 export class Main {
     private static server: ExpressServer;
+    private static readonly DEFAULT_SERVER_CONFIG: ServerConfig = {
+        address: "localhost",
+        port: 8970
+    };
 
     private static async prepareControllers(): Promise<AbstractController[]> {
+        await PgBossProvider.configureInstanceFromFile("./pgboss-config.json");
+        if (PgBossProvider.instance === null) {
+            throw new Error("Connection with the PgBoss provider database could not be established");
+        }
+
         const courseService = new CourseService(DbConnProvider.getDbConn());
         const edgarService = new EdgarService(DbConnProvider.getDbConn());
 
@@ -85,12 +101,21 @@ export class Main {
             controller.applyController(Main.server);
         }
 
+        const serverConfig: ServerConfig = (!existsSync("./server-config.json")) ?
+            Main.DEFAULT_SERVER_CONFIG :
+            JSON.parse(await readFile("./server-config.json", { encoding: "utf-8" }));
+        if (serverConfig === Main.DEFAULT_SERVER_CONFIG) {
+            console.log(
+                "[WARN]: No configuration file found. Using the default server config: ", Main.DEFAULT_SERVER_CONFIG
+            );
+        }
+
         Main.server
             .start(
-                "localhost",
-                8970,
+                serverConfig.address,
+                serverConfig.port,
                 () => {
-                    console.log("Express HTTP server started @localhost:8970");
+                    console.log(`Express HTTP server started @${serverConfig.address}:${serverConfig.port}`);
                 }
             );
 
